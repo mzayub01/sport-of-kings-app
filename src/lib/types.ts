@@ -158,6 +158,7 @@ export interface Class {
   id: string;
   location_id: string;
   instructor_id?: string;
+  membership_type_id?: string;
   name: string;
   description?: string;
   class_type: ClassType;

@@ -75,9 +75,9 @@ export default function AdminMembersPage() {
             const memberships = membershipsRes.data || [];
 
             // Attach memberships to profiles
-            const membersWithData = profiles.map(profile => ({
+            const membersWithData = profiles.map((profile: Member) => ({
                 ...profile,
-                memberships: memberships.filter(m => m.user_id === profile.user_id),
+                memberships: memberships.filter((m: { user_id: string }) => m.user_id === profile.user_id),
             }));
 
             setMembers(membersWithData);

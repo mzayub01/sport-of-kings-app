@@ -67,17 +67,17 @@ export default function AdminWaitlistPage() {
 
             // Create lookup maps
             const locationsMap = new Map(
-                (locationsRes.data || []).map(loc => [loc.id, loc])
+                (locationsRes.data || []).map((loc: { id: string; name: string }) => [loc.id, loc])
             );
             const membershipTypesMap = new Map(
-                (membershipTypesRes.data || []).map(mt => [mt.id, mt])
+                (membershipTypesRes.data || []).map((mt: { id: string; name: string }) => [mt.id, mt])
             );
             const profilesMap = new Map(
-                (profilesRes.data || []).map(p => [p.user_id, p])
+                (profilesRes.data || []).map((p: { user_id: string; first_name: string; last_name: string; email: string; phone: string }) => [p.user_id, p])
             );
 
             // Manually join all data
-            const waitlistWithJoins = (waitlistRes.data || []).map(entry => ({
+            const waitlistWithJoins = (waitlistRes.data || []).map((entry: { user_id: string; location_id: string; membership_type_id?: string; created_at?: string }) => ({
                 ...entry,
                 created_at: entry.created_at || new Date().toISOString(),
                 profile: profilesMap.get(entry.user_id) || null,

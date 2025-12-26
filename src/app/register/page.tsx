@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -120,7 +120,7 @@ interface FormData {
     selectedMembershipTypeId: string;
 }
 
-export default function RegisterPage() {
+function RegisterPageContent() {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [pageLoading, setPageLoading] = useState(true);
@@ -1322,5 +1322,23 @@ export default function RegisterPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function RegisterPage() {
+    return (
+        <Suspense fallback={
+            <div style={{
+                minHeight: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--bg-primary)'
+            }}>
+                <div className="loading-spinner" />
+            </div>
+        }>
+            <RegisterPageContent />
+        </Suspense>
     );
 }

@@ -15,7 +15,7 @@ export const getStripeClient = (): Stripe | null => {
 
     if (!stripeClient) {
         stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-            apiVersion: '2023-10-16',
+            apiVersion: '2025-12-15.clover' as const,
             typescript: true,
         });
     }
@@ -25,5 +25,5 @@ export const getStripeClient = (): Stripe | null => {
 
 // Legacy export for compatibility
 export const stripe = isStripeConfigured()
-    ? new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' })
+    ? new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-12-15.clover' as const })
     : null as unknown as Stripe;

@@ -14,7 +14,7 @@ export default async function EventsPage() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    let userProfile = null;
+    let userProfile: { id: string; email: string; full_name?: string } | null = null;
     if (user) {
         const { data: profile } = await supabase
             .from('profiles')
