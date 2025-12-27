@@ -293,71 +293,62 @@ export default function ClassRosterPage() {
                 </div>
             </div>
 
-            {/* Class Info & Stats */}
-            {selectedClass && selectedClassInfo && (
-                <>
-                    {/* Wrong Day Warning */}
-                    {isWrongDay && (
-                        <div
-                            className="alert"
-                            style={{
-                                marginBottom: 'var(--space-4)',
-                                background: 'rgba(234, 179, 8, 0.15)',
-                                border: '1px solid rgba(234, 179, 8, 0.3)',
-                                color: 'var(--text-primary)',
-                            }}
-                        >
-                            <AlertTriangle size={18} color="#EAB308" />
-                            <span>
-                                <strong>Note:</strong> This class runs on <strong>{DAYS_OF_WEEK[selectedClassInfo.day_of_week]}s</strong>,
-                                but you&apos;ve selected a <strong>{DAYS_OF_WEEK[selectedDayOfWeek]}</strong>.
-                                Check-ins are disabled for non-scheduled days.
-                            </span>
+            {/* Class Info & Stats - Only show on correct day */}
+            {selectedClass && selectedClassInfo && !isWrongDay && (
+                <div className="glass-card" style={{ marginBottom: 'var(--space-6)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
+                        <div>
+                            <h2 style={{ margin: 0, fontSize: 'var(--text-xl)' }}>{selectedClassInfo.name}</h2>
+                            <p style={{ margin: 'var(--space-1) 0 0', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                                <MapPin size={14} />
+                                {(selectedClassInfo.location as { name: string })?.name}
+                                <span style={{ margin: '0 var(--space-2)' }}>•</span>
+                                <Clock size={14} />
+                                {selectedClassInfo.start_time} - {selectedClassInfo.end_time}
+                            </p>
                         </div>
-                    )}
-                    <div className="glass-card" style={{ marginBottom: 'var(--space-6)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
-                            <div>
-                                <h2 style={{ margin: 0, fontSize: 'var(--text-xl)' }}>{selectedClassInfo.name}</h2>
-                                <p style={{ margin: 'var(--space-1) 0 0', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                                    <MapPin size={14} />
-                                    {(selectedClassInfo.location as { name: string })?.name}
-                                    <span style={{ margin: '0 var(--space-2)' }}>•</span>
-                                    <Clock size={14} />
-                                    {selectedClassInfo.start_time} - {selectedClassInfo.end_time}
-                                </p>
+                        <div style={{ display: 'flex', gap: 'var(--space-6)', alignItems: 'center' }}>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', color: 'var(--color-gold)' }}>
+                                    {checkedInCount}
+                                </div>
+                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Checked In</div>
                             </div>
-                            <div style={{ display: 'flex', gap: 'var(--space-6)', alignItems: 'center' }}>
-                                <div style={{ textAlign: 'center' }}>
-                                    <div style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', color: 'var(--color-gold)' }}>
-                                        {checkedInCount}
-                                    </div>
-                                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Checked In</div>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: 'var(--text-2xl)', fontWeight: '700' }}>
+                                    {roster.length}
                                 </div>
-                                <div style={{ textAlign: 'center' }}>
-                                    <div style={{ fontSize: 'var(--text-2xl)', fontWeight: '700' }}>
-                                        {roster.length}
-                                    </div>
-                                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Enrolled</div>
+                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Enrolled</div>
+                            </div>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{
+                                    fontSize: 'var(--text-2xl)',
+                                    fontWeight: '700',
+                                    color: roster.length > 0 ? (checkedInCount / roster.length >= 0.7 ? 'var(--color-green)' : 'var(--text-primary)') : 'var(--text-tertiary)'
+                                }}>
+                                    {roster.length > 0 ? Math.round((checkedInCount / roster.length) * 100) : 0}%
                                 </div>
-                                <div style={{ textAlign: 'center' }}>
-                                    <div style={{
-                                        fontSize: 'var(--text-2xl)',
-                                        fontWeight: '700',
-                                        color: roster.length > 0 ? (checkedInCount / roster.length >= 0.7 ? 'var(--color-green)' : 'var(--text-primary)') : 'var(--text-tertiary)'
-                                    }}>
-                                        {roster.length > 0 ? Math.round((checkedInCount / roster.length) * 100) : 0}%
-                                    </div>
-                                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Attendance</div>
-                                </div>
+                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Attendance</div>
                             </div>
                         </div>
                     </div>
-                </>
+                </div>
             )}
 
-            {/* Roster List */}
-            {selectedClass ? (
+            {/* Roster List - Only show if date matches class day */}
+            {selectedClass && isWrongDay ? (
+                <div className="glass-card" style={{ textAlign: 'center', padding: 'var(--space-12)' }}>
+                    <AlertTriangle size={48} style={{ color: '#EAB308', marginBottom: 'var(--space-4)' }} />
+                    <h3 style={{ marginBottom: 'var(--space-2)' }}>No Class on This Day</h3>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-4)', maxWidth: '400px', margin: '0 auto' }}>
+                        <strong>{selectedClassInfo?.name}</strong> runs on <strong>{DAYS_OF_WEEK[selectedClassInfo?.day_of_week || 0]}s</strong>,
+                        but you&apos;ve selected a <strong>{DAYS_OF_WEEK[selectedDayOfWeek]}</strong>.
+                    </p>
+                    <p style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)', marginTop: 'var(--space-4)' }}>
+                        Please select a {DAYS_OF_WEEK[selectedClassInfo?.day_of_week || 0]} to view the roster and check in members.
+                    </p>
+                </div>
+            ) : selectedClass ? (
                 <div className="card">
                     <div className="card-header">
                         <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
@@ -470,7 +461,8 @@ export default function ClassRosterPage() {
                         Choose a class above to view enrolled members and their check-in status
                     </p>
                 </div>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 }
