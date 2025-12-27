@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "@/styles/globals.css";
+import PublicBottomNav from "@/components/PublicBottomNav";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -70,7 +71,9 @@ export default function RootLayout({
       </head>
       <body style={{ fontFamily: 'var(--font-sans)' }}>
         {children}
+        <PublicBottomNav />
       </body>
     </html>
   );
 }
+
