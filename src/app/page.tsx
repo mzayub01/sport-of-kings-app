@@ -178,6 +178,121 @@ export default async function HomePage() {
           </div>
         </section>
 
+        {/* Fajr40 Challenge Banner */}
+        <section
+          style={{
+            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+            padding: 'var(--space-10) var(--space-6)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Decorative stars */}
+          <div style={{
+            position: 'absolute',
+            top: '20%',
+            left: '10%',
+            width: '8px',
+            height: '8px',
+            background: 'var(--color-gold)',
+            borderRadius: '50%',
+            boxShadow: '0 0 20px var(--color-gold)',
+            opacity: 0.6,
+          }} />
+          <div style={{
+            position: 'absolute',
+            top: '60%',
+            right: '15%',
+            width: '6px',
+            height: '6px',
+            background: 'var(--color-gold)',
+            borderRadius: '50%',
+            boxShadow: '0 0 15px var(--color-gold)',
+            opacity: 0.5,
+          }} />
+          <div style={{
+            position: 'absolute',
+            bottom: '30%',
+            left: '20%',
+            width: '4px',
+            height: '4px',
+            background: '#fff',
+            borderRadius: '50%',
+            boxShadow: '0 0 10px #fff',
+            opacity: 0.4,
+          }} />
+
+          <div className="container" style={{ maxWidth: '900px', textAlign: 'center', position: 'relative', zIndex: 1 }}>
+            <div style={{
+              display: 'inline-block',
+              background: 'rgba(197, 164, 86, 0.2)',
+              padding: 'var(--space-1) var(--space-4)',
+              borderRadius: 'var(--radius-full)',
+              marginBottom: 'var(--space-4)',
+            }}>
+              <span style={{ color: 'var(--color-gold)', fontSize: 'var(--text-xs)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                ⭐ Sport of Kings Initiative
+              </span>
+            </div>
+
+            <h2 style={{
+              color: 'var(--color-white)',
+              fontSize: 'var(--text-3xl)',
+              marginBottom: 'var(--space-4)',
+            }}>
+              Join the <span style={{ color: 'var(--color-gold)' }}>Fajr40 Challenge</span>
+            </h2>
+
+            <p style={{
+              color: 'var(--color-gray-300)',
+              fontSize: 'var(--text-lg)',
+              maxWidth: '600px',
+              margin: '0 auto var(--space-6)',
+              lineHeight: '1.7',
+            }}>
+              40 days of Fajr in congregation. A spiritual challenge to build consistency, discipline, and connection with Allah ﷻ — brought to you by Sport of Kings.
+            </p>
+
+            <div style={{ display: 'flex', gap: 'var(--space-4)', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <a
+                href="https://fajr40challenge.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary btn-lg"
+                style={{
+                  background: 'linear-gradient(135deg, #D4B86A 0%, #C5A456 50%, #A88B3D 100%)',
+                  color: 'var(--color-black)',
+                }}
+              >
+                <Clock size={20} />
+                Take the Challenge
+              </a>
+              <a
+                href="https://fajr40challenge.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-outline btn-lg"
+                style={{
+                  borderColor: 'var(--color-gold)',
+                  color: 'var(--color-gold)',
+                }}
+              >
+                Learn More
+                <ChevronRight size={20} />
+              </a>
+            </div>
+
+            <p style={{
+              color: 'var(--color-gray-500)',
+              fontSize: 'var(--text-sm)',
+              marginTop: 'var(--space-6)',
+              marginBottom: 0,
+            }}>
+              Sport of Kings is more than BJJ — we&apos;re building strong Muslims on and off the mats.
+            </p>
+          </div>
+        </section>
+
         {/* Programs Section */}
         <section className="section" style={{ background: 'var(--bg-primary)' }}>
           <div className="container">
