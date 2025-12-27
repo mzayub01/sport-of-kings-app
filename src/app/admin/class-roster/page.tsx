@@ -10,6 +10,7 @@ import {
     User,
     UserCheck,
     AlertCircle,
+    AlertTriangle,
     MapPin,
     Users,
     Loader2
@@ -207,6 +208,11 @@ export default function ClassRosterPage() {
     const checkedInCount = roster.filter(m => m.checked_in).length;
     const selectedClassInfo = classes.find(c => c.id === selectedClass);
 
+    // Check if selected date matches class day of week
+    const selectedDateObj = new Date(selectedDate + 'T00:00:00');
+    const selectedDayOfWeek = selectedDateObj.getDay();
+    const isWrongDay = selectedClassInfo && selectedDayOfWeek !== selectedClassInfo.day_of_week;
+
     if (loading) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-12)' }}>
@@ -289,45 +295,65 @@ export default function ClassRosterPage() {
 
             {/* Class Info & Stats */}
             {selectedClass && selectedClassInfo && (
-                <div className="glass-card" style={{ marginBottom: 'var(--space-6)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
-                        <div>
-                            <h2 style={{ margin: 0, fontSize: 'var(--text-xl)' }}>{selectedClassInfo.name}</h2>
-                            <p style={{ margin: 'var(--space-1) 0 0', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                                <MapPin size={14} />
-                                {(selectedClassInfo.location as { name: string })?.name}
-                                <span style={{ margin: '0 var(--space-2)' }}>•</span>
-                                <Clock size={14} />
-                                {selectedClassInfo.start_time} - {selectedClassInfo.end_time}
-                            </p>
+                <>
+                    {/* Wrong Day Warning */}
+                    {isWrongDay && (
+                        <div
+                            className="alert"
+                            style={{
+                                marginBottom: 'var(--space-4)',
+                                background: 'rgba(234, 179, 8, 0.15)',
+                                border: '1px solid rgba(234, 179, 8, 0.3)',
+                                color: 'var(--text-primary)',
+                            }}
+                        >
+                            <AlertTriangle size={18} color="#EAB308" />
+                            <span>
+                                <strong>Note:</strong> This class runs on <strong>{DAYS_OF_WEEK[selectedClassInfo.day_of_week]}s</strong>,
+                                but you&apos;ve selected a <strong>{DAYS_OF_WEEK[selectedDayOfWeek]}</strong>.
+                                Check-ins are disabled for non-scheduled days.
+                            </span>
                         </div>
-                        <div style={{ display: 'flex', gap: 'var(--space-6)', alignItems: 'center' }}>
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', color: 'var(--color-gold)' }}>
-                                    {checkedInCount}
-                                </div>
-                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Checked In</div>
+                    )}
+                    <div className="glass-card" style={{ marginBottom: 'var(--space-6)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
+                            <div>
+                                <h2 style={{ margin: 0, fontSize: 'var(--text-xl)' }}>{selectedClassInfo.name}</h2>
+                                <p style={{ margin: 'var(--space-1) 0 0', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                                    <MapPin size={14} />
+                                    {(selectedClassInfo.location as { name: string })?.name}
+                                    <span style={{ margin: '0 var(--space-2)' }}>•</span>
+                                    <Clock size={14} />
+                                    {selectedClassInfo.start_time} - {selectedClassInfo.end_time}
+                                </p>
                             </div>
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: 'var(--text-2xl)', fontWeight: '700' }}>
-                                    {roster.length}
+                            <div style={{ display: 'flex', gap: 'var(--space-6)', alignItems: 'center' }}>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', color: 'var(--color-gold)' }}>
+                                        {checkedInCount}
+                                    </div>
+                                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Checked In</div>
                                 </div>
-                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Enrolled</div>
-                            </div>
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{
-                                    fontSize: 'var(--text-2xl)',
-                                    fontWeight: '700',
-                                    color: roster.length > 0 ? (checkedInCount / roster.length >= 0.7 ? 'var(--color-green)' : 'var(--text-primary)') : 'var(--text-tertiary)'
-                                }}>
-                                    {roster.length > 0 ? Math.round((checkedInCount / roster.length) * 100) : 0}%
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: 'var(--text-2xl)', fontWeight: '700' }}>
+                                        {roster.length}
+                                    </div>
+                                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Enrolled</div>
                                 </div>
-                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Attendance</div>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{
+                                        fontSize: 'var(--text-2xl)',
+                                        fontWeight: '700',
+                                        color: roster.length > 0 ? (checkedInCount / roster.length >= 0.7 ? 'var(--color-green)' : 'var(--text-primary)') : 'var(--text-tertiary)'
+                                    }}>
+                                        {roster.length > 0 ? Math.round((checkedInCount / roster.length) * 100) : 0}%
+                                    </div>
+                                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Attendance</div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                </>
 
             {/* Roster List */}
             {selectedClass ? (
@@ -410,9 +436,11 @@ export default function ClassRosterPage() {
                                         <button
                                             onClick={() => toggleCheckIn(member)}
                                             className={`btn ${member.checked_in ? 'btn-ghost' : 'btn-primary'} btn-sm`}
+                                            disabled={isWrongDay && !member.checked_in}
                                             style={{
                                                 minWidth: '100px',
                                                 color: member.checked_in ? 'var(--color-red)' : undefined,
+                                                opacity: isWrongDay && !member.checked_in ? 0.5 : 1,
                                             }}
                                         >
                                             {member.checked_in ? (
