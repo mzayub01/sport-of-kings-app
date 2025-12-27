@@ -1456,3 +1456,206 @@ select.form-input {
 .footer-bottom a:hover {
   color: var(--color-gold);
 }
+
+/* ===== Mobile Menu (App-like) ===== */
+.desktop-only {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  .desktop-only {
+    display: inline-flex !important;
+  }
+
+  .mobile-menu-btn {
+    display: none !important;
+  }
+}
+
+.mobile-menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0);
+  z-index: 150;
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.mobile-menu-overlay.open {
+  background: rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+}
+
+.mobile-menu-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 85%;
+  max-width: 320px;
+  background: var(--bg-primary);
+  z-index: 200;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-2xl);
+}
+
+.mobile-menu-panel.open {
+  transform: translateX(0);
+}
+
+.mobile-menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-secondary);
+}
+
+.mobile-menu-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: background var(--transition-fast);
+}
+
+.mobile-menu-close:hover {
+  background: var(--bg-tertiary);
+}
+
+.mobile-menu-nav {
+  flex: 1;
+  padding: var(--space-4) 0;
+  overflow-y: auto;
+}
+
+.mobile-menu-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--text-primary);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.mobile-menu-link:hover {
+  background: var(--bg-secondary);
+}
+
+.mobile-menu-link.active {
+  color: var(--color-gold);
+  background: rgba(197, 164, 86, 0.1);
+  border-left: 3px solid var(--color-gold);
+}
+
+.mobile-menu-link svg {
+  color: var(--color-gold);
+}
+
+.mobile-menu-divider {
+  height: 1px;
+  background: var(--border-light);
+  margin: var(--space-2) var(--space-4);
+}
+
+.mobile-menu-footer {
+  border-top: 1px solid var(--border-light);
+  background: var(--bg-secondary);
+}
+
+/* ===== Mobile Optimizations ===== */
+@media (max-width: 640px) {
+
+  /* Larger touch targets */
+  .btn {
+    min-height: 44px;
+    padding: var(--space-3) var(--space-5);
+  }
+
+  .btn-sm {
+    min-height: 40px;
+  }
+
+  /* Better form inputs on mobile */
+  .form-input {
+    font-size: 16px;
+    /* Prevents iOS zoom */
+    min-height: 48px;
+  }
+
+  /* Sticky bottom nav spacing */
+  .section {
+    padding: var(--space-10) var(--space-4);
+  }
+
+  /* Cards with less padding */
+  .glass-card {
+    padding: var(--space-4);
+  }
+
+  /* Navbar adjustments */
+  .navbar-container {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .navbar-logo img {
+    height: 36px;
+  }
+
+  /* Better table scrolling */
+  .table-container {
+    margin: 0 calc(-1 * var(--space-4));
+    width: calc(100% + var(--space-8));
+    border-radius: 0;
+  }
+
+  /* Full width buttons on mobile */
+  .btn-mobile-full {
+    width: 100%;
+  }
+
+  /* Grid adjustments */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+  }
+
+  .stat-card {
+    padding: var(--space-4);
+  }
+
+  .stat-value {
+    font-size: var(--text-2xl);
+  }
+}
+
+/* Safe area padding for notched phones */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .navbar {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .mobile-menu-panel {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .footer {
+    padding-bottom: calc(var(--space-12) + env(safe-area-inset-bottom));
+  }
+}

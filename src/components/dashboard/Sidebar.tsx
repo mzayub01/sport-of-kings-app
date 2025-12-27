@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { useEffect } from 'react';
 import {
     LayoutDashboard,
     Calendar,
@@ -19,7 +20,9 @@ import {
     PartyPopper,
     Users,
     CreditCard,
-    MapPin
+    MapPin,
+    ChevronRight,
+    Crown
 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -36,7 +39,20 @@ export default function DashboardSidebar({ role, userName = 'Member' }: SidebarP
     const supabase = getSupabaseClient();
     const [isOpen, setIsOpen] = useState(false);
 
+    // Prevent body scroll when menu is open
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isOpen]);
+
     const handleSignOut = async () => {
+        setIsOpen(false);
         await supabase.auth.signOut();
         router.push('/');
         router.refresh();
@@ -82,65 +98,92 @@ export default function DashboardSidebar({ role, userName = 'Member' }: SidebarP
 
     return (
         <>
-            {/* Mobile Menu Button */}
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="btn btn-ghost btn-icon"
-                style={{
-                    position: 'fixed',
-                    top: 'var(--space-4)',
-                    left: 'var(--space-4)',
-                    zIndex: 60,
-                    display: 'none',
-                }}
-                aria-label="Toggle menu"
-            >
-                {isOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+            {/* Mobile Header Bar */}
+            <div className="dashboard-mobile-header">
+                <button
+                    onClick={() => setIsOpen(true)}
+                    className="dashboard-mobile-menu-btn"
+                    aria-label="Open menu"
+                >
+                    <Menu size={24} />
+                </button>
+                <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
+                    <Image
+                        src="/logo-full.png"
+                        alt="Sport of Kings"
+                        width={120}
+                        height={36}
+                        style={{ height: '32px', width: 'auto' }}
+                    />
+                </Link>
+                <Link href="/dashboard/profile" className="dashboard-mobile-profile-btn">
+                    <User size={20} />
+                </Link>
+            </div>
 
             {/* Overlay */}
-            {isOpen && (
-                <div
-                    onClick={() => setIsOpen(false)}
-                    style={{
-                        position: 'fixed',
-                        inset: 0,
-                        background: 'rgba(0, 0, 0, 0.5)',
-                        zIndex: 40,
-                    }}
-                />
-            )}
+            <div
+                className={`dashboard-sidebar-overlay ${isOpen ? 'open' : ''}`}
+                onClick={() => setIsOpen(false)}
+            />
 
             {/* Sidebar */}
-            <aside
-                className={`sidebar ${isOpen ? 'open' : ''}`}
-                style={{
-                    transform: isOpen ? 'translateX(0)' : undefined,
-                }}
-            >
+            <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
+                {/* Sidebar Header */}
                 <div className="sidebar-header">
-                    <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                        <Image
-                            src="/logo-full.png"
-                            alt="Sport of Kings"
-                            width={140}
-                            height={40}
-                            style={{ height: '36px', width: 'auto' }}
-                        />
-                    </Link>
-                    <p style={{
-                        fontSize: 'var(--text-sm)',
-                        color: 'var(--text-secondary)',
-                        marginTop: 'var(--space-2)',
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                            <Image
+                                src="/logo-full.png"
+                                alt="Sport of Kings"
+                                width={140}
+                                height={40}
+                                style={{ height: '36px', width: 'auto' }}
+                            />
+                        </Link>
+                        <button
+                            onClick={() => setIsOpen(false)}
+                            className="sidebar-close-btn"
+                            aria-label="Close menu"
+                        >
+                            <X size={24} />
+                        </button>
+                    </div>
+                    <div style={{
+                        marginTop: 'var(--space-4)',
+                        padding: 'var(--space-3)',
+                        background: 'rgba(197, 164, 86, 0.1)',
+                        borderRadius: 'var(--radius-lg)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--space-3)',
                     }}>
-                        Welcome, {userName}
-                    </p>
+                        <div style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: 'var(--radius-full)',
+                            background: 'var(--color-gold-gradient)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'var(--color-black)',
+                            fontWeight: '700',
+                        }}>
+                            {userName.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <p style={{ fontWeight: '600', fontSize: 'var(--text-sm)', margin: 0 }}>{userName}</p>
+                            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', margin: 0, textTransform: 'capitalize' }}>
+                                {role}
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 <nav className="sidebar-nav">
                     <div className="sidebar-section">
                         <span className="sidebar-section-title">Menu</span>
-                        {links.slice(0, 7).map((link) => (
+                        {links.slice(0, 8).map((link) => (
                             <Link
                                 key={link.href}
                                 href={link.href}
@@ -148,15 +191,16 @@ export default function DashboardSidebar({ role, userName = 'Member' }: SidebarP
                                 onClick={() => setIsOpen(false)}
                             >
                                 <link.icon size={20} />
-                                {link.label}
+                                <span style={{ flex: 1 }}>{link.label}</span>
+                                <ChevronRight size={16} style={{ opacity: 0.3 }} className="sidebar-link-arrow" />
                             </Link>
                         ))}
                     </div>
 
-                    {links.length > 7 && (
+                    {links.length > 8 && (
                         <div className="sidebar-section">
                             <span className="sidebar-section-title">More</span>
-                            {links.slice(7).map((link) => (
+                            {links.slice(8).map((link) => (
                                 <Link
                                     key={link.href}
                                     href={link.href}
@@ -164,7 +208,8 @@ export default function DashboardSidebar({ role, userName = 'Member' }: SidebarP
                                     onClick={() => setIsOpen(false)}
                                 >
                                     <link.icon size={20} />
-                                    {link.label}
+                                    <span style={{ flex: 1 }}>{link.label}</span>
+                                    <ChevronRight size={16} style={{ opacity: 0.3 }} className="sidebar-link-arrow" />
                                 </Link>
                             ))}
                         </div>
@@ -178,33 +223,145 @@ export default function DashboardSidebar({ role, userName = 'Member' }: SidebarP
                             onClick={() => setIsOpen(false)}
                         >
                             <User size={20} />
-                            Profile
+                            <span style={{ flex: 1 }}>Profile</span>
+                            <ChevronRight size={16} style={{ opacity: 0.3 }} className="sidebar-link-arrow" />
                         </Link>
                         <button
                             onClick={handleSignOut}
                             className="sidebar-link"
-                            style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer' }}
+                            style={{
+                                width: '100%',
+                                border: 'none',
+                                background: 'none',
+                                textAlign: 'left',
+                                cursor: 'pointer',
+                                color: 'var(--color-red)',
+                            }}
                         >
                             <LogOut size={20} />
-                            Sign Out
+                            <span style={{ flex: 1 }}>Sign Out</span>
                         </button>
                     </div>
                 </nav>
             </aside>
 
             <style jsx>{`
-        @media (max-width: 1024px) {
-          .sidebar {
-            transform: translateX(-100%);
-          }
-          .sidebar.open {
-            transform: translateX(0);
-          }
-          button[aria-label="Toggle menu"] {
-            display: flex !important;
-          }
-        }
-      `}</style>
+                .dashboard-mobile-header {
+                    display: none;
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    height: 60px;
+                    background: var(--bg-glass-dark);
+                    backdrop-filter: var(--glass-blur);
+                    -webkit-backdrop-filter: var(--glass-blur);
+                    border-bottom: 1px solid var(--border-light);
+                    padding: 0 var(--space-4);
+                    align-items: center;
+                    justify-content: space-between;
+                    z-index: 50;
+                }
+                
+                .dashboard-mobile-menu-btn,
+                .dashboard-mobile-profile-btn {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 44px;
+                    height: 44px;
+                    border: none;
+                    background: transparent;
+                    border-radius: var(--radius-lg);
+                    cursor: pointer;
+                    color: var(--text-primary);
+                    transition: background var(--transition-fast);
+                }
+                
+                .dashboard-mobile-menu-btn:hover,
+                .dashboard-mobile-profile-btn:hover {
+                    background: var(--bg-tertiary);
+                }
+                
+                .dashboard-mobile-profile-btn {
+                    background: rgba(197, 164, 86, 0.1);
+                    color: var(--color-gold);
+                }
+                
+                .dashboard-sidebar-overlay {
+                    display: none;
+                    position: fixed;
+                    inset: 0;
+                    background: rgba(0, 0, 0, 0);
+                    z-index: 55;
+                    pointer-events: none;
+                    transition: background 0.3s ease;
+                }
+                
+                .dashboard-sidebar-overlay.open {
+                    background: rgba(0, 0, 0, 0.5);
+                    pointer-events: auto;
+                }
+                
+                .sidebar-close-btn {
+                    display: none;
+                    align-items: center;
+                    justify-content: center;
+                    width: 40px;
+                    height: 40px;
+                    border: none;
+                    background: transparent;
+                    border-radius: var(--radius-lg);
+                    cursor: pointer;
+                    color: var(--text-primary);
+                    transition: background var(--transition-fast);
+                }
+                
+                .sidebar-close-btn:hover {
+                    background: var(--bg-tertiary);
+                }
+                
+                @media (max-width: 1024px) {
+                    .dashboard-mobile-header {
+                        display: flex;
+                    }
+                    
+                    .dashboard-sidebar-overlay {
+                        display: block;
+                    }
+                    
+                    .sidebar-close-btn {
+                        display: flex;
+                    }
+                    
+                    :global(.sidebar) {
+                        transform: translateX(-100%);
+                        z-index: 60;
+                    }
+                    
+                    :global(.sidebar.open) {
+                        transform: translateX(0);
+                    }
+                    
+                    :global(.dashboard-main) {
+                        margin-left: 0;
+                        padding-top: 76px;
+                    }
+                }
+                
+                @supports (padding-top: env(safe-area-inset-top)) {
+                    .dashboard-mobile-header {
+                        padding-top: env(safe-area-inset-top);
+                        height: calc(60px + env(safe-area-inset-top));
+                    }
+                    
+                    @media (max-width: 1024px) {
+                        :global(.dashboard-main) {
+                            padding-top: calc(76px + env(safe-area-inset-top));
+                        }
+                    }
+                }
+            `}</style>
         </>
     );
 }
