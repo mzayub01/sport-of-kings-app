@@ -167,6 +167,13 @@ export default function BottomNav({ role = 'member' }: BottomNavProps) {
                         height: calc(90px + env(safe-area-inset-bottom));
                     }
                 }
+                
+                /* Hide bottom nav when sidebar is open */
+                :global(.dashboard-sidebar-overlay.open) ~ .bottom-nav,
+                :global(body:has(.dashboard-sidebar-overlay.open)) .bottom-nav {
+                    opacity: 0;
+                    pointer-events: none;
+                }
             `}</style>
         </>
     );

@@ -1659,3 +1659,11 @@ select.form-input {
     padding-bottom: calc(var(--space-12) + env(safe-area-inset-bottom));
   }
 }
+
+/* Hide bottom nav when sidebar menu is open */
+body:has(.sidebar.open) .bottom-nav,
+body:has(.dashboard-sidebar-overlay.open) .bottom-nav {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}

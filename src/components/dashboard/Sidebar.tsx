@@ -239,7 +239,6 @@ export default function DashboardSidebar({ role, userName = 'Member' }: SidebarP
                                 textAlign: 'left',
                                 cursor: 'pointer',
                                 color: 'var(--color-red)',
-                                marginBottom: '100px',
                             }}
                         >
                             <LogOut size={20} />
