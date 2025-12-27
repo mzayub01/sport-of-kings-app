@@ -218,7 +218,7 @@ export default function DashboardSidebar({ role, userName = 'Member' }: SidebarP
                         </div>
                     )}
 
-                    <div className="sidebar-section" style={{ marginTop: 'auto' }}>
+                    <div className="sidebar-section sidebar-account-section" style={{ marginTop: 'auto' }}>
                         <span className="sidebar-section-title">Account</span>
                         <Link
                             href="/dashboard/profile"
@@ -239,6 +239,7 @@ export default function DashboardSidebar({ role, userName = 'Member' }: SidebarP
                                 textAlign: 'left',
                                 cursor: 'pointer',
                                 color: 'var(--color-red)',
+                                marginBottom: '100px',
                             }}
                         >
                             <LogOut size={20} />
