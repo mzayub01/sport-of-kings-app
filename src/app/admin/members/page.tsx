@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, User, Mail, Phone, Award, Shield, Edit, ChevronDown, AlertCircle, CheckCircle, Calendar, MapPin, Filter } from 'lucide-react';
+import { Search, User, Mail, Phone, Award, Shield, Edit, ChevronDown, AlertCircle, CheckCircle, Calendar, MapPin, Filter, ClipboardList } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import type { Location, MembershipType } from '@/lib/types';
+import MemberAttendanceModal from '@/components/admin/MemberAttendanceModal';
 
 interface Member {
     id: string;
@@ -41,6 +42,8 @@ export default function AdminMembersPage() {
 
     const [showModal, setShowModal] = useState(false);
     const [editingMember, setEditingMember] = useState<Member | null>(null);
+    const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+    const [attendanceMember, setAttendanceMember] = useState<Member | null>(null);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
@@ -401,6 +404,18 @@ export default function AdminMembersPage() {
                                         {new Date(member.created_at).toLocaleDateString('en-GB')}
                                     </div>
 
+                                    {/* View Attendance Button */}
+                                    <button
+                                        onClick={() => {
+                                            setAttendanceMember(member);
+                                            setShowAttendanceModal(true);
+                                        }}
+                                        className="btn btn-ghost btn-sm"
+                                        title="View Attendance"
+                                    >
+                                        <ClipboardList size={18} />
+                                    </button>
+
                                     {/* Edit Button */}
                                     <button
                                         onClick={() => openEditModal(member)}
@@ -542,6 +557,16 @@ export default function AdminMembersPage() {
                     </div>
                 </div>
             )}
+
+            {/* Attendance Modal */}
+            <MemberAttendanceModal
+                isOpen={showAttendanceModal}
+                onClose={() => {
+                    setShowAttendanceModal(false);
+                    setAttendanceMember(null);
+                }}
+                member={attendanceMember}
+            />
         </div>
     );
 }
