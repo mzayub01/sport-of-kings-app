@@ -50,27 +50,31 @@ export default function BottomNav({ role = 'member' }: BottomNavProps) {
             <div className="bottom-nav-spacer" />
 
             <nav className="bottom-nav">
-                {links.map((link) => {
-                    const Icon = link.icon;
-                    const active = isActive(link.href);
+                <div className="bottom-nav-inner">
+                    {links.map((link) => {
+                        const Icon = link.icon;
+                        const active = isActive(link.href);
 
-                    return (
-                        <Link
-                            key={link.href}
-                            href={link.href}
-                            className={`bottom-nav-item ${active ? 'active' : ''}`}
-                        >
-                            <Icon size={22} strokeWidth={active ? 2.5 : 2} />
-                            <span>{link.label}</span>
-                        </Link>
-                    );
-                })}
+                        return (
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                className={`nav-item ${active ? 'active' : ''}`}
+                            >
+                                <div className={`icon-wrapper ${active ? 'active' : ''}`}>
+                                    <Icon size={20} strokeWidth={active ? 2.5 : 1.8} />
+                                </div>
+                                <span className="nav-label">{link.label}</span>
+                            </Link>
+                        );
+                    })}
+                </div>
             </nav>
 
             <style jsx>{`
                 .bottom-nav-spacer {
                     display: none;
-                    height: 80px;
+                    height: 90px;
                 }
                 
                 .bottom-nav {
@@ -79,52 +83,73 @@ export default function BottomNav({ role = 'member' }: BottomNavProps) {
                     bottom: 0;
                     left: 0;
                     right: 0;
-                    height: 70px;
-                    background: var(--bg-glass-dark);
-                    backdrop-filter: var(--glass-blur);
-                    -webkit-backdrop-filter: var(--glass-blur);
-                    border-top: 1px solid var(--border-light);
-                    padding: 0 var(--space-2);
-                    padding-bottom: env(safe-area-inset-bottom, 0);
                     z-index: 100;
-                    justify-content: space-around;
-                    align-items: flex-start;
+                    padding: 0 var(--space-3);
+                    padding-bottom: env(safe-area-inset-bottom, 8px);
                 }
                 
-                .bottom-nav-item {
+                .bottom-nav-inner {
+                    display: flex;
+                    justify-content: space-around;
+                    align-items: center;
+                    background: rgba(255, 255, 255, 0.95);
+                    backdrop-filter: blur(20px);
+                    -webkit-backdrop-filter: blur(20px);
+                    border-radius: 24px;
+                    padding: var(--space-2) var(--space-3);
+                    margin: 0 auto;
+                    max-width: 420px;
+                    box-shadow: 
+                        0 -4px 24px rgba(0, 0, 0, 0.08),
+                        0 0 0 1px rgba(255, 255, 255, 0.8),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+                }
+                
+                .nav-item {
                     display: flex;
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
                     gap: 4px;
-                    padding: var(--space-2) var(--space-3);
-                    padding-top: var(--space-3);
+                    padding: var(--space-2);
                     color: var(--text-tertiary);
                     text-decoration: none;
-                    font-size: 11px;
-                    font-weight: 500;
-                    transition: all var(--transition-fast);
-                    min-width: 60px;
+                    transition: all 0.2s ease;
+                    min-width: 56px;
+                    position: relative;
                 }
                 
-                .bottom-nav-item:hover {
-                    color: var(--text-secondary);
-                }
-                
-                .bottom-nav-item.active {
-                    color: var(--color-gold);
-                }
-                
-                .bottom-nav-item.active::before {
-                    content: '';
-                    position: absolute;
-                    top: 0;
-                    left: 50%;
-                    transform: translateX(-50%);
+                .icon-wrapper {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                     width: 40px;
-                    height: 3px;
-                    background: var(--color-gold);
-                    border-radius: 0 0 var(--radius-full) var(--radius-full);
+                    height: 40px;
+                    border-radius: 14px;
+                    background: transparent;
+                    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                
+                .icon-wrapper.active {
+                    background: linear-gradient(135deg, rgba(212, 184, 106, 0.2) 0%, rgba(197, 164, 86, 0.25) 100%);
+                    color: var(--color-gold);
+                    transform: translateY(-2px);
+                }
+                
+                .nav-label {
+                    font-size: 10px;
+                    font-weight: 600;
+                    letter-spacing: 0.2px;
+                    text-transform: uppercase;
+                    transition: color 0.2s ease;
+                }
+                
+                .nav-item:hover .icon-wrapper:not(.active) {
+                    background: rgba(0, 0, 0, 0.05);
+                }
+                
+                .nav-item.active .nav-label {
+                    color: var(--color-gold);
                 }
                 
                 @media (max-width: 1024px) {
@@ -133,17 +158,13 @@ export default function BottomNav({ role = 'member' }: BottomNavProps) {
                     }
                     
                     .bottom-nav {
-                        display: flex;
+                        display: block;
                     }
                 }
                 
                 @supports (padding-bottom: env(safe-area-inset-bottom)) {
-                    .bottom-nav {
-                        height: calc(70px + env(safe-area-inset-bottom));
-                    }
-                    
                     .bottom-nav-spacer {
-                        height: calc(80px + env(safe-area-inset-bottom));
+                        height: calc(90px + env(safe-area-inset-bottom));
                     }
                 }
             `}</style>

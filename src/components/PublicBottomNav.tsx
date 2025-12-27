@@ -35,27 +35,31 @@ export default function PublicBottomNav() {
             <div className="public-bottom-nav-spacer" />
 
             <nav className="public-bottom-nav">
-                {links.map((link) => {
-                    const Icon = link.icon;
-                    const active = isActive(link.href);
+                <div className="public-bottom-nav-inner">
+                    {links.map((link) => {
+                        const Icon = link.icon;
+                        const active = isActive(link.href);
 
-                    return (
-                        <Link
-                            key={link.href}
-                            href={link.href}
-                            className={`public-bottom-nav-item ${active ? 'active' : ''} ${link.highlight ? 'highlight' : ''}`}
-                        >
-                            <Icon size={22} strokeWidth={active ? 2.5 : 2} />
-                            <span>{link.label}</span>
-                        </Link>
-                    );
-                })}
+                        return (
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                className={`public-nav-item ${active ? 'active' : ''} ${link.highlight ? 'highlight' : ''}`}
+                            >
+                                <div className={`nav-icon-wrapper ${active ? 'active' : ''} ${link.highlight ? 'highlight' : ''}`}>
+                                    <Icon size={20} strokeWidth={active ? 2.5 : 1.8} />
+                                </div>
+                                <span className="nav-label">{link.label}</span>
+                            </Link>
+                        );
+                    })}
+                </div>
             </nav>
 
             <style jsx>{`
                 .public-bottom-nav-spacer {
                     display: none;
-                    height: 80px;
+                    height: 90px;
                 }
                 
                 .public-bottom-nav {
@@ -64,67 +68,87 @@ export default function PublicBottomNav() {
                     bottom: 0;
                     left: 0;
                     right: 0;
-                    height: 70px;
-                    background: var(--bg-glass-dark);
-                    backdrop-filter: var(--glass-blur);
-                    -webkit-backdrop-filter: var(--glass-blur);
-                    border-top: 1px solid var(--border-light);
-                    padding: 0 var(--space-2);
-                    padding-bottom: env(safe-area-inset-bottom, 0);
                     z-index: 100;
-                    justify-content: space-around;
-                    align-items: flex-start;
+                    padding: 0 var(--space-3);
+                    padding-bottom: env(safe-area-inset-bottom, 8px);
                 }
                 
-                .public-bottom-nav-item {
+                .public-bottom-nav-inner {
+                    display: flex;
+                    justify-content: space-around;
+                    align-items: center;
+                    background: rgba(255, 255, 255, 0.95);
+                    backdrop-filter: blur(20px);
+                    -webkit-backdrop-filter: blur(20px);
+                    border-radius: 24px;
+                    padding: var(--space-2) var(--space-3);
+                    margin: 0 auto;
+                    max-width: 420px;
+                    box-shadow: 
+                        0 -4px 24px rgba(0, 0, 0, 0.08),
+                        0 0 0 1px rgba(255, 255, 255, 0.8),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+                }
+                
+                .public-nav-item {
                     display: flex;
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
                     gap: 4px;
-                    padding: var(--space-2) var(--space-3);
-                    padding-top: var(--space-3);
+                    padding: var(--space-2);
                     color: var(--text-tertiary);
                     text-decoration: none;
-                    font-size: 11px;
-                    font-weight: 500;
-                    transition: all var(--transition-fast);
-                    min-width: 60px;
+                    transition: all 0.2s ease;
+                    min-width: 56px;
                     position: relative;
                 }
                 
-                .public-bottom-nav-item:hover {
-                    color: var(--text-secondary);
-                }
-                
-                .public-bottom-nav-item.active {
-                    color: var(--color-gold);
-                }
-                
-                .public-bottom-nav-item.active::before {
-                    content: '';
-                    position: absolute;
-                    top: 0;
-                    left: 50%;
-                    transform: translateX(-50%);
+                .nav-icon-wrapper {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                     width: 40px;
-                    height: 3px;
-                    background: var(--color-gold);
-                    border-radius: 0 0 var(--radius-full) var(--radius-full);
+                    height: 40px;
+                    border-radius: 14px;
+                    background: transparent;
+                    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
                 }
                 
-                .public-bottom-nav-item.highlight {
+                .nav-icon-wrapper.active {
+                    background: rgba(197, 164, 86, 0.15);
+                    color: var(--color-gold);
+                    transform: translateY(-2px);
+                }
+                
+                .nav-icon-wrapper.highlight {
+                    background: linear-gradient(135deg, #D4B86A 0%, #C5A456 50%, #A88B3D 100%);
+                    color: var(--color-black);
+                    box-shadow: 0 4px 12px rgba(197, 164, 86, 0.4);
+                }
+                
+                .nav-icon-wrapper.highlight.active {
+                    transform: scale(1.08) translateY(-2px);
+                }
+                
+                .nav-label {
+                    font-size: 10px;
+                    font-weight: 600;
+                    letter-spacing: 0.2px;
+                    text-transform: uppercase;
+                    transition: color 0.2s ease;
+                }
+                
+                .public-nav-item:hover .nav-icon-wrapper:not(.highlight) {
+                    background: rgba(0, 0, 0, 0.05);
+                }
+                
+                .public-nav-item.active .nav-label {
                     color: var(--color-gold);
                 }
                 
-                .public-bottom-nav-item.highlight :global(svg) {
-                    background: var(--color-gold-gradient);
-                    color: var(--color-black);
-                    padding: 6px;
-                    border-radius: var(--radius-full);
-                    width: 34px;
-                    height: 34px;
-                    box-shadow: var(--shadow-gold);
+                .public-nav-item.highlight .nav-label {
+                    color: var(--color-gold-dark);
                 }
                 
                 @media (max-width: 768px) {
@@ -133,17 +157,13 @@ export default function PublicBottomNav() {
                     }
                     
                     .public-bottom-nav {
-                        display: flex;
+                        display: block;
                     }
                 }
                 
                 @supports (padding-bottom: env(safe-area-inset-bottom)) {
-                    .public-bottom-nav {
-                        height: calc(70px + env(safe-area-inset-bottom));
-                    }
-                    
                     .public-bottom-nav-spacer {
-                        height: calc(80px + env(safe-area-inset-bottom));
+                        height: calc(90px + env(safe-area-inset-bottom));
                     }
                 }
             `}</style>
