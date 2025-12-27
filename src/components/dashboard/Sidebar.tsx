@@ -22,7 +22,8 @@ import {
     CreditCard,
     MapPin,
     ChevronRight,
-    Crown
+    Crown,
+    ClipboardList
 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -72,6 +73,7 @@ export default function DashboardSidebar({ role, userName = 'Member' }: SidebarP
     const instructorLinks = [
         { href: '/instructor', label: 'Dashboard', icon: LayoutDashboard },
         { href: '/instructor/classes', label: 'My Classes', icon: Calendar },
+        { href: '/admin/class-roster', label: 'Class Roster', icon: ClipboardList },
         { href: '/instructor/attendance', label: 'Attendance', icon: CheckCircle },
         { href: '/instructor/students', label: 'Students', icon: User },
         { href: '/instructor/naseeha', label: 'Weekly Naseeha', icon: BookOpen },
@@ -85,6 +87,7 @@ export default function DashboardSidebar({ role, userName = 'Member' }: SidebarP
         { href: '/admin/locations', label: 'Locations', icon: MapPin },
         { href: '/admin/membership-types', label: 'Membership Types', icon: CreditCard },
         { href: '/admin/classes', label: 'Classes', icon: Calendar },
+        { href: '/admin/class-roster', label: 'Class Roster', icon: ClipboardList },
         { href: '/admin/instructors', label: 'Instructors', icon: Award },
         { href: '/admin/attendance', label: 'Attendance', icon: CheckCircle },
         { href: '/admin/videos', label: 'Videos', icon: Video },
