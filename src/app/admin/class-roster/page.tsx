@@ -354,6 +354,7 @@ export default function ClassRosterPage() {
                         </div>
                     </div>
                 </>
+            )}
 
             {/* Roster List */}
             {selectedClass ? (
