@@ -52,10 +52,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: 'Failed to create user' }, { status: 500 });
         }
 
-        // Create profile for the user
+        // Create/update profile for the user (upsert in case trigger already created it)
         const { error: profileError } = await supabaseAdmin
             .from('profiles')
-            .insert({
+            .upsert({
                 user_id: newUser.user.id,
                 first_name: firstName,
                 last_name: lastName,
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
                 emergency_contact_phone: '',
                 best_practice_accepted: false,
                 waiver_accepted: false,
-            });
+            }, { onConflict: 'user_id' });
 
         if (profileError) {
             console.error('Error creating profile:', profileError);
