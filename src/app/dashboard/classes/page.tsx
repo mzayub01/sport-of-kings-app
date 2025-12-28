@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, User, CheckCircle, AlertCircle, Loader2, History, XCircle, TrendingUp } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, CheckCircle, AlertCircle, Loader2, History, XCircle, TrendingUp, Lock } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -264,6 +264,48 @@ export default function MemberClassesPage() {
         return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
     };
 
+    // Check if class is within 1-hour check-in window
+    const canCheckIn = (cls: ClassInstance): { allowed: boolean; message?: string } => {
+        if (!cls.isToday) return { allowed: false };
+
+        const now = new Date();
+        const currentTime = now.toTimeString().slice(0, 5);
+        const [nowH, nowM] = currentTime.split(':').map(Number);
+        const nowMins = nowH * 60 + nowM;
+
+        const startTime = cls.start_time.slice(0, 5);
+        const endTime = cls.end_time.slice(0, 5);
+        const [startH, startM] = startTime.split(':').map(Number);
+        const [endH, endM] = endTime.split(':').map(Number);
+        const startMins = startH * 60 + startM;
+        const endMins = endH * 60 + endM;
+
+        // Class is happening now
+        if (nowMins >= startMins && nowMins <= endMins) {
+            return { allowed: true };
+        }
+
+        // Class is upcoming - check if within 1 hour
+        const diffMins = startMins - nowMins;
+        if (diffMins > 0 && diffMins <= 60) {
+            return { allowed: true };
+        }
+
+        // Class hasn't started and is more than 1 hour away
+        if (diffMins > 60) {
+            const checkInMins = diffMins - 60;
+            if (checkInMins < 60) {
+                return { allowed: false, message: `Opens in ${checkInMins} min` };
+            } else {
+                const h = Math.floor(checkInMins / 60);
+                const m = checkInMins % 60;
+                return { allowed: false, message: m > 0 ? `Opens in ${h}h ${m}m` : `Opens in ${h}h` };
+            }
+        }
+
+        return { allowed: false };
+    };
+
     if (loading) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-12)' }}>
@@ -419,25 +461,46 @@ export default function MemberClassesPage() {
                                             </div>
                                         </div>
 
-                                        {cls.isToday && !cls.attended && (
-                                            <button
-                                                onClick={() => handleCheckIn(cls.classId)}
-                                                disabled={checkingIn === cls.classId}
-                                                className="btn btn-primary btn-sm"
-                                            >
-                                                {checkingIn === cls.classId ? (
-                                                    <>
-                                                        <Loader2 size={16} className="spinner" />
-                                                        Checking In...
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <CheckCircle size={16} />
-                                                        Check In
-                                                    </>
-                                                )}
-                                            </button>
-                                        )}
+                                        {cls.isToday && !cls.attended && (() => {
+                                            const checkStatus = canCheckIn(cls);
+                                            if (checkStatus.allowed) {
+                                                return (
+                                                    <button
+                                                        onClick={() => handleCheckIn(cls.classId)}
+                                                        disabled={checkingIn === cls.classId}
+                                                        className="btn btn-primary btn-sm"
+                                                    >
+                                                        {checkingIn === cls.classId ? (
+                                                            <>
+                                                                <Loader2 size={16} className="spinner" />
+                                                                Checking In...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <CheckCircle size={16} />
+                                                                Check In
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                );
+                                            } else {
+                                                return (
+                                                    <div style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 'var(--space-1)',
+                                                        padding: 'var(--space-2) var(--space-3)',
+                                                        background: 'var(--bg-secondary)',
+                                                        borderRadius: 'var(--radius-md)',
+                                                        color: 'var(--text-tertiary)',
+                                                        fontSize: 'var(--text-xs)',
+                                                    }}>
+                                                        <Lock size={12} />
+                                                        <span>{checkStatus.message || 'Check-in opens 1hr before'}</span>
+                                                    </div>
+                                                );
+                                            }
+                                        })()}
                                     </div>
                                 ))
                             )}
