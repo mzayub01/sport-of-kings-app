@@ -64,6 +64,13 @@ export async function POST(request: NextRequest) {
                 belt_rank: 'white',
                 stripes: 0,
                 is_child: false,
+                date_of_birth: '2000-01-01', // Default placeholder
+                address: '',
+                city: '',
+                postcode: '',
+                phone: '',
+                emergency_contact_name: '',
+                emergency_contact_phone: '',
                 best_practice_accepted: false,
                 waiver_accepted: false,
             });
