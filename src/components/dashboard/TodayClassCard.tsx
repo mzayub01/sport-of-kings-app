@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CheckCircle, Clock, MapPin, Loader2, Calendar, Zap } from 'lucide-react';
+import { CheckCircle, Clock, MapPin, Loader2, Calendar, Zap, Lock } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 
 interface TodayClass {
@@ -12,7 +12,9 @@ interface TodayClass {
     location_name: string;
     isHappeningNow: boolean;
     isUpcoming: boolean;
+    canCheckIn: boolean;
     startsIn?: string;
+    checkInOpensIn?: string;
 }
 
 export default function TodayClassCard() {
@@ -26,7 +28,7 @@ export default function TodayClassCard() {
 
     useEffect(() => {
         fetchTodayClass();
-        // Refresh every minute to update "starts in X minutes"
+        // Refresh every minute to update countdown
         const interval = setInterval(fetchTodayClass, 60000);
         return () => clearInterval(interval);
     }, []);
@@ -85,33 +87,51 @@ export default function TodayClassCard() {
             let selectedClass: typeof accessibleClasses[0] | null = null;
             let isHappeningNow = false;
             let isUpcoming = false;
+            let canCheckIn = false;
             let startsIn = '';
+            let checkInOpensIn = '';
+
+            const [nowH, nowM] = currentTime.split(':').map(Number);
+            const nowMins = nowH * 60 + nowM;
 
             for (const cls of accessibleClasses) {
                 const startTime = cls.start_time.slice(0, 5);
                 const endTime = cls.end_time.slice(0, 5);
+                const [startH, startM] = startTime.split(':').map(Number);
+                const startMins = startH * 60 + startM;
 
                 if (currentTime >= startTime && currentTime <= endTime) {
                     // Class is happening now!
                     selectedClass = cls;
                     isHappeningNow = true;
+                    canCheckIn = true;
                     break;
                 } else if (currentTime < startTime) {
                     // Class is upcoming
                     selectedClass = cls;
                     isUpcoming = true;
 
-                    // Calculate "starts in X minutes"
-                    const [startH, startM] = startTime.split(':').map(Number);
-                    const [nowH, nowM] = currentTime.split(':').map(Number);
-                    const diffMins = (startH * 60 + startM) - (nowH * 60 + nowM);
+                    const diffMins = startMins - nowMins;
 
+                    // Check-in opens 1 hour before
                     if (diffMins <= 60) {
+                        canCheckIn = true;
                         startsIn = `Starts in ${diffMins} min`;
                     } else {
+                        canCheckIn = false;
                         const hours = Math.floor(diffMins / 60);
                         const mins = diffMins % 60;
                         startsIn = mins > 0 ? `Starts in ${hours}h ${mins}m` : `Starts in ${hours}h`;
+
+                        // Calculate when check-in opens
+                        const checkInOpensMins = diffMins - 60;
+                        if (checkInOpensMins < 60) {
+                            checkInOpensIn = `Check-in opens in ${checkInOpensMins} min`;
+                        } else {
+                            const checkInH = Math.floor(checkInOpensMins / 60);
+                            const checkInM = checkInOpensMins % 60;
+                            checkInOpensIn = checkInM > 0 ? `Check-in opens in ${checkInH}h ${checkInM}m` : `Check-in opens in ${checkInH}h`;
+                        }
                     }
                     break;
                 }
@@ -143,7 +163,9 @@ export default function TodayClassCard() {
                 location_name: (selectedClass.location as { name: string })?.name || '',
                 isHappeningNow,
                 isUpcoming,
+                canCheckIn,
                 startsIn,
+                checkInOpensIn,
             });
         } catch (err) {
             console.error('Error fetching today class:', err);
@@ -153,7 +175,7 @@ export default function TodayClassCard() {
     };
 
     const handleCheckIn = async () => {
-        if (!todayClass) return;
+        if (!todayClass || !todayClass.canCheckIn) return;
 
         setCheckingIn(true);
         setError('');
@@ -240,6 +262,9 @@ export default function TodayClassCard() {
                 ) : (
                     <span className="badge badge-gold">{todayClass.startsIn || 'Today'}</span>
                 )}
+                {todayClass.canCheckIn && !todayClass.isHappeningNow && (
+                    <span className="badge badge-green" style={{ fontSize: '10px' }}>Check-in Open</span>
+                )}
             </div>
 
             {/* Class Info */}
@@ -266,7 +291,7 @@ export default function TodayClassCard() {
                 </p>
             )}
 
-            {/* Check-in Button */}
+            {/* Check-in Button or Status */}
             {checkedIn ? (
                 <div style={{
                     display: 'flex',
@@ -279,9 +304,9 @@ export default function TodayClassCard() {
                     fontWeight: '600',
                 }}>
                     <CheckCircle size={20} />
-                    You're checked in! 🎉
+                    You&apos;re checked in! 🎉
                 </div>
-            ) : (
+            ) : todayClass.canCheckIn ? (
                 <button
                     onClick={handleCheckIn}
                     disabled={checkingIn}
@@ -305,6 +330,26 @@ export default function TodayClassCard() {
                         </>
                     )}
                 </button>
+            ) : (
+                <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 'var(--space-2)',
+                    padding: 'var(--space-3) var(--space-4)',
+                    background: 'var(--bg-secondary)',
+                    borderRadius: 'var(--radius-lg)',
+                    color: 'var(--text-secondary)',
+                    textAlign: 'center',
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                        <Lock size={16} />
+                        <span style={{ fontWeight: '600' }}>{todayClass.checkInOpensIn}</span>
+                    </div>
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
+                        Check-in opens 1 hour before class
+                    </span>
+                </div>
             )}
         </div>
     );
