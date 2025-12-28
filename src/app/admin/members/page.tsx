@@ -13,7 +13,7 @@ interface Member {
     last_name: string;
     email: string;
     phone: string;
-    role: 'member' | 'instructor' | 'admin';
+    role: 'member' | 'instructor' | 'professor' | 'admin';
     belt_rank: string;
     stripes: number;
     date_of_birth: string;
@@ -24,7 +24,7 @@ interface Member {
 }
 
 const BELT_RANKS = ['white', 'blue', 'purple', 'brown', 'black'];
-const ROLES = ['member', 'instructor', 'admin'];
+const ROLES = ['member', 'instructor', 'professor', 'admin'];
 
 export default function AdminMembersPage() {
     const [members, setMembers] = useState<Member[]>([]);
