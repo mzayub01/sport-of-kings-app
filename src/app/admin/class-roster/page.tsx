@@ -90,12 +90,19 @@ export default function ClassRosterPage() {
             return;
         }
 
-        // Fetch members with active memberships at this location
-        const { data: memberships, error: membershipError } = await supabase
+        // Build memberships query - filter by location and status
+        let membershipsQuery = supabase
             .from('memberships')
-            .select('user_id, profile:profiles(user_id, first_name, last_name, email, belt_rank, is_child)')
+            .select('user_id, membership_type_id, profile:profiles(user_id, first_name, last_name, email, belt_rank, is_child)')
             .eq('location_id', (classInfo.location as { id: string }).id)
             .eq('status', 'active');
+
+        // If class has a specific membership type, only show members with that type
+        if (classInfo.membership_type_id) {
+            membershipsQuery = membershipsQuery.eq('membership_type_id', classInfo.membership_type_id);
+        }
+
+        const { data: memberships, error: membershipError } = await membershipsQuery;
 
         if (membershipError) {
             console.error('Error fetching memberships:', membershipError);
