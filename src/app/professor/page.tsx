@@ -127,14 +127,33 @@ export default function ProfessorGradingPage() {
             const classInfo = classes.find(c => c.id === selectedClass);
             if (!classInfo) return;
 
-            // Get all active memberships at this location
-            const { data: memberships, error: membershipsError } = await supabase
+            // Get the class's membership_type_id
+            const { data: classData } = await supabase
+                .from('classes')
+                .select('membership_type_id')
+                .eq('id', selectedClass)
+                .single();
+
+            // Build memberships query - filter by location AND membership type
+            let query = supabase
                 .from('memberships')
-                .select('user_id, profile:profiles(user_id, first_name, last_name, belt_rank, stripes, is_child, is_kids_program)')
+                .select('user_id, membership_type_id, profile:profiles(user_id, first_name, last_name, belt_rank, stripes, is_child, is_kids_program)')
                 .eq('location_id', classInfo.location_id)
                 .eq('status', 'active');
 
-            console.log('Memberships query result:', { memberships, membershipsError, location_id: classInfo.location_id });
+            // Only show members with the matching membership type for this class
+            if (classData?.membership_type_id) {
+                query = query.eq('membership_type_id', classData.membership_type_id);
+            }
+
+            const { data: memberships, error: membershipsError } = await query;
+
+            console.log('Memberships query result:', {
+                memberships,
+                membershipsError,
+                location_id: classInfo.location_id,
+                membership_type_id: classData?.membership_type_id
+            });
 
             if (memberships && memberships.length > 0) {
                 // Get last promotion dates for these members
