@@ -127,28 +127,16 @@ export default function ProfessorGradingPage() {
             const classInfo = classes.find(c => c.id === selectedClass);
             if (!classInfo) return;
 
-            // Get the class's membership_type_id
-            const { data: classData } = await supabase
-                .from('classes')
-                .select('membership_type_id')
-                .eq('id', selectedClass)
-                .single();
-
-            // Build memberships query
-            let query = supabase
+            // Get all active memberships at this location
+            const { data: memberships, error: membershipsError } = await supabase
                 .from('memberships')
-                .select('user_id, membership_type_id, profile:profiles(user_id, first_name, last_name, belt_rank, stripes, is_child, is_kids_program)')
+                .select('user_id, profile:profiles(user_id, first_name, last_name, belt_rank, stripes, is_child, is_kids_program)')
                 .eq('location_id', classInfo.location_id)
                 .eq('status', 'active');
 
-            // Filter by membership type if class has one
-            if (classData?.membership_type_id) {
-                query = query.eq('membership_type_id', classData.membership_type_id);
-            }
+            console.log('Memberships query result:', { memberships, membershipsError, location_id: classInfo.location_id });
 
-            const { data: memberships } = await query;
-
-            if (memberships) {
+            if (memberships && memberships.length > 0) {
                 // Get last promotion dates for these members
                 const userIds = memberships.map(m => m.user_id);
                 const { data: promotions } = await supabase
