@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, User, Mail, Phone, Award, Shield, Edit, ChevronDown, AlertCircle, CheckCircle, Calendar, MapPin, Filter, ClipboardList } from 'lucide-react';
+import { Search, User, Mail, Phone, Award, Shield, Edit, ChevronDown, AlertCircle, CheckCircle, Calendar, MapPin, Filter, ClipboardList, Plus, Loader2, Eye, EyeOff, X } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import type { Location, MembershipType } from '@/lib/types';
 import MemberAttendanceModal from '@/components/admin/MemberAttendanceModal';
@@ -51,6 +51,18 @@ export default function AdminMembersPage() {
         role: 'member',
         belt_rank: 'white',
         stripes: 0,
+    });
+
+    // Create user state
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [createLoading, setCreateLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [createFormData, setCreateFormData] = useState({
+        email: '',
+        password: '',
+        firstName: '',
+        lastName: '',
+        role: 'member',
     });
 
     const supabase = getSupabaseClient();
@@ -197,7 +209,37 @@ export default function AdminMembersPage() {
         switch (role) {
             case 'admin': return 'badge-red';
             case 'instructor': return 'badge-gold';
+            case 'professor': return 'badge-blue';
             default: return 'badge-gray';
+        }
+    };
+
+    const handleCreateUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setCreateLoading(true);
+        setError('');
+
+        try {
+            const response = await fetch('/api/admin/create-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(createFormData),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setSuccess(`User ${createFormData.email} created successfully!`);
+                setShowCreateModal(false);
+                setCreateFormData({ email: '', password: '', firstName: '', lastName: '', role: 'member' });
+                fetchData();
+            } else {
+                setError(data.error || 'Failed to create user');
+            }
+        } catch {
+            setError('Failed to create user');
+        } finally {
+            setCreateLoading(false);
         }
     };
 
@@ -211,11 +253,21 @@ export default function AdminMembersPage() {
 
     return (
         <div>
-            <div className="dashboard-header">
-                <h1 className="dashboard-title">Members</h1>
-                <p className="dashboard-subtitle">
-                    Manage all {members.length} registered members
-                </p>
+            <div className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
+                <div>
+                    <h1 className="dashboard-title">Members</h1>
+                    <p className="dashboard-subtitle">
+                        Manage all {members.length} registered members
+                    </p>
+                </div>
+                <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="btn btn-primary"
+                    style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
+                >
+                    <Plus size={18} />
+                    Create User
+                </button>
             </div>
 
             {error && (
@@ -567,6 +619,122 @@ export default function AdminMembersPage() {
                 }}
                 member={attendanceMember}
             />
+
+            {/* Create User Modal */}
+            {showCreateModal && (
+                <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+                        <div className="modal-header">
+                            <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                                <Plus size={20} />
+                                Create User
+                            </h2>
+                            <button onClick={() => setShowCreateModal(false)} className="btn btn-ghost btn-sm">
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleCreateUser}>
+                            <div className="modal-body">
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+                                    <div className="form-group">
+                                        <label className="form-label">First Name *</label>
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            required
+                                            value={createFormData.firstName}
+                                            onChange={(e) => setCreateFormData({ ...createFormData, firstName: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Last Name *</label>
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            required
+                                            value={createFormData.lastName}
+                                            onChange={(e) => setCreateFormData({ ...createFormData, lastName: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">Email *</label>
+                                    <input
+                                        type="email"
+                                        className="form-input"
+                                        required
+                                        value={createFormData.email}
+                                        onChange={(e) => setCreateFormData({ ...createFormData, email: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">Password *</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            type={showPassword ? 'text' : 'password'}
+                                            className="form-input"
+                                            required
+                                            minLength={6}
+                                            value={createFormData.password}
+                                            onChange={(e) => setCreateFormData({ ...createFormData, password: e.target.value })}
+                                            style={{ paddingRight: '40px' }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            style={{
+                                                position: 'absolute',
+                                                right: '8px',
+                                                top: '50%',
+                                                transform: 'translateY(-50%)',
+                                                background: 'none',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                color: 'var(--text-tertiary)',
+                                            }}
+                                        >
+                                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">Role</label>
+                                    <select
+                                        className="form-select"
+                                        value={createFormData.role}
+                                        onChange={(e) => setCreateFormData({ ...createFormData, role: e.target.value })}
+                                    >
+                                        {ROLES.map((role) => (
+                                            <option key={role} value={role}>{role.charAt(0).toUpperCase() + role.slice(1)}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" onClick={() => setShowCreateModal(false)} className="btn btn-ghost">
+                                    Cancel
+                                </button>
+                                <button type="submit" disabled={createLoading} className="btn btn-primary">
+                                    {createLoading ? (
+                                        <>
+                                            <Loader2 size={16} className="spinner" />
+                                            Creating...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Plus size={16} />
+                                            Create User
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
