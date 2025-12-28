@@ -295,11 +295,11 @@ export default function MemberClassesPage() {
         if (diffMins > 60) {
             const checkInMins = diffMins - 60;
             if (checkInMins < 60) {
-                return { allowed: false, message: `Opens in ${checkInMins} min` };
+                return { allowed: false, message: `Check-in opens in ${checkInMins} min` };
             } else {
                 const h = Math.floor(checkInMins / 60);
                 const m = checkInMins % 60;
-                return { allowed: false, message: m > 0 ? `Opens in ${h}h ${m}m` : `Opens in ${h}h` };
+                return { allowed: false, message: m > 0 ? `Check-in opens in ${h}h ${m}m` : `Check-in opens in ${h}h` };
             }
         }
 
