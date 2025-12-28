@@ -54,75 +54,73 @@ export default function NextClassWidget({ nextClass }: NextClassWidgetProps) {
             padding: 'var(--space-5)',
             borderLeft: '4px solid var(--color-gold)',
         }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
-                <div style={{ flex: 1 }}>
-                    <p style={{
-                        fontSize: 'var(--text-xs)',
-                        color: 'var(--text-tertiary)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '1px',
-                        marginBottom: 'var(--space-1)',
-                    }}>
-                        📅 Your Next Class
-                    </p>
-                    <h3 style={{
-                        fontSize: 'var(--text-lg)',
-                        fontWeight: '600',
-                        marginBottom: 'var(--space-2)',
-                    }}>
-                        {nextClass.name}
-                    </h3>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
+            <div style={{ marginBottom: 'var(--space-3)' }}>
+                <p style={{
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--text-tertiary)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px',
+                    marginBottom: 'var(--space-1)',
+                }}>
+                    📅 Your Next Class
+                </p>
+                <h3 style={{
+                    fontSize: 'var(--text-lg)',
+                    fontWeight: '600',
+                    marginBottom: 'var(--space-2)',
+                }}>
+                    {nextClass.name}
+                </h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Calendar size={14} />
+                        {DAYS[nextClass.day_of_week]}
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Clock size={14} />
+                        {nextClass.start_time.slice(0, 5)} - {nextClass.end_time.slice(0, 5)}
+                    </span>
+                    {nextClass.location?.name && (
                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <Calendar size={14} />
-                            {DAYS[nextClass.day_of_week]}
+                            <MapPin size={14} />
+                            {nextClass.location.name}
                         </span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <Clock size={14} />
-                            {nextClass.start_time.slice(0, 5)} - {nextClass.end_time.slice(0, 5)}
-                        </span>
-                        {nextClass.location?.name && (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <MapPin size={14} />
-                                {nextClass.location.name}
-                            </span>
-                        )}
-                    </div>
-                    {message && (
-                        <p style={{
-                            marginTop: 'var(--space-2)',
-                            fontSize: 'var(--text-sm)',
-                            color: checkedIn ? 'var(--color-green)' : 'var(--color-red)',
-                        }}>
-                            {message}
-                        </p>
                     )}
                 </div>
-                <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                    <button
-                        onClick={handleCheckIn}
-                        disabled={loading || checkedIn}
-                        className="btn btn-primary btn-sm"
-                        style={{ opacity: checkedIn ? 0.7 : 1 }}
-                    >
-                        {loading ? (
-                            <Loader2 size={16} className="spinner" />
-                        ) : checkedIn ? (
-                            <>
-                                <CheckCircle size={16} />
-                                Done
-                            </>
-                        ) : (
-                            <>
-                                <CheckCircle size={16} />
-                                Check In
-                            </>
-                        )}
-                    </button>
-                    <Link href="/dashboard/classes" className="btn btn-ghost btn-sm">
-                        View All
-                    </Link>
-                </div>
+                {message && (
+                    <p style={{
+                        marginTop: 'var(--space-2)',
+                        fontSize: 'var(--text-sm)',
+                        color: checkedIn ? 'var(--color-green)' : 'var(--color-red)',
+                    }}>
+                        {message}
+                    </p>
+                )}
+            </div>
+            <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                <button
+                    onClick={handleCheckIn}
+                    disabled={loading || checkedIn}
+                    className="btn btn-primary btn-sm"
+                    style={{ opacity: checkedIn ? 0.7 : 1, flex: '1 1 auto', minWidth: '120px' }}
+                >
+                    {loading ? (
+                        <Loader2 size={16} className="spinner" />
+                    ) : checkedIn ? (
+                        <>
+                            <CheckCircle size={16} />
+                            Done
+                        </>
+                    ) : (
+                        <>
+                            <CheckCircle size={16} />
+                            Check In
+                        </>
+                    )}
+                </button>
+                <Link href="/dashboard/classes" className="btn btn-ghost btn-sm" style={{ flex: '1 1 auto', minWidth: '100px', textAlign: 'center' }}>
+                    View All
+                </Link>
             </div>
         </div>
     );
