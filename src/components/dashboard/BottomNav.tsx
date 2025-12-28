@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Home, Calendar, Award, User, CheckCircle } from 'lucide-react';
 
 interface BottomNavProps {
-    role?: 'member' | 'instructor' | 'admin';
+    role?: 'member' | 'instructor' | 'professor' | 'admin';
 }
 
 export default function BottomNav({ role = 'member' }: BottomNavProps) {
@@ -25,7 +25,7 @@ export default function BottomNav({ role = 'member' }: BottomNavProps) {
         { href: '/admin/members', label: 'Members', icon: User, isCheckIn: false },
         { href: '/admin/class-roster', label: 'Roster', icon: CheckCircle, isCheckIn: true },
         { href: '/admin/classes', label: 'Classes', icon: Calendar, isCheckIn: false },
-        { href: '/admin/settings', label: 'Settings', icon: User, isCheckIn: false },
+        { href: '/professor', label: 'Grading', icon: Award, isCheckIn: false },
     ];
 
     const instructorLinks = [
@@ -36,10 +36,14 @@ export default function BottomNav({ role = 'member' }: BottomNavProps) {
         { href: '/instructor/naseeha', label: 'Naseeha', icon: Award, isCheckIn: false },
     ];
 
-    const links = role === 'admin' ? adminLinks : role === 'instructor' ? instructorLinks : memberNavItems;
+    const professorLinks = [
+        { href: '/professor', label: 'Grading', icon: Award, isCheckIn: false },
+    ];
+
+    const links = role === 'admin' ? adminLinks : role === 'instructor' ? instructorLinks : role === 'professor' ? professorLinks : memberNavItems;
 
     const isActive = (href: string) => {
-        if (href === '/dashboard' || href === '/admin' || href === '/instructor') {
+        if (href === '/dashboard' || href === '/admin' || href === '/instructor' || href === '/professor') {
             return pathname === href;
         }
         return pathname.startsWith(href);

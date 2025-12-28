@@ -30,7 +30,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 interface SidebarProps {
-    role: 'member' | 'instructor' | 'admin';
+    role: 'member' | 'instructor' | 'professor' | 'admin';
     userName?: string;
 }
 
@@ -79,6 +79,10 @@ export default function DashboardSidebar({ role, userName = 'Member' }: SidebarP
         { href: '/instructor/naseeha', label: 'Weekly Naseeha', icon: BookOpen },
     ];
 
+    const professorLinks = [
+        { href: '/professor', label: 'Grading', icon: Award },
+    ];
+
     const adminLinks = [
         { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
         { href: '/admin/members', label: 'Members', icon: User },
@@ -88,6 +92,7 @@ export default function DashboardSidebar({ role, userName = 'Member' }: SidebarP
         { href: '/admin/membership-types', label: 'Membership Types', icon: CreditCard },
         { href: '/admin/classes', label: 'Classes', icon: Calendar },
         { href: '/admin/class-roster', label: 'Class Roster', icon: ClipboardList },
+        { href: '/professor', label: 'Grading', icon: Award },
         { href: '/admin/instructors', label: 'Instructors', icon: Award },
         { href: '/admin/attendance', label: 'Attendance', icon: CheckCircle },
         { href: '/admin/videos', label: 'Videos', icon: Video },
@@ -97,7 +102,7 @@ export default function DashboardSidebar({ role, userName = 'Member' }: SidebarP
         { href: '/admin/settings', label: 'Settings', icon: Settings },
     ];
 
-    const links = role === 'admin' ? adminLinks : role === 'instructor' ? instructorLinks : memberLinks;
+    const links = role === 'admin' ? adminLinks : role === 'instructor' ? instructorLinks : role === 'professor' ? professorLinks : memberLinks;
 
     return (
         <>

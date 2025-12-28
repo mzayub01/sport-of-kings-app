@@ -3,10 +3,17 @@
 // ===============================================
 
 // User Roles
-export type UserRole = 'member' | 'instructor' | 'admin';
+export type UserRole = 'member' | 'instructor' | 'professor' | 'admin';
 
-// Belt Ranks
+// Adult Belt Ranks
 export type BeltRank = 'white' | 'blue' | 'purple' | 'brown' | 'black';
+
+// Kids Belt Ranks (for under 16)
+export type KidsBeltRank =
+  | 'white' | 'grey' | 'grey-white'
+  | 'yellow' | 'yellow-white'
+  | 'orange' | 'orange-white'
+  | 'green' | 'green-white';
 
 // Membership Status
 export type MembershipStatus = 'active' | 'inactive' | 'pending' | 'cancelled' | 'waitlist';
