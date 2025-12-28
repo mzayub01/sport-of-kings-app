@@ -1,3 +1,6 @@
+-- First, add 'professor' to the user_role enum
+ALTER TYPE public.user_role ADD VALUE IF NOT EXISTS 'professor';
+
 -- Create promotions table for tracking belt grading history
 CREATE TABLE IF NOT EXISTS public.promotions (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

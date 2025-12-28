@@ -93,6 +93,7 @@ export default function DashboardSidebar({ role, userName = 'Member' }: SidebarP
         { href: '/admin/classes', label: 'Classes', icon: Calendar },
         { href: '/admin/class-roster', label: 'Class Roster', icon: ClipboardList },
         { href: '/professor', label: 'Grading', icon: Award },
+        { href: '/admin/professor-access', label: 'Professor Access', icon: Users },
         { href: '/admin/instructors', label: 'Instructors', icon: Award },
         { href: '/admin/attendance', label: 'Attendance', icon: CheckCircle },
         { href: '/admin/videos', label: 'Videos', icon: Video },
