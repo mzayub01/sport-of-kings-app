@@ -13,6 +13,7 @@ import {
     MapPin
 } from 'lucide-react';
 import NextClassWidget from '@/components/dashboard/NextClassWidget';
+import TodayClassCard from '@/components/dashboard/TodayClassCard';
 import BJJBelt from '@/components/BJJBelt';
 
 export const metadata = {
@@ -252,6 +253,14 @@ export default async function MemberDashboard() {
             {nextClass && (
                 <NextClassWidget nextClass={nextClass} />
             )}
+
+            {/* Today's Class Quick Check-in */}
+            <h2 style={{ fontSize: 'var(--text-xl)', marginBottom: 'var(--space-4)' }}>
+                Today&apos;s Class
+            </h2>
+            <div style={{ marginBottom: 'var(--space-6)' }}>
+                <TodayClassCard />
+            </div>
 
             {/* Quick Actions */}
             <h2 style={{ fontSize: 'var(--text-xl)', marginBottom: 'var(--space-4)' }}>

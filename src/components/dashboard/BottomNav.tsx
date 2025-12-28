@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Calendar, Award, User, Bell } from 'lucide-react';
+import { Home, Calendar, Award, User, CheckCircle } from 'lucide-react';
 
 interface BottomNavProps {
     role?: 'member' | 'instructor' | 'admin';
@@ -11,31 +11,32 @@ interface BottomNavProps {
 export default function BottomNav({ role = 'member' }: BottomNavProps) {
     const pathname = usePathname();
 
-    const memberLinks = [
-        { href: '/dashboard', label: 'Home', icon: Home },
-        { href: '/dashboard/classes', label: 'Classes', icon: Calendar },
-        { href: '/dashboard/progress', label: 'Progress', icon: Award },
-        { href: '/dashboard/announcements', label: 'Updates', icon: Bell },
-        { href: '/dashboard/profile', label: 'Profile', icon: User },
+    // Member nav with central check-in button
+    const memberNavItems = [
+        { href: '/dashboard', label: 'Home', icon: Home, isCheckIn: false },
+        { href: '/dashboard/classes', label: 'Classes', icon: Calendar, isCheckIn: false },
+        { href: '/dashboard/classes', label: 'Check In', icon: CheckCircle, isCheckIn: true },
+        { href: '/dashboard/progress', label: 'Progress', icon: Award, isCheckIn: false },
+        { href: '/dashboard/profile', label: 'Profile', icon: User, isCheckIn: false },
     ];
 
     const adminLinks = [
-        { href: '/admin', label: 'Home', icon: Home },
-        { href: '/admin/members', label: 'Members', icon: User },
-        { href: '/admin/classes', label: 'Classes', icon: Calendar },
-        { href: '/admin/waitlist', label: 'Waitlist', icon: Bell },
-        { href: '/admin/settings', label: 'Settings', icon: User },
+        { href: '/admin', label: 'Home', icon: Home, isCheckIn: false },
+        { href: '/admin/members', label: 'Members', icon: User, isCheckIn: false },
+        { href: '/admin/class-roster', label: 'Roster', icon: CheckCircle, isCheckIn: true },
+        { href: '/admin/classes', label: 'Classes', icon: Calendar, isCheckIn: false },
+        { href: '/admin/settings', label: 'Settings', icon: User, isCheckIn: false },
     ];
 
     const instructorLinks = [
-        { href: '/instructor', label: 'Home', icon: Home },
-        { href: '/instructor/classes', label: 'Classes', icon: Calendar },
-        { href: '/instructor/attendance', label: 'Check-in', icon: Award },
-        { href: '/instructor/students', label: 'Students', icon: User },
-        { href: '/instructor/naseeha', label: 'Naseeha', icon: Bell },
+        { href: '/instructor', label: 'Home', icon: Home, isCheckIn: false },
+        { href: '/instructor/classes', label: 'Classes', icon: Calendar, isCheckIn: false },
+        { href: '/admin/class-roster', label: 'Check-in', icon: CheckCircle, isCheckIn: true },
+        { href: '/instructor/students', label: 'Students', icon: User, isCheckIn: false },
+        { href: '/instructor/naseeha', label: 'Naseeha', icon: Award, isCheckIn: false },
     ];
 
-    const links = role === 'admin' ? adminLinks : role === 'instructor' ? instructorLinks : memberLinks;
+    const links = role === 'admin' ? adminLinks : role === 'instructor' ? instructorLinks : memberNavItems;
 
     const isActive = (href: string) => {
         if (href === '/dashboard' || href === '/admin' || href === '/instructor') {
@@ -51,9 +52,25 @@ export default function BottomNav({ role = 'member' }: BottomNavProps) {
 
             <nav className="bottom-nav">
                 <div className="bottom-nav-inner">
-                    {links.map((link) => {
+                    {links.map((link, index) => {
                         const Icon = link.icon;
                         const active = isActive(link.href);
+
+                        if (link.isCheckIn) {
+                            // Central check-in button with special styling
+                            return (
+                                <Link
+                                    key={`${link.href}-${index}`}
+                                    href={link.href}
+                                    className="nav-item check-in-btn"
+                                >
+                                    <div className="check-in-icon">
+                                        <Icon size={22} strokeWidth={2.5} />
+                                    </div>
+                                    <span className="nav-label check-in-label">{link.label}</span>
+                                </Link>
+                            );
+                        }
 
                         return (
                             <Link
@@ -115,7 +132,7 @@ export default function BottomNav({ role = 'member' }: BottomNavProps) {
                     color: var(--text-tertiary);
                     text-decoration: none;
                     transition: all 0.2s ease;
-                    min-width: 56px;
+                    min-width: 52px;
                     position: relative;
                 }
                 
@@ -134,6 +151,39 @@ export default function BottomNav({ role = 'member' }: BottomNavProps) {
                     background: linear-gradient(135deg, rgba(212, 184, 106, 0.2) 0%, rgba(197, 164, 86, 0.25) 100%);
                     color: var(--color-gold);
                     transform: translateY(-2px);
+                }
+                
+                /* Central Check-in Button */
+                .check-in-btn {
+                    margin-top: -20px;
+                }
+                
+                .check-in-icon {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 52px;
+                    height: 52px;
+                    border-radius: 50%;
+                    background: linear-gradient(135deg, #2D7D46 0%, #3A9659 100%);
+                    color: white;
+                    box-shadow: 
+                        0 4px 16px rgba(45, 125, 70, 0.4),
+                        0 2px 4px rgba(45, 125, 70, 0.2);
+                    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                
+                .check-in-btn:hover .check-in-icon,
+                .check-in-btn:active .check-in-icon {
+                    transform: scale(1.05);
+                    box-shadow: 
+                        0 6px 20px rgba(45, 125, 70, 0.5),
+                        0 2px 4px rgba(45, 125, 70, 0.3);
+                }
+                
+                .check-in-label {
+                    color: var(--color-green);
+                    font-weight: 700;
                 }
                 
                 .nav-label {
