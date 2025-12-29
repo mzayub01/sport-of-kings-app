@@ -5,6 +5,7 @@ import { Search, User, Mail, Phone, Award, Shield, Edit, ChevronDown, AlertCircl
 import { getSupabaseClient } from '@/lib/supabase/client';
 import type { Location, MembershipType } from '@/lib/types';
 import MemberAttendanceModal from '@/components/admin/MemberAttendanceModal';
+import Avatar from '@/components/Avatar';
 
 interface Member {
     id: string;
@@ -19,6 +20,7 @@ interface Member {
     date_of_birth: string;
     city: string;
     is_child: boolean;
+    profile_image_url?: string;
     created_at: string;
     memberships?: any[];
 }
@@ -402,20 +404,12 @@ export default function AdminMembersPage() {
                                     }}
                                 >
                                     {/* Avatar */}
-                                    <div style={{
-                                        width: '48px',
-                                        height: '48px',
-                                        borderRadius: 'var(--radius-full)',
-                                        background: 'var(--color-gold-gradient)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontWeight: '600',
-                                        color: 'var(--color-black)',
-                                        flexShrink: 0,
-                                    }}>
-                                        {member.first_name?.[0]}{member.last_name?.[0]}
-                                    </div>
+                                    <Avatar
+                                        src={member.profile_image_url}
+                                        firstName={member.first_name}
+                                        lastName={member.last_name}
+                                        size="md"
+                                    />
 
                                     {/* Info */}
                                     <div style={{ flex: 1, minWidth: 0 }}>

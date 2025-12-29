@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { User, Mail, Phone, MapPin, Calendar, AlertCircle, Save, Shield, Heart, Award } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import AvatarUpload from '@/components/AvatarUpload';
 
 interface Profile {
     id: string;
+    user_id: string;
     first_name: string;
     last_name: string;
     email: string;
@@ -19,6 +21,7 @@ interface Profile {
     medical_info: string;
     belt_rank: string;
     is_child: boolean;
+    profile_image_url?: string;
     created_at: string;
 }
 
@@ -160,21 +163,23 @@ export default function ProfilePage() {
             {/* Profile Header Card */}
             <div className="glass-card" style={{ marginBottom: 'var(--space-6)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-6)', flexWrap: 'wrap' }}>
-                    {/* Avatar */}
-                    <div style={{
-                        width: '100px',
-                        height: '100px',
-                        borderRadius: 'var(--radius-full)',
-                        background: 'var(--color-gold-gradient)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 'var(--text-3xl)',
-                        fontWeight: '700',
-                        color: 'var(--color-black)',
-                    }}>
-                        {profile.first_name?.[0]}{profile.last_name?.[0]}
-                    </div>
+                    {/* Avatar Upload */}
+                    <AvatarUpload
+                        currentUrl={profile.profile_image_url}
+                        userId={profile.user_id}
+                        firstName={profile.first_name}
+                        lastName={profile.last_name}
+                        onUploadComplete={async (url) => {
+                            // Update profile with new image URL
+                            await supabase
+                                .from('profiles')
+                                .update({ profile_image_url: url })
+                                .eq('id', profile.id);
+                            setProfile({ ...profile, profile_image_url: url });
+                            setSuccess('Profile picture updated!');
+                        }}
+                        size="xl"
+                    />
 
                     {/* Info */}
                     <div style={{ flex: 1 }}>

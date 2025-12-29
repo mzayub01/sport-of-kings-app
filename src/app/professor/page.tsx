@@ -5,6 +5,7 @@ import { Award, Users, MapPin, Search, Loader2, ChevronRight, Star, Calendar } f
 import { getSupabaseClient } from '@/lib/supabase/client';
 import BJJBelt from '@/components/BJJBelt';
 import GradingModal from '@/components/grading/GradingModal';
+import Avatar from '@/components/Avatar';
 
 interface ClassOption {
     id: string;
@@ -21,6 +22,7 @@ interface MemberForGrading {
     stripes: number;
     is_child: boolean;
     is_kids_program: boolean;
+    profile_image_url?: string;
     last_promotion_date?: string;
 }
 
@@ -137,7 +139,7 @@ export default function ProfessorGradingPage() {
             // Build memberships query - filter by location AND membership type
             let query = supabase
                 .from('memberships')
-                .select('user_id, membership_type_id, profile:profiles(user_id, first_name, last_name, belt_rank, stripes, is_child, is_kids_program)')
+                .select('user_id, membership_type_id, profile:profiles(user_id, first_name, last_name, belt_rank, stripes, is_child, is_kids_program, profile_image_url)')
                 .eq('location_id', classInfo.location_id)
                 .eq('status', 'active');
 
@@ -184,6 +186,7 @@ export default function ProfessorGradingPage() {
                             stripes: number;
                             is_child: boolean;
                             is_kids_program: boolean;
+                            profile_image_url?: string;
                         }
                     }) => ({
                         user_id: m.profile.user_id,
@@ -193,6 +196,7 @@ export default function ProfessorGradingPage() {
                         stripes: m.profile.stripes || 0,
                         is_child: m.profile.is_child,
                         is_kids_program: m.profile.is_kids_program || false,
+                        profile_image_url: m.profile.profile_image_url,
                         last_promotion_date: lastPromotionMap.get(m.profile.user_id),
                     }))
                     .sort((a: MemberForGrading, b: MemberForGrading) =>
@@ -357,6 +361,14 @@ export default function ProfessorGradingPage() {
                                     flexWrap: 'wrap',
                                 }}
                             >
+                                {/* Avatar */}
+                                <Avatar
+                                    src={member.profile_image_url}
+                                    firstName={member.first_name}
+                                    lastName={member.last_name}
+                                    size="md"
+                                />
+
                                 {/* Member Info */}
                                 <div style={{ flex: 1, minWidth: '180px' }}>
                                     <div style={{ fontWeight: '600', marginBottom: '2px' }}>
