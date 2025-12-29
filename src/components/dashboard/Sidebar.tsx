@@ -28,13 +28,15 @@ import {
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import Avatar from '@/components/Avatar';
 
 interface SidebarProps {
     role: 'member' | 'instructor' | 'professor' | 'admin';
     userName?: string;
+    profileImageUrl?: string;
 }
 
-export default function DashboardSidebar({ role, userName = 'Member' }: SidebarProps) {
+export default function DashboardSidebar({ role, userName = 'Member', profileImageUrl }: SidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
     const supabase = getSupabaseClient();
@@ -167,19 +169,12 @@ export default function DashboardSidebar({ role, userName = 'Member' }: SidebarP
                         alignItems: 'center',
                         gap: 'var(--space-3)',
                     }}>
-                        <div style={{
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: 'var(--radius-full)',
-                            background: 'var(--color-gold-gradient)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: 'var(--color-black)',
-                            fontWeight: '700',
-                        }}>
-                            {userName.charAt(0).toUpperCase()}
-                        </div>
+                        <Avatar
+                            src={profileImageUrl}
+                            firstName={userName.split(' ')[0]}
+                            lastName={userName.split(' ')[1] || ''}
+                            size="md"
+                        />
                         <div>
                             <p style={{ fontWeight: '600', fontSize: 'var(--text-sm)', margin: 0 }}>{userName}</p>
                             <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', margin: 0, textTransform: 'capitalize' }}>
