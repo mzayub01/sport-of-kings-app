@@ -10,12 +10,6 @@ CREATE POLICY "Professors can view memberships for their classes" ON public.memb
         )
     );
 
--- Also ensure professors can read profiles for grading
-CREATE POLICY "Professors can view all profiles" ON public.profiles
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles p
-            WHERE p.user_id = auth.uid() 
-            AND p.role IN ('professor', 'admin', 'instructor')
-        )
-    );
+-- Note: Professors can view profiles via existing policies:
+-- "Admin can view all profiles" covers admins
+-- "Allow authenticated select profiles" covers professors/instructors
