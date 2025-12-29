@@ -16,6 +16,7 @@ import {
     Loader2
 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import Avatar from '@/components/Avatar';
 
 interface ClassInfo {
     id: string;
@@ -34,6 +35,7 @@ interface MemberStatus {
     email: string;
     belt_rank: string;
     is_child: boolean;
+    profile_image_url?: string;
     checked_in: boolean;
     check_in_time?: string;
     attendance_id?: string;
@@ -93,7 +95,7 @@ export default function ClassRosterPage() {
         // Build memberships query - filter by location and status
         let membershipsQuery = supabase
             .from('memberships')
-            .select('user_id, membership_type_id, profile:profiles(user_id, first_name, last_name, email, belt_rank, is_child)')
+            .select('user_id, membership_type_id, profile:profiles(user_id, first_name, last_name, email, belt_rank, is_child, profile_image_url)')
             .eq('location_id', (classInfo.location as { id: string }).id)
             .eq('status', 'active');
 
@@ -131,7 +133,7 @@ export default function ClassRosterPage() {
         // Build roster with check-in status
         const rosterData: MemberStatus[] = (memberships || [])
             .filter((m: { profile: unknown }) => m.profile)
-            .map((m: { user_id: string; profile: { user_id: string; first_name: string; last_name: string; email: string; belt_rank: string; is_child: boolean } }) => {
+            .map((m: { user_id: string; profile: { user_id: string; first_name: string; last_name: string; email: string; belt_rank: string; is_child: boolean; profile_image_url?: string } }) => {
                 const profile = m.profile;
                 const att = attendanceLookup.get(profile.user_id);
                 return {
@@ -141,6 +143,7 @@ export default function ClassRosterPage() {
                     email: profile.email,
                     belt_rank: profile.belt_rank || 'white',
                     is_child: profile.is_child,
+                    profile_image_url: profile.profile_image_url,
                     checked_in: !!att,
                     check_in_time: att?.check_in_time,
                     attendance_id: att?.id,
@@ -389,20 +392,27 @@ export default function ClassRosterPage() {
                                         }}
                                     >
                                         {/* Avatar */}
-                                        <div style={{
-                                            width: '44px',
-                                            height: '44px',
-                                            borderRadius: 'var(--radius-full)',
-                                            background: member.checked_in ? 'var(--color-green)' : 'var(--color-gold-gradient)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            fontWeight: '600',
-                                            color: member.checked_in ? 'white' : 'var(--color-black)',
-                                            flexShrink: 0,
-                                        }}>
-                                            {member.checked_in ? <UserCheck size={20} /> : `${member.first_name[0]}${member.last_name[0]}`}
-                                        </div>
+                                        {member.checked_in ? (
+                                            <div style={{
+                                                width: '44px',
+                                                height: '44px',
+                                                borderRadius: 'var(--radius-full)',
+                                                background: 'var(--color-green)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                flexShrink: 0,
+                                            }}>
+                                                <UserCheck size={20} color="white" />
+                                            </div>
+                                        ) : (
+                                            <Avatar
+                                                src={member.profile_image_url}
+                                                firstName={member.first_name}
+                                                lastName={member.last_name}
+                                                size="md"
+                                            />
+                                        )}
 
                                         {/* Info */}
                                         <div style={{ flex: 1, minWidth: 0 }}>
