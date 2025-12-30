@@ -3,7 +3,13 @@ import { Award, Star, Trophy, Target, Calendar } from 'lucide-react';
 import BJJBelt from '@/components/BJJBelt';
 
 const ADULT_BELT_ORDER = ['white', 'blue', 'purple', 'brown', 'black'];
-const KIDS_BELT_ORDER = ['white', 'grey', 'grey-white', 'yellow', 'yellow-white', 'orange', 'orange-white', 'green', 'green-white'];
+const KIDS_BELT_ORDER = [
+    'white',
+    'grey-white', 'grey', 'grey-black',
+    'orange-white', 'orange', 'orange-black',
+    'yellow-white', 'yellow', 'yellow-black',
+    'green-white', 'green', 'green-black'
+];
 
 const BELT_COLORS: Record<string, string> = {
     white: '#FFFFFF',
@@ -14,12 +20,16 @@ const BELT_COLORS: Record<string, string> = {
     // Kids belt colors
     grey: '#6B7280',
     'grey-white': '#9CA3AF',
-    yellow: '#EAB308',
-    'yellow-white': '#FDE047',
+    'grey-black': '#4B5563',
     orange: '#EA580C',
     'orange-white': '#FB923C',
+    'orange-black': '#C2410C',
+    yellow: '#EAB308',
+    'yellow-white': '#FDE047',
+    'yellow-black': '#A16207',
     green: '#16A34A',
     'green-white': '#4ADE80',
+    'green-black': '#15803D',
 };
 
 export const metadata = {

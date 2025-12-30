@@ -869,7 +869,7 @@ function RegisterPageContent() {
                                     <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginBottom: 'var(--space-3)' }}>
                                         {(formData.membershipType === 'adult'
                                             ? ['white', 'blue', 'purple', 'brown', 'black']
-                                            : ['white', 'grey', 'grey-white', 'yellow', 'yellow-white', 'orange', 'orange-white', 'green', 'green-white']
+                                            : ['white', 'grey-white', 'grey', 'grey-black', 'orange-white', 'orange', 'orange-black', 'yellow-white', 'yellow', 'yellow-black', 'green-white', 'green', 'green-black']
                                         ).map((belt) => (
                                             <button
                                                 key={belt}
@@ -895,27 +895,40 @@ function RegisterPageContent() {
                                     {formData.beltRank !== 'white' && (
                                         <div>
                                             <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-                                                Stripes (0-4)
+                                                Stripes {formData.membershipType === 'adult' ? '(0-4)' : '(White 1-4, Red 5-8, Grey 9-12)'}
                                             </label>
-                                            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                                                {[0, 1, 2, 3, 4].map((s) => (
-                                                    <button
-                                                        key={s}
-                                                        type="button"
-                                                        onClick={() => updateField('stripes', s)}
-                                                        style={{
-                                                            width: '36px',
-                                                            height: '36px',
-                                                            borderRadius: 'var(--radius-md)',
-                                                            border: formData.stripes === s ? '2px solid var(--color-gold)' : '1px solid var(--border-light)',
-                                                            background: formData.stripes === s ? 'rgba(197, 164, 86, 0.15)' : 'var(--bg-primary)',
-                                                            cursor: 'pointer',
-                                                            fontWeight: formData.stripes === s ? '600' : '400',
-                                                        }}
-                                                    >
-                                                        {s}
-                                                    </button>
-                                                ))}
+                                            <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                                                {(formData.membershipType === 'adult'
+                                                    ? [0, 1, 2, 3, 4]
+                                                    : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+                                                ).map((s) => {
+                                                    // Color code for kids: 1-4 white, 5-8 red, 9-12 grey
+                                                    let stripeColor = 'inherit';
+                                                    if (formData.membershipType !== 'adult' && s > 0) {
+                                                        if (s <= 4) stripeColor = 'var(--text-primary)';
+                                                        else if (s <= 8) stripeColor = '#DC2626';
+                                                        else stripeColor = '#6B7280';
+                                                    }
+                                                    return (
+                                                        <button
+                                                            key={s}
+                                                            type="button"
+                                                            onClick={() => updateField('stripes', s)}
+                                                            style={{
+                                                                width: '36px',
+                                                                height: '36px',
+                                                                borderRadius: 'var(--radius-md)',
+                                                                border: formData.stripes === s ? '2px solid var(--color-gold)' : '1px solid var(--border-light)',
+                                                                background: formData.stripes === s ? 'rgba(197, 164, 86, 0.15)' : 'var(--bg-primary)',
+                                                                cursor: 'pointer',
+                                                                fontWeight: formData.stripes === s ? '600' : '400',
+                                                                color: formData.stripes !== s ? stripeColor : undefined,
+                                                            }}
+                                                        >
+                                                            {s}
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     )}

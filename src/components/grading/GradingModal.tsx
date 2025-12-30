@@ -31,14 +31,18 @@ const ADULT_BELTS = [
 
 const KIDS_BELTS = [
     { value: 'white', label: 'White' },
-    { value: 'grey', label: 'Grey' },
     { value: 'grey-white', label: 'Grey/White' },
-    { value: 'yellow', label: 'Yellow' },
-    { value: 'yellow-white', label: 'Yellow/White' },
-    { value: 'orange', label: 'Orange' },
+    { value: 'grey', label: 'Grey' },
+    { value: 'grey-black', label: 'Grey/Black' },
     { value: 'orange-white', label: 'Orange/White' },
-    { value: 'green', label: 'Green' },
+    { value: 'orange', label: 'Orange' },
+    { value: 'orange-black', label: 'Orange/Black' },
+    { value: 'yellow-white', label: 'Yellow/White' },
+    { value: 'yellow', label: 'Yellow' },
+    { value: 'yellow-black', label: 'Yellow/Black' },
     { value: 'green-white', label: 'Green/White' },
+    { value: 'green', label: 'Green' },
+    { value: 'green-black', label: 'Green/Black' },
 ];
 
 export default function GradingModal({ member, classId, onClose, onSuccess }: GradingModalProps) {
@@ -193,23 +197,39 @@ export default function GradingModal({ member, classId, onClose, onSuccess }: Gr
 
                             {/* Stripes Selection */}
                             <div className="form-group">
-                                <label className="form-label">Stripes</label>
-                                <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                                    {[0, 1, 2, 3, 4].map(num => (
-                                        <button
-                                            key={num}
-                                            type="button"
-                                            onClick={() => setNewStripes(num)}
-                                            className={`btn ${newStripes === num ? 'btn-primary' : 'btn-ghost'}`}
-                                            style={{
-                                                flex: 1,
-                                                padding: 'var(--space-2)',
-                                                minWidth: 'auto',
-                                            }}
-                                        >
-                                            {num}
-                                        </button>
-                                    ))}
+                                <label className="form-label">
+                                    Stripes {member.is_kids_program && <span style={{ color: 'var(--text-secondary)', fontWeight: 'normal', fontSize: 'var(--text-xs)' }}>(White 1-4, Red 5-8, Grey 9-12)</span>}
+                                </label>
+                                <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                                    {(member.is_kids_program
+                                        ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+                                        : [0, 1, 2, 3, 4]
+                                    ).map(num => {
+                                        // Color code for kids: 1-4 white, 5-8 red, 9-12 grey
+                                        let stripeColor = 'inherit';
+                                        if (member.is_kids_program && num > 0) {
+                                            if (num <= 4) stripeColor = 'var(--text-primary)';
+                                            else if (num <= 8) stripeColor = '#DC2626';
+                                            else stripeColor = '#6B7280';
+                                        }
+                                        return (
+                                            <button
+                                                key={num}
+                                                type="button"
+                                                onClick={() => setNewStripes(num)}
+                                                className={`btn ${newStripes === num ? 'btn-primary' : 'btn-ghost'}`}
+                                                style={{
+                                                    flex: member.is_kids_program ? 'none' : 1,
+                                                    width: member.is_kids_program ? '36px' : 'auto',
+                                                    padding: 'var(--space-2)',
+                                                    minWidth: 'auto',
+                                                    color: newStripes !== num ? stripeColor : undefined,
+                                                }}
+                                            >
+                                                {num}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
 

@@ -9,11 +9,13 @@ export type UserRole = 'member' | 'instructor' | 'professor' | 'admin';
 export type BeltRank = 'white' | 'blue' | 'purple' | 'brown' | 'black';
 
 // Kids Belt Ranks (for under 16)
+// Order: white → grey-white → grey → grey-black → orange-white → orange → orange-black → yellow-white → yellow → yellow-black → green-white → green → green-black
 export type KidsBeltRank =
-  | 'white' | 'grey' | 'grey-white'
-  | 'yellow' | 'yellow-white'
-  | 'orange' | 'orange-white'
-  | 'green' | 'green-white';
+  | 'white'
+  | 'grey-white' | 'grey' | 'grey-black'
+  | 'orange-white' | 'orange' | 'orange-black'
+  | 'yellow-white' | 'yellow' | 'yellow-black'
+  | 'green-white' | 'green' | 'green-black';
 
 // Membership Status
 export type MembershipStatus = 'active' | 'inactive' | 'pending' | 'cancelled' | 'waitlist';
