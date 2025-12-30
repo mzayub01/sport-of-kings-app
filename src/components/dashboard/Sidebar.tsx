@@ -23,7 +23,8 @@ import {
     MapPin,
     ChevronRight,
     Crown,
-    ClipboardList
+    ClipboardList,
+    UserPlus
 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -92,6 +93,7 @@ export default function DashboardSidebar({ role, userName = 'Member', profileIma
         { href: '/dashboard/videos', label: 'Video Library', icon: Video },
         { href: '/dashboard/naseeha', label: 'Naseeha', icon: BookOpen },
         { href: '/dashboard/announcements', label: 'Announcements', icon: Bell },
+        { href: '/dashboard/add-child', label: 'Add Child', icon: UserPlus },
     ];
 
     const instructorLinks = [
