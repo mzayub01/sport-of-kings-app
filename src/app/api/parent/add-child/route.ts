@@ -44,6 +44,21 @@ export async function POST(request: NextRequest) {
             { auth: { autoRefreshToken: false, persistSession: false } }
         );
 
+        // Get parent's profile ID (FK references profiles.id, not user_id)
+        const { data: parentProfile, error: parentError } = await supabaseAdmin
+            .from('profiles')
+            .select('id')
+            .eq('user_id', user.id)
+            .single();
+
+        if (parentError || !parentProfile) {
+            console.error('Parent profile not found:', parentError);
+            return NextResponse.json(
+                { error: 'Parent profile not found' },
+                { status: 400 }
+            );
+        }
+
         // Generate a unique email for the child (they won't use it to log in)
         const childEmail = `child-${Date.now()}-${Math.random().toString(36).substring(7)}@child.sport-of-kings.local`;
         const childPassword = crypto.randomUUID(); // Random password - child won't use it
@@ -87,7 +102,7 @@ export async function POST(request: NextRequest) {
                 emergency_contact_phone: emergencyPhone || '',
                 medical_info: medicalInfo || null,
                 is_child: true,
-                parent_guardian_id: user.id, // Link to parent
+                parent_guardian_id: parentProfile.id, // Use parent's profile.id, not user.id
                 role: 'member',
                 belt_rank: 'white',
                 stripes: 0,
