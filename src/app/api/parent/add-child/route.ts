@@ -27,6 +27,8 @@ export async function POST(request: NextRequest) {
             medicalInfo,
             locationId,
             membershipTypeId,
+            beltRank,
+            stripes,
         } = body;
 
         // Validate required fields
@@ -104,8 +106,8 @@ export async function POST(request: NextRequest) {
                 is_child: true,
                 parent_guardian_id: parentProfile.id, // Use parent's profile.id, not user.id
                 role: 'member',
-                belt_rank: 'white',
-                stripes: 0,
+                belt_rank: beltRank || 'white',
+                stripes: typeof stripes === 'number' ? stripes : 0,
                 best_practice_accepted: true,
                 best_practice_accepted_at: new Date().toISOString(),
                 waiver_accepted: true,
