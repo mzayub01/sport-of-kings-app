@@ -2,13 +2,24 @@ import { createClient } from '@/lib/supabase/server';
 import { Award, Star, Trophy, Target, Calendar } from 'lucide-react';
 import BJJBelt from '@/components/BJJBelt';
 
-const BELT_ORDER = ['white', 'blue', 'purple', 'brown', 'black'];
+const ADULT_BELT_ORDER = ['white', 'blue', 'purple', 'brown', 'black'];
+const KIDS_BELT_ORDER = ['white', 'grey', 'grey-white', 'yellow', 'yellow-white', 'orange', 'orange-white', 'green', 'green-white'];
+
 const BELT_COLORS: Record<string, string> = {
     white: '#FFFFFF',
     blue: '#1E40AF',
     purple: '#6B21A8',
     brown: '#78350F',
     black: '#1A1A1A',
+    // Kids belt colors
+    grey: '#6B7280',
+    'grey-white': '#9CA3AF',
+    yellow: '#EAB308',
+    'yellow-white': '#FDE047',
+    orange: '#EA580C',
+    'orange-white': '#FB923C',
+    green: '#16A34A',
+    'green-white': '#4ADE80',
 };
 
 export const metadata = {
@@ -23,7 +34,7 @@ export default async function MemberProgressPage() {
     // Get profile with current belt and stripes
     const { data: profile } = await supabase
         .from('profiles')
-        .select('belt_rank, stripes, is_kids_program')
+        .select('belt_rank, stripes, is_child')
         .eq('user_id', user?.id)
         .single();
 
@@ -33,6 +44,10 @@ export default async function MemberProgressPage() {
         .select('*, promoted_by_profile:profiles!promotions_promoted_by_fkey(first_name, last_name)')
         .eq('user_id', user?.id)
         .order('promotion_date', { ascending: false });
+
+    // Determine which belt order to use based on whether this is a child
+    const isChild = profile?.is_child || false;
+    const BELT_ORDER = isChild ? KIDS_BELT_ORDER : ADULT_BELT_ORDER;
 
     const currentBelt = profile?.belt_rank || 'white';
     const currentBeltIndex = BELT_ORDER.indexOf(currentBelt);
