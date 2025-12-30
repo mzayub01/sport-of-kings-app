@@ -129,7 +129,9 @@ export default function AddChildPage() {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.error || 'Failed to add child');
+                // Show detailed error if available
+                const errorMsg = data.details ? `${data.error}: ${data.details}` : data.error;
+                throw new Error(errorMsg || 'Failed to add child');
             }
 
             setSuccess(true);
