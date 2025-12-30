@@ -203,29 +203,40 @@ export default function DashboardContent() {
             <h2 style={{ fontSize: 'var(--text-xl)', marginTop: 'var(--space-8)', marginBottom: 'var(--space-4)' }}>
                 Quick Actions
             </h2>
-            <div className="quick-actions-grid">
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: 'var(--space-4)',
+                marginBottom: 'var(--space-8)',
+            }}>
                 {quickActions.map((action) => (
                     <Link
                         key={action.href}
                         href={action.href}
-                        className="card card-hover"
-                        style={{ textDecoration: 'none' }}
+                        className="glass-card"
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 'var(--space-4)',
+                            padding: 'var(--space-4)',
+                            textDecoration: 'none',
+                        }}
                     >
-                        <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                            <div style={{
-                                width: '44px',
-                                height: '44px',
-                                borderRadius: 'var(--radius-lg)',
-                                background: `${action.color}20`,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}>
-                                <action.icon size={22} color={action.color} />
-                            </div>
-                            <span style={{ fontWeight: '500' }}>{action.label}</span>
-                            <ChevronRight size={18} style={{ marginLeft: 'auto', color: 'var(--text-tertiary)' }} />
+                        <div style={{
+                            width: '44px',
+                            height: '44px',
+                            borderRadius: 'var(--radius-lg)',
+                            background: action.color,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}>
+                            <action.icon size={22} color="var(--color-black)" />
                         </div>
+                        <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
+                            {action.label}
+                        </span>
+                        <ChevronRight size={18} style={{ marginLeft: 'auto', color: 'var(--text-tertiary)' }} />
                     </Link>
                 ))}
             </div>
