@@ -23,11 +23,12 @@ export default async function DashboardLayout({
         .eq('user_id', user.id)
         .single();
 
-    // Get linked children (profiles where parent_guardian_id = user.id)
+    // Get linked children (profiles where parent_guardian_id = profile.id)
+    // parent_guardian_id is a FK to profiles.id, not profiles.user_id
     const { data: childProfiles } = await supabase
         .from('profiles')
         .select('id, user_id, first_name, last_name, profile_image_url')
-        .eq('parent_guardian_id', user.id);
+        .eq('parent_guardian_id', profile?.id || '');
 
     // Check if parent has an active membership
     const { data: parentMembership } = await supabase

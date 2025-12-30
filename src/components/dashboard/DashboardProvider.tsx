@@ -87,10 +87,11 @@ export function DashboardProvider({
     const refreshChildren = async () => {
         setIsLoading(true);
         try {
+            // parent_guardian_id is a FK to profiles.id, not profiles.user_id
             const { data } = await supabase
                 .from('profiles')
                 .select('id, user_id, first_name, last_name, profile_image_url')
-                .eq('parent_guardian_id', parentProfile.user_id);
+                .eq('parent_guardian_id', parentProfile.id);
 
             setChildProfiles(data || []);
         } catch (err) {
