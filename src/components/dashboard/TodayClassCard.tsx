@@ -17,7 +17,11 @@ interface TodayClass {
     checkInOpensIn?: string;
 }
 
-export default function TodayClassCard() {
+interface TodayClassCardProps {
+    selectedUserId?: string;
+}
+
+export default function TodayClassCard({ selectedUserId }: TodayClassCardProps) {
     const [todayClass, setTodayClass] = useState<TodayClass | null>(null);
     const [loading, setLoading] = useState(true);
     const [checkingIn, setCheckingIn] = useState(false);
@@ -31,7 +35,7 @@ export default function TodayClassCard() {
         // Refresh every minute to update countdown
         const interval = setInterval(fetchTodayClass, 60000);
         return () => clearInterval(interval);
-    }, []);
+    }, [selectedUserId]);
 
     const fetchTodayClass = async () => {
         try {
@@ -41,11 +45,14 @@ export default function TodayClassCard() {
                 return;
             }
 
+            // Use selectedUserId if provided, otherwise fall back to logged-in user
+            const targetUserId = selectedUserId || user.id;
+
             // Get user's membership
             const { data: membership } = await supabase
                 .from('memberships')
                 .select('location_id, membership_type_id')
-                .eq('user_id', user.id)
+                .eq('user_id', targetUserId)
                 .eq('status', 'active')
                 .single();
 

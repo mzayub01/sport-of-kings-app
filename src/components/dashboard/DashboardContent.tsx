@@ -19,6 +19,7 @@ import { useDashboard } from '@/components/dashboard/DashboardProvider';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import BJJBelt from '@/components/BJJBelt';
 import Avatar from '@/components/Avatar';
+import TodayClassCard from '@/components/dashboard/TodayClassCard';
 
 interface ProfileData {
     first_name: string;
@@ -199,8 +200,16 @@ export default function DashboardContent() {
                 )}
             </div>
 
-            {/* Quick Actions */}
+            {/* Today's Class Quick Check-in */}
             <h2 style={{ fontSize: 'var(--text-xl)', marginTop: 'var(--space-8)', marginBottom: 'var(--space-4)' }}>
+                Today&apos;s Class
+            </h2>
+            <div style={{ marginBottom: 'var(--space-6)' }}>
+                <TodayClassCard selectedUserId={selectedProfileId} />
+            </div>
+
+            {/* Quick Actions */}
+            <h2 style={{ fontSize: 'var(--text-xl)', marginBottom: 'var(--space-4)' }}>
                 Quick Actions
             </h2>
             <div style={{
