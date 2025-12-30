@@ -251,32 +251,37 @@ export default function DashboardContent() {
             </div>
 
             {/* Announcements */}
-            {announcements.length > 0 && (
-                <>
-                    <h2 style={{ fontSize: 'var(--text-xl)', marginTop: 'var(--space-8)', marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                        <Bell size={20} />
-                        Recent Announcements
-                    </h2>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                        {announcements.map((announcement) => (
-                            <div key={announcement.id} className="card">
-                                <div className="card-body">
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                        <div>
-                                            <h3 style={{ fontWeight: '600', marginBottom: 'var(--space-1)' }}>{announcement.title}</h3>
-                                            <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
-                                                {announcement.message.substring(0, 120)}...
-                                            </p>
-                                        </div>
-                                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
-                                            {new Date(announcement.created_at).toLocaleDateString()}
-                                        </span>
+            <h2 style={{ fontSize: 'var(--text-xl)', marginTop: 'var(--space-8)', marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                <Bell size={20} />
+                Recent Announcements
+            </h2>
+            {announcements.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                    {announcements.map((announcement) => (
+                        <div key={announcement.id} className="card">
+                            <div className="card-body">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div>
+                                        <h3 style={{ fontWeight: '600', marginBottom: 'var(--space-1)' }}>{announcement.title}</h3>
+                                        <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
+                                            {announcement.message.substring(0, 120)}...
+                                        </p>
                                     </div>
+                                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+                                        {new Date(announcement.created_at).toLocaleDateString()}
+                                    </span>
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                </>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="glass-card" style={{ textAlign: 'center', padding: 'var(--space-8)' }}>
+                    <Bell size={40} color="var(--text-tertiary)" style={{ margin: '0 auto var(--space-3)' }} />
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: 0 }}>
+                        No announcements at the moment. Check back later!
+                    </p>
+                </div>
             )}
         </div>
     );
