@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, User, Mail, Phone, Award, Shield, Edit, ChevronDown, AlertCircle, CheckCircle, Calendar, MapPin, Filter, ClipboardList, Plus, Loader2, Eye, EyeOff, X, Info, ChevronUp, Trash2 } from 'lucide-react';
+import { Search, User, Mail, Phone, Award, Shield, Edit, ChevronDown, AlertCircle, CheckCircle, XCircle, Calendar, MapPin, Filter, ClipboardList, Plus, Loader2, Eye, EyeOff, X, Info, ChevronUp, Trash2 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import type { Location, MembershipType } from '@/lib/types';
 import MemberAttendanceModal from '@/components/admin/MemberAttendanceModal';
@@ -18,12 +18,22 @@ interface Member {
     belt_rank: string;
     stripes: number;
     date_of_birth: string;
+    address?: string;
     city: string;
+    postcode?: string;
+    gender?: string;
+    emergency_contact_name?: string;
+    emergency_contact_phone?: string;
+    medical_info?: string;
     is_child: boolean;
     parent_guardian_id?: string;
-    guardian_email?: string; // Parent's email for child profiles
+    guardian_email?: string;
     profile_image_url?: string;
     created_at: string;
+    best_practice_accepted?: boolean;
+    best_practice_accepted_at?: string;
+    waiver_accepted?: boolean;
+    waiver_accepted_at?: string;
     memberships?: any[];
 }
 
@@ -48,7 +58,8 @@ export default function AdminMembersPage() {
     const [editingMember, setEditingMember] = useState<Member | null>(null);
     const [showAttendanceModal, setShowAttendanceModal] = useState(false);
     const [attendanceMember, setAttendanceMember] = useState<Member | null>(null);
-    const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [viewingMember, setViewingMember] = useState<Member | null>(null);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
@@ -472,47 +483,6 @@ export default function AdminMembersPage() {
                                                 <span className="badge badge-gold">Child</span>
                                             )}
                                         </div>
-
-                                        {/* Expanded Details */}
-                                        {expandedMemberId === member.id && (
-                                            <div style={{
-                                                fontSize: 'var(--text-sm)',
-                                                color: 'var(--text-secondary)',
-                                                marginTop: 'var(--space-2)',
-                                                padding: 'var(--space-3)',
-                                                background: 'var(--bg-secondary)',
-                                                borderRadius: 'var(--radius-md)',
-                                            }}>
-                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-2)' }}>
-                                                    <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-                                                        <Mail size={14} />
-                                                        {member.is_child && member.guardian_email ? (
-                                                            <span>
-                                                                <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)' }}>Guardian: </span>
-                                                                {member.guardian_email}
-                                                            </span>
-                                                        ) : (
-                                                            member.email
-                                                        )}
-                                                    </span>
-                                                    {member.phone && (
-                                                        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-                                                            <Phone size={14} /> {member.phone}
-                                                        </span>
-                                                    )}
-                                                    {member.city && (
-                                                        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-                                                            <MapPin size={14} /> {member.city}
-                                                        </span>
-                                                    )}
-                                                    {member.date_of_birth && (
-                                                        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-                                                            <Calendar size={14} /> DOB: {new Date(member.date_of_birth).toLocaleDateString('en-GB')}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
 
                                     {/* Joined Date */}
@@ -521,13 +491,16 @@ export default function AdminMembersPage() {
                                         {new Date(member.created_at).toLocaleDateString('en-GB')}
                                     </div>
 
-                                    {/* Toggle Info Button */}
+                                    {/* View Details Button */}
                                     <button
-                                        onClick={() => setExpandedMemberId(expandedMemberId === member.id ? null : member.id)}
+                                        onClick={() => {
+                                            setViewingMember(member);
+                                            setShowDetailsModal(true);
+                                        }}
                                         className="btn btn-ghost btn-sm"
-                                        title={expandedMemberId === member.id ? 'Hide Details' : 'Show Details'}
+                                        title="View Details"
                                     >
-                                        {expandedMemberId === member.id ? <ChevronUp size={18} /> : <Info size={18} />}
+                                        <Info size={18} />
                                     </button>
 
                                     {/* View Attendance Button */}
@@ -874,6 +847,173 @@ export default function AdminMembersPage() {
                                         Delete Member
                                     </>
                                 )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Member Details Modal */}
+            {showDetailsModal && viewingMember && (
+                <div className="modal-overlay" onClick={() => { setShowDetailsModal(false); setViewingMember(null); }}>
+                    <div className="modal" style={{ maxWidth: '600px' }} onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2 style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                                <Avatar
+                                    src={viewingMember.profile_image_url}
+                                    firstName={viewingMember.first_name}
+                                    lastName={viewingMember.last_name}
+                                    size="md"
+                                />
+                                <div>
+                                    <span>{viewingMember.first_name} {viewingMember.last_name}</span>
+                                    {viewingMember.is_child && (
+                                        <span className="badge badge-gold" style={{ marginLeft: 'var(--space-2)' }}>Child</span>
+                                    )}
+                                </div>
+                            </h2>
+                            <button
+                                onClick={() => { setShowDetailsModal(false); setViewingMember(null); }}
+                                className="btn btn-ghost btn-sm"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                            {/* Contact Information */}
+                            <h3 style={{ fontSize: 'var(--text-base)', fontWeight: '600', marginBottom: 'var(--space-3)', color: 'var(--text-primary)' }}>
+                                Contact Information
+                            </h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
+                                <div>
+                                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginBottom: '2px' }}>Email</p>
+                                    <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                                        <Mail size={14} />
+                                        {viewingMember.is_child && viewingMember.guardian_email ? (
+                                            <span><span style={{ color: 'var(--text-tertiary)' }}>Guardian:</span> {viewingMember.guardian_email}</span>
+                                        ) : viewingMember.email}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginBottom: '2px' }}>Phone</p>
+                                    <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                                        <Phone size={14} /> {viewingMember.phone || '-'}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginBottom: '2px' }}>Address</p>
+                                    <p style={{ margin: 0 }}>{viewingMember.address || '-'}</p>
+                                </div>
+                                <div>
+                                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginBottom: '2px' }}>City / Postcode</p>
+                                    <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                                        <MapPin size={14} /> {viewingMember.city || '-'}{viewingMember.postcode ? `, ${viewingMember.postcode}` : ''}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Personal Information */}
+                            <h3 style={{ fontSize: 'var(--text-base)', fontWeight: '600', marginBottom: 'var(--space-3)', color: 'var(--text-primary)' }}>
+                                Personal Information
+                            </h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
+                                <div>
+                                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginBottom: '2px' }}>Date of Birth</p>
+                                    <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                                        <Calendar size={14} /> {viewingMember.date_of_birth ? new Date(viewingMember.date_of_birth).toLocaleDateString('en-GB') : '-'}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginBottom: '2px' }}>Gender</p>
+                                    <p style={{ margin: 0 }}>{viewingMember.gender ? viewingMember.gender.charAt(0).toUpperCase() + viewingMember.gender.slice(1) : '-'}</p>
+                                </div>
+                                <div>
+                                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginBottom: '2px' }}>Belt Rank</p>
+                                    <p style={{ margin: 0 }}>
+                                        <span className={`badge badge-belt-${viewingMember.belt_rank || 'white'}`}>
+                                            {(viewingMember.belt_rank || 'white').charAt(0).toUpperCase() + (viewingMember.belt_rank || 'white').slice(1)}
+                                        </span>
+                                        {viewingMember.stripes > 0 && <span style={{ marginLeft: 'var(--space-1)' }}>({viewingMember.stripes} stripe{viewingMember.stripes > 1 ? 's' : ''})</span>}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginBottom: '2px' }}>Role</p>
+                                    <p style={{ margin: 0 }}>
+                                        <span className={`badge ${getRoleBadgeClass(viewingMember.role)}`}>{viewingMember.role || 'member'}</span>
+                                    </p>
+                                </div>
+                                <div>
+                                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginBottom: '2px' }}>Member Since</p>
+                                    <p style={{ margin: 0 }}>{new Date(viewingMember.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                                </div>
+                            </div>
+
+                            {/* Emergency Contact */}
+                            <h3 style={{ fontSize: 'var(--text-base)', fontWeight: '600', marginBottom: 'var(--space-3)', color: 'var(--text-primary)' }}>
+                                Emergency Contact
+                            </h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
+                                <div>
+                                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginBottom: '2px' }}>Name</p>
+                                    <p style={{ margin: 0 }}>{viewingMember.emergency_contact_name || '-'}</p>
+                                </div>
+                                <div>
+                                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginBottom: '2px' }}>Phone</p>
+                                    <p style={{ margin: 0 }}>{viewingMember.emergency_contact_phone || '-'}</p>
+                                </div>
+                            </div>
+
+                            {/* Medical Information */}
+                            {viewingMember.medical_info && (
+                                <>
+                                    <h3 style={{ fontSize: 'var(--text-base)', fontWeight: '600', marginBottom: 'var(--space-3)', color: 'var(--text-primary)' }}>
+                                        Medical Information
+                                    </h3>
+                                    <div className="alert alert-warning" style={{ marginBottom: 'var(--space-6)' }}>
+                                        <AlertCircle size={16} />
+                                        <p style={{ margin: 0 }}>{viewingMember.medical_info}</p>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Agreements */}
+                            <h3 style={{ fontSize: 'var(--text-base)', fontWeight: '600', marginBottom: 'var(--space-3)', color: 'var(--text-primary)' }}>
+                                Agreements
+                            </h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-3)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                                    {viewingMember.waiver_accepted ? (
+                                        <CheckCircle size={16} color="var(--color-green)" />
+                                    ) : (
+                                        <XCircle size={16} color="var(--color-red)" />
+                                    )}
+                                    <span>Waiver Accepted</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                                    {viewingMember.best_practice_accepted ? (
+                                        <CheckCircle size={16} color="var(--color-green)" />
+                                    ) : (
+                                        <XCircle size={16} color="var(--color-red)" />
+                                    )}
+                                    <span>Best Practices Accepted</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button
+                                onClick={() => { setShowDetailsModal(false); setViewingMember(null); }}
+                                className="btn btn-ghost"
+                            >
+                                Close
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowDetailsModal(false);
+                                    openEditModal(viewingMember);
+                                }}
+                                className="btn btn-primary"
+                            >
+                                <Edit size={16} /> Edit Member
                             </button>
                         </div>
                     </div>
