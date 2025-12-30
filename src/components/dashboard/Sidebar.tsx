@@ -29,14 +29,36 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Avatar from '@/components/Avatar';
+import ChildSwitcher from '@/components/dashboard/ChildSwitcher';
+import { useDashboard } from '@/components/dashboard/DashboardProvider';
 
 interface SidebarProps {
     role: 'member' | 'instructor' | 'professor' | 'admin';
     userName?: string;
     profileImageUrl?: string;
+    hasChildren?: boolean;
 }
 
-export default function DashboardSidebar({ role, userName = 'Member', profileImageUrl }: SidebarProps) {
+// Wrapper component to connect ChildSwitcher with dashboard state
+function ChildSwitcherWrapper() {
+    const { parentProfile, children, selectedProfileId, setSelectedProfileId, hasParentMembership } = useDashboard();
+
+    if (!parentProfile) return null;
+
+    return (
+        <div style={{ marginTop: 'var(--space-3)' }}>
+            <ChildSwitcher
+                parentProfile={parentProfile}
+                children={children}
+                hasParentMembership={hasParentMembership}
+                selectedProfileId={selectedProfileId}
+                onProfileChange={setSelectedProfileId}
+            />
+        </div>
+    );
+}
+
+export default function DashboardSidebar({ role, userName = 'Member', profileImageUrl, hasChildren = false }: SidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
     const supabase = getSupabaseClient();
@@ -182,6 +204,9 @@ export default function DashboardSidebar({ role, userName = 'Member', profileIma
                             </p>
                         </div>
                     </div>
+
+                    {/* Child Switcher */}
+                    {hasChildren && <ChildSwitcherWrapper />}
                 </div>
 
                 <nav className="sidebar-nav">
