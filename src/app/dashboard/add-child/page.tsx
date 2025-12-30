@@ -335,7 +335,7 @@ export default function AddChildPage() {
 
                             {/* Belt Color Selection - Kids Belt Scheme */}
                             <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginBottom: 'var(--space-3)' }}>
-                                {['white', 'grey-white', 'grey', 'grey-black', 'orange-white', 'orange', 'orange-black', 'yellow-white', 'yellow', 'yellow-black', 'green-white', 'green', 'green-black'].map((belt) => (
+                                {['white', 'grey-white', 'grey', 'grey-black', 'yellow-white', 'yellow', 'yellow-black', 'orange-white', 'orange', 'orange-black', 'green-white', 'green', 'green-black'].map((belt) => (
                                     <button
                                         key={belt}
                                         type="button"

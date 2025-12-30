@@ -9,12 +9,12 @@ export type UserRole = 'member' | 'instructor' | 'professor' | 'admin';
 export type BeltRank = 'white' | 'blue' | 'purple' | 'brown' | 'black';
 
 // Kids Belt Ranks (for under 16)
-// Order: white → grey-white → grey → grey-black → orange-white → orange → orange-black → yellow-white → yellow → yellow-black → green-white → green → green-black
+// Order: white → grey-white → grey → grey-black → yellow-white → yellow → yellow-black → orange-white → orange → orange-black → green-white → green → green-black
 export type KidsBeltRank =
   | 'white'
   | 'grey-white' | 'grey' | 'grey-black'
-  | 'orange-white' | 'orange' | 'orange-black'
   | 'yellow-white' | 'yellow' | 'yellow-black'
+  | 'orange-white' | 'orange' | 'orange-black'
   | 'green-white' | 'green' | 'green-black';
 
 // Membership Status

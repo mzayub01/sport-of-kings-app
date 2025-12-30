@@ -869,7 +869,7 @@ function RegisterPageContent() {
                                     <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginBottom: 'var(--space-3)' }}>
                                         {(formData.membershipType === 'adult'
                                             ? ['white', 'blue', 'purple', 'brown', 'black']
-                                            : ['white', 'grey-white', 'grey', 'grey-black', 'orange-white', 'orange', 'orange-black', 'yellow-white', 'yellow', 'yellow-black', 'green-white', 'green', 'green-black']
+                                            : ['white', 'grey-white', 'grey', 'grey-black', 'yellow-white', 'yellow', 'yellow-black', 'orange-white', 'orange', 'orange-black', 'green-white', 'green', 'green-black']
                                         ).map((belt) => (
                                             <button
                                                 key={belt}

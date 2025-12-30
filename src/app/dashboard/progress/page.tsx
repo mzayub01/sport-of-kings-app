@@ -6,8 +6,8 @@ const ADULT_BELT_ORDER = ['white', 'blue', 'purple', 'brown', 'black'];
 const KIDS_BELT_ORDER = [
     'white',
     'grey-white', 'grey', 'grey-black',
-    'orange-white', 'orange', 'orange-black',
     'yellow-white', 'yellow', 'yellow-black',
+    'orange-white', 'orange', 'orange-black',
     'green-white', 'green', 'green-black'
 ];
 
