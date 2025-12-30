@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, User, Mail, Phone, Award, Shield, Edit, ChevronDown, AlertCircle, CheckCircle, Calendar, MapPin, Filter, ClipboardList, Plus, Loader2, Eye, EyeOff, X } from 'lucide-react';
+import { Search, User, Mail, Phone, Award, Shield, Edit, ChevronDown, AlertCircle, CheckCircle, Calendar, MapPin, Filter, ClipboardList, Plus, Loader2, Eye, EyeOff, X, Info, ChevronUp } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import type { Location, MembershipType } from '@/lib/types';
 import MemberAttendanceModal from '@/components/admin/MemberAttendanceModal';
@@ -46,6 +46,7 @@ export default function AdminMembersPage() {
     const [editingMember, setEditingMember] = useState<Member | null>(null);
     const [showAttendanceModal, setShowAttendanceModal] = useState(false);
     const [attendanceMember, setAttendanceMember] = useState<Member | null>(null);
+    const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
@@ -427,21 +428,39 @@ export default function AdminMembersPage() {
                                                 <span className="badge badge-gold">Child</span>
                                             )}
                                         </div>
-                                        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginTop: 'var(--space-1)' }}>
-                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)', marginRight: 'var(--space-3)' }}>
-                                                <Mail size={14} /> {member.email}
-                                            </span>
-                                            {member.phone && (
-                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)', marginRight: 'var(--space-3)' }}>
-                                                    <Phone size={14} /> {member.phone}
-                                                </span>
-                                            )}
-                                            {member.city && (
-                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-                                                    <MapPin size={14} /> {member.city}
-                                                </span>
-                                            )}
-                                        </div>
+
+                                        {/* Expanded Details */}
+                                        {expandedMemberId === member.id && (
+                                            <div style={{
+                                                fontSize: 'var(--text-sm)',
+                                                color: 'var(--text-secondary)',
+                                                marginTop: 'var(--space-2)',
+                                                padding: 'var(--space-3)',
+                                                background: 'var(--bg-secondary)',
+                                                borderRadius: 'var(--radius-md)',
+                                            }}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-2)' }}>
+                                                    <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                                                        <Mail size={14} /> {member.email}
+                                                    </span>
+                                                    {member.phone && (
+                                                        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                                                            <Phone size={14} /> {member.phone}
+                                                        </span>
+                                                    )}
+                                                    {member.city && (
+                                                        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                                                            <MapPin size={14} /> {member.city}
+                                                        </span>
+                                                    )}
+                                                    {member.date_of_birth && (
+                                                        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                                                            <Calendar size={14} /> DOB: {new Date(member.date_of_birth).toLocaleDateString('en-GB')}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Joined Date */}
@@ -449,6 +468,15 @@ export default function AdminMembersPage() {
                                         <Calendar size={14} />
                                         {new Date(member.created_at).toLocaleDateString('en-GB')}
                                     </div>
+
+                                    {/* Toggle Info Button */}
+                                    <button
+                                        onClick={() => setExpandedMemberId(expandedMemberId === member.id ? null : member.id)}
+                                        className="btn btn-ghost btn-sm"
+                                        title={expandedMemberId === member.id ? 'Hide Details' : 'Show Details'}
+                                    >
+                                        {expandedMemberId === member.id ? <ChevronUp size={18} /> : <Info size={18} />}
+                                    </button>
 
                                     {/* View Attendance Button */}
                                     <button
