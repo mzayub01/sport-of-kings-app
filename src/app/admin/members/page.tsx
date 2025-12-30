@@ -20,6 +20,8 @@ interface Member {
     date_of_birth: string;
     city: string;
     is_child: boolean;
+    parent_guardian_id?: string;
+    guardian_email?: string; // Parent's email for child profiles
     profile_image_url?: string;
     created_at: string;
     memberships?: any[];
@@ -97,10 +99,19 @@ export default function AdminMembersPage() {
             const profiles = profilesRes.data || [];
             const memberships = membershipsRes.data || [];
 
-            // Attach memberships to profiles
-            const membersWithData = profiles.map((profile: Member) => ({
+            // Create a map of profile IDs to emails for guardian lookup
+            const profileIdToEmail: Record<string, string> = {};
+            profiles.forEach((p: any) => {
+                profileIdToEmail[p.id] = p.email;
+            });
+
+            // Attach memberships and guardian email to profiles
+            const membersWithData = profiles.map((profile: any) => ({
                 ...profile,
                 memberships: memberships.filter((m: { user_id: string }) => m.user_id === profile.user_id),
+                guardian_email: profile.is_child && profile.parent_guardian_id
+                    ? profileIdToEmail[profile.parent_guardian_id]
+                    : undefined,
             }));
 
             setMembers(membersWithData);
@@ -474,7 +485,15 @@ export default function AdminMembersPage() {
                                             }}>
                                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-2)' }}>
                                                     <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-                                                        <Mail size={14} /> {member.email}
+                                                        <Mail size={14} />
+                                                        {member.is_child && member.guardian_email ? (
+                                                            <span>
+                                                                <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)' }}>Guardian: </span>
+                                                                {member.guardian_email}
+                                                            </span>
+                                                        ) : (
+                                                            member.email
+                                                        )}
                                                     </span>
                                                     {member.phone && (
                                                         <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
