@@ -165,20 +165,6 @@ export default function DashboardContent() {
                     </div>
                 </div>
 
-                <div className="stat-card glass-card">
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div>
-                            <p className="stat-label">Member Since</p>
-                            <p className="stat-value">
-                                {profile?.created_at
-                                    ? new Date(profile.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
-                                    : 'N/A'}
-                            </p>
-                        </div>
-                        <Calendar size={32} color="var(--color-gold)" />
-                    </div>
-                </div>
-
                 {membership && (
                     <div className="stat-card glass-card">
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
