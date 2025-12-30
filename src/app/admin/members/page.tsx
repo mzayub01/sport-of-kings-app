@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, User, Mail, Phone, Award, Shield, Edit, ChevronDown, AlertCircle, CheckCircle, Calendar, MapPin, Filter, ClipboardList, Plus, Loader2, Eye, EyeOff, X, Info, ChevronUp } from 'lucide-react';
+import { Search, User, Mail, Phone, Award, Shield, Edit, ChevronDown, AlertCircle, CheckCircle, Calendar, MapPin, Filter, ClipboardList, Plus, Loader2, Eye, EyeOff, X, Info, ChevronUp, Trash2 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import type { Location, MembershipType } from '@/lib/types';
 import MemberAttendanceModal from '@/components/admin/MemberAttendanceModal';
@@ -67,6 +67,11 @@ export default function AdminMembersPage() {
         lastName: '',
         role: 'member',
     });
+
+    // Delete member state
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deletingMember, setDeletingMember] = useState<Member | null>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     const supabase = getSupabaseClient();
 
@@ -205,6 +210,34 @@ export default function AdminMembersPage() {
             fetchData();
         } catch (err: any) {
             setError(err.message || 'Failed to update member');
+        }
+    };
+
+    const handleDeleteMember = async () => {
+        if (!deletingMember) return;
+
+        setDeleteLoading(true);
+        setError('');
+
+        try {
+            const response = await fetch(`/api/admin/members?userId=${deletingMember.user_id}`, {
+                method: 'DELETE',
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to delete member');
+            }
+
+            setSuccess(`${deletingMember.first_name} ${deletingMember.last_name} has been deleted.`);
+            setShowDeleteModal(false);
+            setDeletingMember(null);
+            fetchData();
+        } catch (err: any) {
+            setError(err.message || 'Failed to delete member');
+        } finally {
+            setDeleteLoading(false);
         }
     };
 
@@ -498,6 +531,19 @@ export default function AdminMembersPage() {
                                     >
                                         <Edit size={18} />
                                     </button>
+
+                                    {/* Delete Button */}
+                                    <button
+                                        onClick={() => {
+                                            setDeletingMember(member);
+                                            setShowDeleteModal(true);
+                                        }}
+                                        className="btn btn-ghost btn-sm"
+                                        style={{ color: 'var(--color-red)' }}
+                                        title="Delete Member"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
                                 </div>
                             ))}
                         </div>
@@ -754,6 +800,63 @@ export default function AdminMembersPage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && deletingMember && (
+                <div className="modal-overlay">
+                    <div className="modal" style={{ maxWidth: '450px' }}>
+                        <div className="modal-header">
+                            <h2 style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                                <Trash2 size={24} color="var(--color-red)" />
+                                Delete Member
+                            </h2>
+                            <button
+                                onClick={() => { setShowDeleteModal(false); setDeletingMember(null); }}
+                                className="btn btn-ghost btn-sm"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="alert alert-warning" style={{ marginBottom: 'var(--space-4)' }}>
+                                <AlertCircle size={18} />
+                                <span>This action cannot be undone!</span>
+                            </div>
+                            <p>Are you sure you want to delete <strong>{deletingMember.first_name} {deletingMember.last_name}</strong>?</p>
+                            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
+                                This will permanently remove their profile, membership, and all attendance records.
+                            </p>
+                        </div>
+                        <div className="modal-footer" style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
+                            <button
+                                onClick={() => { setShowDeleteModal(false); setDeletingMember(null); }}
+                                className="btn btn-ghost"
+                                disabled={deleteLoading}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteMember}
+                                className="btn"
+                                style={{ background: 'var(--color-red)', color: 'white' }}
+                                disabled={deleteLoading}
+                            >
+                                {deleteLoading ? (
+                                    <>
+                                        <Loader2 size={16} className="spinner" />
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Trash2 size={16} />
+                                        Delete Member
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
