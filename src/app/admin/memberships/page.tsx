@@ -17,7 +17,10 @@ interface Membership {
         first_name: string;
         last_name: string;
         email: string;
+        is_child?: boolean;
+        parent_guardian_id?: string;
     };
+    guardian_email?: string; // Parent's email for child profiles
     location?: {
         name: string;
     };
@@ -71,7 +74,7 @@ export default function AdminMembershipsPage() {
             const [membershipsRes, locationsRes, membersRes] = await Promise.all([
                 supabase
                     .from('memberships')
-                    .select('*, profile:profiles(first_name, last_name, email), location:locations(name), membership_type:membership_types(name)')
+                    .select('*, profile:profiles(id, first_name, last_name, email, is_child, parent_guardian_id), location:locations(name), membership_type:membership_types(name)')
                     .order('created_at', { ascending: false }),
                 supabase
                     .from('locations')
@@ -83,9 +86,26 @@ export default function AdminMembershipsPage() {
                     .order('first_name'),
             ]);
 
-            setMemberships(membershipsRes.data || []);
+            const membershipsData = membershipsRes.data || [];
+            const profilesData = membersRes.data || [];
+
+            // Create a map of profile IDs to emails for guardian lookup
+            const profileIdToEmail: Record<string, string> = {};
+            profilesData.forEach((p: any) => {
+                profileIdToEmail[p.id] = p.email;
+            });
+
+            // Add guardian email to memberships with child profiles
+            const membershipsWithGuardian = membershipsData.map((m: any) => ({
+                ...m,
+                guardian_email: m.profile?.is_child && m.profile?.parent_guardian_id
+                    ? profileIdToEmail[m.profile.parent_guardian_id]
+                    : undefined,
+            }));
+
+            setMemberships(membershipsWithGuardian);
             setLocations(locationsRes.data || []);
-            setMembers(membersRes.data || []);
+            setMembers(profilesData);
         } catch (err) {
             console.error('Error fetching memberships:', err);
         } finally {
@@ -306,9 +326,19 @@ export default function AdminMembershipsPage() {
                                         <div>
                                             <p style={{ fontWeight: '600', margin: 0 }}>
                                                 {membership.profile?.first_name} {membership.profile?.last_name}
+                                                {membership.profile?.is_child && (
+                                                    <span className="badge badge-gold" style={{ marginLeft: 'var(--space-1)', fontSize: 'var(--text-xs)' }}>Child</span>
+                                                )}
                                             </p>
                                             <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: 0 }}>
-                                                {membership.profile?.email}
+                                                {membership.profile?.is_child && membership.guardian_email ? (
+                                                    <span>
+                                                        <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)' }}>Guardian: </span>
+                                                        {membership.guardian_email}
+                                                    </span>
+                                                ) : (
+                                                    membership.profile?.email
+                                                )}
                                             </p>
                                         </div>
                                     </td>
