@@ -118,6 +118,10 @@ interface FormData {
 
     // Membership Selection
     selectedMembershipTypeId: string;
+
+    // Belt Rank (optional - for existing practitioners)
+    beltRank: string;
+    stripes: number;
 }
 
 function RegisterPageContent() {
@@ -226,9 +230,11 @@ function RegisterPageContent() {
         bestPracticeAccepted: false,
         waiverAccepted: false,
         selectedMembershipTypeId: '',
+        beltRank: 'white',
+        stripes: 0,
     });
 
-    const updateField = (field: keyof FormData, value: string | boolean) => {
+    const updateField = (field: keyof FormData, value: string | boolean | number) => {
         setFormData(prev => ({ ...prev, [field]: value }));
         setError('');
     };
@@ -341,7 +347,7 @@ function RegisterPageContent() {
             if (authError) throw authError;
 
             if (authData.user) {
-                // Update profile with additional details including gender
+                // Update profile with additional details including gender and belt
                 const { error: profileError } = await supabase
                     .from('profiles')
                     .update({
@@ -357,6 +363,8 @@ function RegisterPageContent() {
                         emergency_contact_phone: formData.emergencyPhone,
                         medical_info: formData.medicalInfo || null,
                         is_child: isChildMembership,
+                        belt_rank: formData.beltRank,
+                        stripes: formData.stripes,
                         best_practice_accepted: true,
                         best_practice_accepted_at: new Date().toISOString(),
                         waiver_accepted: true,
@@ -835,6 +843,82 @@ function RegisterPageContent() {
                                             Female
                                         </label>
                                     </div>
+                                </div>
+
+                                {/* Belt Selection (Optional - for existing practitioners) */}
+                                <div style={{
+                                    background: 'var(--bg-secondary)',
+                                    padding: 'var(--space-4)',
+                                    borderRadius: 'var(--radius-lg)',
+                                    marginBottom: 'var(--space-4)',
+                                }}>
+                                    <div style={{ marginBottom: 'var(--space-3)' }}>
+                                        <label className="form-label" style={{ marginBottom: 'var(--space-1)' }}>
+                                            Current Belt Rank <span style={{ color: 'var(--text-tertiary)', fontWeight: 'normal' }}>(Optional)</span>
+                                        </label>
+                                        <p style={{
+                                            color: 'var(--text-secondary)',
+                                            fontSize: 'var(--text-sm)',
+                                            margin: 0,
+                                        }}>
+                                            Already training in BJJ? Select your current belt. New to BJJ? Leave as White Belt.
+                                        </p>
+                                    </div>
+
+                                    {/* Belt Color Selection */}
+                                    <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginBottom: 'var(--space-3)' }}>
+                                        {(formData.membershipType === 'adult'
+                                            ? ['white', 'blue', 'purple', 'brown', 'black']
+                                            : ['white', 'grey', 'grey-white', 'yellow', 'yellow-white', 'orange', 'orange-white', 'green', 'green-white']
+                                        ).map((belt) => (
+                                            <button
+                                                key={belt}
+                                                type="button"
+                                                onClick={() => updateField('beltRank', belt)}
+                                                style={{
+                                                    padding: 'var(--space-2) var(--space-3)',
+                                                    borderRadius: 'var(--radius-md)',
+                                                    border: formData.beltRank === belt ? '2px solid var(--color-gold)' : '1px solid var(--border-light)',
+                                                    background: formData.beltRank === belt ? 'rgba(197, 164, 86, 0.15)' : 'var(--bg-primary)',
+                                                    cursor: 'pointer',
+                                                    textTransform: 'capitalize',
+                                                    fontWeight: formData.beltRank === belt ? '600' : '400',
+                                                    fontSize: 'var(--text-sm)',
+                                                }}
+                                            >
+                                                {belt.replace('-', ' ')}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Stripes Selection */}
+                                    {formData.beltRank !== 'white' && (
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                                                Stripes (0-4)
+                                            </label>
+                                            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                                                {[0, 1, 2, 3, 4].map((s) => (
+                                                    <button
+                                                        key={s}
+                                                        type="button"
+                                                        onClick={() => updateField('stripes', s)}
+                                                        style={{
+                                                            width: '36px',
+                                                            height: '36px',
+                                                            borderRadius: 'var(--radius-md)',
+                                                            border: formData.stripes === s ? '2px solid var(--color-gold)' : '1px solid var(--border-light)',
+                                                            background: formData.stripes === s ? 'rgba(197, 164, 86, 0.15)' : 'var(--bg-primary)',
+                                                            cursor: 'pointer',
+                                                            fontWeight: formData.stripes === s ? '600' : '400',
+                                                        }}
+                                                    >
+                                                        {s}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {formData.membershipType === 'adult' && (
