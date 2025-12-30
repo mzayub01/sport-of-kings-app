@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, User, CheckCircle, AlertCircle, Loader2, History, XCircle, TrendingUp, Lock } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { useDashboard } from '@/components/dashboard/DashboardProvider';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -60,17 +61,19 @@ export default function MemberClassesPage() {
     const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
 
     const supabase = getSupabaseClient();
+    const { selectedProfileId } = useDashboard();
     const todayDate = new Date().toISOString().split('T')[0];
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [selectedProfileId]);
 
     const fetchData = async () => {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                setError('Not authenticated');
+            // Use the selected profile ID from dashboard context
+            const userId = selectedProfileId;
+            if (!userId) {
+                setError('No profile selected');
                 setLoading(false);
                 return;
             }
@@ -79,7 +82,7 @@ export default function MemberClassesPage() {
             const { data: membership } = await supabase
                 .from('memberships')
                 .select('location_id, membership_type_id, start_date')
-                .eq('user_id', user.id)
+                .eq('user_id', userId)
                 .eq('status', 'active')
                 .single();
 
@@ -109,7 +112,7 @@ export default function MemberClassesPage() {
             const { data: allAttendance } = await supabase
                 .from('attendance')
                 .select('class_id, class_date')
-                .eq('user_id', user.id);
+                .eq('user_id', userId);
 
             // Create a set for quick lookup: "classId-date"
             const attendanceSet = new Set(

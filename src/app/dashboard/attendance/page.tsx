@@ -1,10 +1,9 @@
-import { createClient } from '@/lib/supabase/server';
-import { Calendar, CheckCircle, Award, TrendingUp, Clock } from 'lucide-react';
+'use client';
 
-export const metadata = {
-    title: 'My Attendance | Sport of Kings',
-    description: 'View your class attendance history',
-};
+import { useState, useEffect } from 'react';
+import { Calendar, CheckCircle, Award, TrendingUp, Clock, Loader2 } from 'lucide-react';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import { useDashboard } from '@/components/dashboard/DashboardProvider';
 
 interface AttendanceRecord {
     id: string;
@@ -24,19 +23,35 @@ interface MonthData {
     records: AttendanceRecord[];
 }
 
-export default async function MemberAttendancePage() {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+export default function MemberAttendancePage() {
+    const supabase = getSupabaseClient();
+    const { selectedProfileId } = useDashboard();
 
-    // Fetch attendance history
-    const { data: rawAttendance } = await supabase
-        .from('attendance')
-        .select('*, class:classes(name, class_type, location:locations(name))')
-        .eq('user_id', user?.id)
-        .order('class_date', { ascending: false })
-        .limit(50);
+    const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const attendance = (rawAttendance || []) as AttendanceRecord[];
+    useEffect(() => {
+        fetchData();
+    }, [selectedProfileId]);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            // Fetch attendance history for selected profile
+            const { data: rawAttendance } = await supabase
+                .from('attendance')
+                .select('*, class:classes(name, class_type, location:locations(name))')
+                .eq('user_id', selectedProfileId)
+                .order('class_date', { ascending: false })
+                .limit(50);
+
+            setAttendance((rawAttendance || []) as AttendanceRecord[]);
+        } catch (err) {
+            console.error('Error fetching attendance:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Calculate stats
     const thisMonth = new Date().getMonth();
@@ -57,6 +72,15 @@ export default async function MemberAttendancePage() {
         }
         attendanceByMonth[key].records.push(record);
     });
+
+    if (loading) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 'var(--space-12)', gap: 'var(--space-3)' }}>
+                <Loader2 size={24} className="animate-spin" />
+                <span>Loading attendance...</span>
+            </div>
+        );
+    }
 
     return (
         <div>

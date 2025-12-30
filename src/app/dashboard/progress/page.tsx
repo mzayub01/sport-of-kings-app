@@ -1,6 +1,10 @@
-import { createClient } from '@/lib/supabase/server';
-import { Award, Star, Trophy, Target, Calendar } from 'lucide-react';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Award, Star, Trophy, Target, Calendar, Loader2 } from 'lucide-react';
 import BJJBelt from '@/components/BJJBelt';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import { useDashboard } from '@/components/dashboard/DashboardProvider';
 
 const ADULT_BELT_ORDER = ['white', 'blue', 'purple', 'brown', 'black'];
 const KIDS_BELT_ORDER = [
@@ -21,39 +25,81 @@ const BELT_COLORS: Record<string, string> = {
     grey: '#6B7280',
     'grey-white': '#9CA3AF',
     'grey-black': '#4B5563',
-    orange: '#EA580C',
-    'orange-white': '#FB923C',
-    'orange-black': '#C2410C',
     yellow: '#EAB308',
     'yellow-white': '#FDE047',
     'yellow-black': '#A16207',
+    orange: '#EA580C',
+    'orange-white': '#FB923C',
+    'orange-black': '#C2410C',
     green: '#16A34A',
     'green-white': '#4ADE80',
     'green-black': '#15803D',
 };
 
-export const metadata = {
-    title: 'Belt Progress | Sport of Kings',
-    description: 'View your belt progression and grading history',
-};
+interface ProfileData {
+    belt_rank: string;
+    stripes: number;
+    is_child: boolean;
+}
 
-export default async function MemberProgressPage() {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+interface PromotionRecord {
+    id: string;
+    previous_belt: string;
+    previous_stripes: number;
+    new_belt: string;
+    new_stripes: number;
+    comments: string | null;
+    promotion_date: string;
+    promoted_by_profile?: { first_name: string; last_name: string } | null;
+}
 
-    // Get profile with current belt and stripes
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('belt_rank, stripes, is_child')
-        .eq('user_id', user?.id)
-        .single();
+export default function MemberProgressPage() {
+    const supabase = getSupabaseClient();
+    const { selectedProfileId } = useDashboard();
 
-    // Get promotion history from the new promotions table
-    const { data: promotions } = await supabase
-        .from('promotions')
-        .select('*, promoted_by_profile:profiles!promotions_promoted_by_fkey(first_name, last_name)')
-        .eq('user_id', user?.id)
-        .order('promotion_date', { ascending: false });
+    const [profile, setProfile] = useState<ProfileData | null>(null);
+    const [promotions, setPromotions] = useState<PromotionRecord[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchData();
+    }, [selectedProfileId]);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            // Get profile with current belt and stripes
+            const { data: profileData } = await supabase
+                .from('profiles')
+                .select('belt_rank, stripes, is_child')
+                .eq('user_id', selectedProfileId)
+                .single();
+
+            setProfile(profileData);
+
+            // Get promotion history
+            const { data: promotionsData } = await supabase
+                .from('promotions')
+                .select('*, promoted_by_profile:profiles!promotions_promoted_by_fkey(first_name, last_name)')
+                .eq('user_id', selectedProfileId)
+                .order('promotion_date', { ascending: false });
+
+            setPromotions(promotionsData || []);
+        } catch (err) {
+            console.error('Error fetching progress data:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 'var(--space-12)', gap: 'var(--space-3)' }}>
+                <Loader2 size={24} className="animate-spin" />
+                <span>Loading progress...</span>
+            </div>
+        );
+    }
 
     // Determine which belt order to use based on whether this is a child
     const isChild = profile?.is_child || false;
@@ -93,7 +139,7 @@ export default async function MemberProgressPage() {
                     />
                 </div>
                 <h2 style={{ textTransform: 'capitalize', marginBottom: 'var(--space-1)' }}>
-                    {currentBelt} Belt
+                    {currentBelt.replace('-', '/')} Belt
                 </h2>
                 <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
                     {currentStripes} stripe{currentStripes !== 1 ? 's' : ''}
@@ -120,6 +166,8 @@ export default async function MemberProgressPage() {
                 background: 'var(--bg-secondary)',
                 borderRadius: 'var(--radius-xl)',
                 position: 'relative',
+                overflowX: 'auto',
+                gap: 'var(--space-2)',
             }}>
                 {/* Progress Line */}
                 <div style={{
@@ -133,7 +181,7 @@ export default async function MemberProgressPage() {
                     zIndex: 0,
                 }}>
                     <div style={{
-                        width: `${(currentBeltIndex / (BELT_ORDER.length - 1)) * 100}%`,
+                        width: `${(currentBeltIndex / Math.max(BELT_ORDER.length - 1, 1)) * 100}%`,
                         height: '100%',
                         background: 'var(--color-gold-gradient)',
                         borderRadius: 'var(--radius-full)',
@@ -154,6 +202,7 @@ export default async function MemberProgressPage() {
                                 gap: 'var(--space-2)',
                                 position: 'relative',
                                 zIndex: 1,
+                                minWidth: isChild ? '40px' : 'auto',
                             }}
                         >
                             <div style={{
@@ -166,6 +215,7 @@ export default async function MemberProgressPage() {
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 boxShadow: isCurrent ? 'var(--shadow-gold)' : isAchieved ? 'var(--shadow-sm)' : 'none',
+                                flexShrink: 0,
                             }}>
                                 {isAchieved && (
                                     <Star
@@ -180,8 +230,9 @@ export default async function MemberProgressPage() {
                                 fontWeight: isCurrent ? '700' : '500',
                                 textTransform: 'capitalize',
                                 color: isCurrent ? 'var(--color-gold)' : isAchieved ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                                whiteSpace: 'nowrap',
                             }}>
-                                {belt}
+                                {belt.replace('-', '/')}
                             </span>
                         </div>
                     );
@@ -200,7 +251,7 @@ export default async function MemberProgressPage() {
                 Promotion History
             </h3>
 
-            {!promotions || promotions.length === 0 ? (
+            {promotions.length === 0 ? (
                 <div className="card">
                     <div className="card-body" style={{ textAlign: 'center', padding: 'var(--space-8)' }}>
                         <Award size={32} color="var(--text-tertiary)" style={{ margin: '0 auto var(--space-2)' }} />
@@ -212,16 +263,7 @@ export default async function MemberProgressPage() {
             ) : (
                 <div className="card">
                     <div className="card-body" style={{ padding: 0 }}>
-                        {promotions.map((record: {
-                            id: string;
-                            previous_belt: string;
-                            previous_stripes: number;
-                            new_belt: string;
-                            new_stripes: number;
-                            comments: string | null;
-                            promotion_date: string;
-                            promoted_by_profile?: { first_name: string; last_name: string } | null;
-                        }, index: number) => (
+                        {promotions.map((record, index) => (
                             <div
                                 key={record.id}
                                 style={{
@@ -255,7 +297,7 @@ export default async function MemberProgressPage() {
                                 {/* Promotion details */}
                                 <div style={{ flex: 1, minWidth: '150px' }}>
                                     <p style={{ fontWeight: '600', margin: 0, textTransform: 'capitalize' }}>
-                                        {record.new_belt} Belt
+                                        {record.new_belt.replace('-', '/')} Belt
                                         {record.new_stripes > 0 && ` • ${record.new_stripes} stripe${record.new_stripes !== 1 ? 's' : ''}`}
                                     </p>
                                     {record.comments && (
