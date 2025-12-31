@@ -162,12 +162,17 @@ export default function MemberClassesPage() {
             }
             setUpcomingClasses(upcoming);
 
-            // Generate past class instances (last 4 weeks - simpler approach)
+            // Generate past class instances (only since membership start date)
             const past: ClassInstance[] = [];
 
             for (let i = 1; i <= 28; i++) { // Go back 4 weeks
                 const date = new Date(today);
                 date.setDate(date.getDate() - i);
+
+                // Only include dates on or after membership start date
+                if (date < membershipStart) {
+                    continue;
+                }
 
                 const dayOfWeek = date.getDay();
                 const dateString = date.toISOString().split('T')[0];
