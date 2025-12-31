@@ -31,7 +31,7 @@ export default async function AdminDashboard() {
         { count: waitlistCount },
         { count: todayAttendance },
         { data: recentMembers },
-        result, // Capture the full result to access the 8th item (index 7) for revenue calculation
+        activeMembershipsResult,
     ] = await Promise.all([
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.from('memberships').select('*', { count: 'exact', head: true }).eq('status', 'active'),
@@ -56,7 +56,7 @@ export default async function AdminDashboard() {
     // Calculate total monthly revenue
     // Prices are stored as pounds (not pence), so we just sum them up
     // @ts-ignore - Supabase types might be imperfect here
-    const allActiveMemberships = result[7]?.data || [];
+    const allActiveMemberships = activeMembershipsResult?.data || [];
     const totalMonthlyRevenue = allActiveMemberships.reduce((sum: number, m: any) => {
         const price = m.membership_type?.price || 0;
         return sum + price;
