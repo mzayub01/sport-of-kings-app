@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import {
     Users,
     MapPin,
@@ -20,7 +20,7 @@ export const metadata = {
 };
 
 export default async function AdminDashboard() {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
 
     // Fetch stats
     const [
@@ -31,6 +31,7 @@ export default async function AdminDashboard() {
         { count: waitlistCount },
         { count: todayAttendance },
         { data: recentMembers },
+        result, // Capture the full result to access the 8th item (index 7) for revenue calculation
     ] = await Promise.all([
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.from('memberships').select('*', { count: 'exact', head: true }).eq('status', 'active'),
@@ -44,7 +45,22 @@ export default async function AdminDashboard() {
             .eq('status', 'active')
             .order('created_at', { ascending: false })
             .limit(5) as Promise<{ data: { id: string; user_id: string; profile: { id: string; first_name: string; last_name: string; belt_rank: string } | null; location: { name: string } | null; membership_type: { name: string } | null }[] | null }>,
+        // Fetch all active memberships to calculate total monthly revenue
+        supabase.from('memberships')
+            .select(`
+                membership_type:membership_types(price)
+            `)
+            .eq('status', 'active'),
     ]);
+
+    // Calculate total monthly revenue
+    // Prices are stored as pounds (not pence), so we just sum them up
+    // @ts-ignore - Supabase types might be imperfect here
+    const allActiveMemberships = result[7]?.data || [];
+    const totalMonthlyRevenue = allActiveMemberships.reduce((sum: number, m: any) => {
+        const price = m.membership_type?.price || 0;
+        return sum + price;
+    }, 0);
 
     const stats = [
         {
@@ -298,7 +314,7 @@ export default async function AdminDashboard() {
                                     <span>Revenue This Month</span>
                                 </div>
                                 <span style={{ fontWeight: '700', fontSize: 'var(--text-xl)' }}>
-                                    £0
+                                    £{totalMonthlyRevenue.toFixed(2)}
                                 </span>
                             </div>
                         </div>
