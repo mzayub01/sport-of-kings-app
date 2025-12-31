@@ -26,7 +26,8 @@ import {
     ClipboardList,
     UserPlus,
     Shield,
-    GraduationCap
+    GraduationCap,
+    PoundSterling
 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -114,6 +115,7 @@ export default function DashboardSidebar({ role, userRole, userName = 'Member', 
 
     const adminLinks = [
         { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+        { href: '/admin/finance', label: 'Finance', icon: PoundSterling },
         { href: '/admin/members', label: 'Members', icon: User },
         { href: '/admin/memberships', label: 'Memberships', icon: CreditCard },
         { href: '/admin/waitlist', label: 'Waitlist', icon: Users },
