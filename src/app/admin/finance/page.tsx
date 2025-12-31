@@ -26,6 +26,7 @@ interface RevenueByLocation {
 interface RevenueByType {
     type_id: string;
     type_name: string;
+    location_name: string;
     price: number;
     member_count: number;
     total_revenue: number;
@@ -105,6 +106,7 @@ export default async function AdminFinancePage() {
                 revenueByType[typeData.id] = {
                     type_id: typeData.id,
                     type_name: typeData.name,
+                    location_name: locationData?.name || 'Unknown',
                     price: typeData.price,
                     member_count: 0,
                     total_revenue: 0,
@@ -380,7 +382,9 @@ export default async function AdminFinancePage() {
                                             <CreditCard size={20} color="var(--color-green)" />
                                         </div>
                                         <div>
-                                            <p style={{ fontWeight: '600', margin: 0 }}>{type.type_name}</p>
+                                            <p style={{ fontWeight: '600', margin: 0 }}>
+                                                {type.type_name} <span style={{ color: 'var(--text-secondary)', fontWeight: 'normal', fontSize: 'var(--text-sm)' }}>({type.location_name})</span>
+                                            </p>
                                             <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: 0 }}>
                                                 {formatCurrency(type.price)}/member × {type.member_count} = {formatCurrency(type.total_revenue)}
                                             </p>
