@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import {
     PoundSterling,
     Users,
@@ -32,7 +32,7 @@ interface RevenueByType {
 }
 
 export default async function AdminFinancePage() {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
 
     // Fetch all active memberships with their types and locations
     const { data: memberships } = await supabase
