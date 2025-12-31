@@ -82,11 +82,11 @@ export default async function AdminDashboard() {
     ];
 
     const quickActions = [
-        { href: '/admin/members/new', label: 'Add Member', icon: UserPlus, color: 'var(--color-gold)' },
-        { href: '/admin/locations/new', label: 'Add Location', icon: MapPin, color: 'var(--color-green)' },
-        { href: '/admin/classes/new', label: 'Add Class', icon: Calendar, color: 'var(--color-gold)' },
-        { href: '/admin/videos/upload', label: 'Upload Video', icon: Video, color: 'var(--color-green)' },
-        { href: '/admin/announcements/new', label: 'Send Announcement', icon: Bell, color: 'var(--color-gold)' },
+        { href: '/admin/members', label: 'Manage Members', icon: UserPlus, color: 'var(--color-gold)' },
+        { href: '/admin/locations', label: 'Manage Locations', icon: MapPin, color: 'var(--color-green)' },
+        { href: '/admin/classes', label: 'Manage Classes', icon: Calendar, color: 'var(--color-gold)' },
+        { href: '/admin/videos', label: 'Manage Videos', icon: Video, color: 'var(--color-green)' },
+        { href: '/admin/announcements', label: 'Announcements', icon: Bell, color: 'var(--color-gold)' },
     ];
 
     return (
