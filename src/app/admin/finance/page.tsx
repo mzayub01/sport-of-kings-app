@@ -141,8 +141,8 @@ export default async function AdminFinancePage() {
         ? ((newMembersThisMonth - newMembersLastMonth) / newMembersLastMonth) * 100
         : newMembersThisMonth > 0 ? 100 : 0;
 
-    const formatCurrency = (pence: number) => {
-        return `£${(pence / 100).toFixed(2)}`;
+    const formatCurrency = (pounds: number) => {
+        return `£${pounds.toFixed(2)}`;
     };
 
     const maxMonthlyRevenue = Math.max(...monthlyData.map(m => m.revenue), 1);
