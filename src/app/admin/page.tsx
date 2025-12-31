@@ -39,10 +39,11 @@ export default async function AdminDashboard() {
         supabase.from('waitlist').select('*', { count: 'exact', head: true }),
         supabase.from('attendance').select('*', { count: 'exact', head: true })
             .gte('class_date', new Date().toISOString().split('T')[0]),
-        supabase.from('profiles')
-            .select('id, first_name, last_name, email, created_at, belt_rank')
+        supabase.from('memberships')
+            .select('id, user_id, profile:profiles(id, first_name, last_name, belt_rank), location:locations(name), membership_type:membership_types(name)')
+            .eq('status', 'active')
             .order('created_at', { ascending: false })
-            .limit(5) as Promise<{ data: { id: string; first_name: string; last_name: string; email: string; created_at: string; belt_rank: string }[] | null }>,
+            .limit(5) as Promise<{ data: { id: string; user_id: string; profile: { id: string; first_name: string; last_name: string; belt_rank: string } | null; location: { name: string } | null; membership_type: { name: string } | null }[] | null }>,
     ]);
 
     const stats = [
@@ -215,19 +216,19 @@ export default async function AdminDashboard() {
                                     >
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                                             <div className="avatar avatar-md">
-                                                {member.first_name?.[0]}{member.last_name?.[0]}
+                                                {member.profile?.first_name?.[0]}{member.profile?.last_name?.[0]}
                                             </div>
                                             <div>
                                                 <p style={{ fontWeight: '600', margin: 0 }}>
-                                                    {member.first_name} {member.last_name}
+                                                    {member.profile?.first_name} {member.profile?.last_name}
                                                 </p>
                                                 <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: 0 }}>
-                                                    {member.email}
+                                                    {member.location?.name || 'No location'} • {member.membership_type?.name || 'No type'}
                                                 </p>
                                             </div>
                                         </div>
-                                        <span className={`badge badge-belt-${member.belt_rank || 'white'}`}>
-                                            {member.belt_rank || 'White'}
+                                        <span className={`badge badge-belt-${member.profile?.belt_rank || 'white'}`}>
+                                            {member.profile?.belt_rank || 'White'}
                                         </span>
                                     </div>
                                 ))}
