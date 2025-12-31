@@ -57,6 +57,7 @@ export default async function DashboardLayout({
             <div className="dashboard-layout">
                 <DashboardSidebar
                     role="member"
+                    userRole={profile?.role || 'member'}
                     userName={userName}
                     profileImageUrl={profileImageUrl}
                     hasChildren={(childProfiles?.length || 0) > 0}

@@ -24,7 +24,9 @@ import {
     ChevronRight,
     Crown,
     ClipboardList,
-    UserPlus
+    UserPlus,
+    Shield,
+    GraduationCap
 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -35,6 +37,7 @@ import { useDashboard } from '@/components/dashboard/DashboardProvider';
 
 interface SidebarProps {
     role: 'member' | 'instructor' | 'professor' | 'admin';
+    userRole?: string; // The actual role from the profile
     userName?: string;
     profileImageUrl?: string;
     hasChildren?: boolean;
@@ -59,7 +62,7 @@ function ChildSwitcherWrapper() {
     );
 }
 
-export default function DashboardSidebar({ role, userName = 'Member', profileImageUrl, hasChildren = false }: SidebarProps) {
+export default function DashboardSidebar({ role, userRole, userName = 'Member', profileImageUrl, hasChildren = false }: SidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
     const supabase = getSupabaseClient();
@@ -130,6 +133,13 @@ export default function DashboardSidebar({ role, userName = 'Member', profileIma
     ];
 
     const links = role === 'admin' ? adminLinks : role === 'instructor' ? instructorLinks : role === 'professor' ? professorLinks : memberLinks;
+
+    // Quick access links based on user's actual role (only shown in member dashboard)
+    const quickAccessLinks = role === 'member' ? [
+        ...(userRole === 'admin' ? [{ href: '/admin', label: 'Admin Dashboard', icon: Shield }] : []),
+        ...(userRole === 'admin' || userRole === 'professor' ? [{ href: '/professor', label: 'Professor Grading', icon: GraduationCap }] : []),
+        ...(userRole === 'instructor' ? [{ href: '/instructor', label: 'Instructor Dashboard', icon: Award }] : []),
+    ] : [];
 
     return (
         <>
@@ -239,6 +249,25 @@ export default function DashboardSidebar({ role, userName = 'Member', profileIma
                                     onClick={() => setIsOpen(false)}
                                 >
                                     <link.icon size={20} />
+                                    <span style={{ flex: 1 }}>{link.label}</span>
+                                    <ChevronRight size={16} style={{ opacity: 0.3 }} className="sidebar-link-arrow" />
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+
+                    {quickAccessLinks.length > 0 && (
+                        <div className="sidebar-section">
+                            <span className="sidebar-section-title">Quick Access</span>
+                            {quickAccessLinks.map((link) => (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    className={`sidebar-link ${pathname === link.href ? 'active' : ''}`}
+                                    onClick={() => setIsOpen(false)}
+                                    style={{ background: 'rgba(197, 164, 86, 0.08)' }}
+                                >
+                                    <link.icon size={20} color="var(--color-gold)" />
                                     <span style={{ flex: 1 }}>{link.label}</span>
                                     <ChevronRight size={16} style={{ opacity: 0.3 }} className="sidebar-link-arrow" />
                                 </Link>
