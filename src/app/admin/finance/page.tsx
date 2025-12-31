@@ -342,6 +342,7 @@ export default async function AdminFinancePage() {
                         </div>
                     </div>
                 </div>
-            </div >
-            );
+            </div>
+        </div>
+    );
 }
