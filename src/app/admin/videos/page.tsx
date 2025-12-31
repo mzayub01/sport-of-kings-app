@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Plus, Video, Play, Clock, Award, Edit, Trash2, AlertCircle, CheckCircle, ExternalLink } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Plus, Video, Play, Clock, Award, Edit, Trash2, AlertCircle, CheckCircle, ExternalLink, Upload, Link, Loader2 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 
 interface VideoItem {
@@ -27,6 +27,10 @@ export default function AdminVideosPage() {
     const [editingVideo, setEditingVideo] = useState<VideoItem | null>(null);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [uploading, setUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [uploadMode, setUploadMode] = useState<'url' | 'file'>('file');
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [formData, setFormData] = useState({
         title: '',
@@ -37,6 +41,8 @@ export default function AdminVideosPage() {
         belt_level: '',
         duration_seconds: '',
     });
+
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
     const supabase = getSupabaseClient();
 
@@ -73,6 +79,8 @@ export default function AdminVideosPage() {
                 belt_level: video.belt_level || '',
                 duration_seconds: video.duration_seconds?.toString() || '',
             });
+            // If editing, check if URL is from storage or external
+            setUploadMode(video.url.includes('supabase') ? 'file' : 'url');
         } else {
             setEditingVideo(null);
             setFormData({
@@ -84,9 +92,68 @@ export default function AdminVideosPage() {
                 belt_level: '',
                 duration_seconds: '',
             });
+            setUploadMode('file');
         }
+        setSelectedFile(null);
         setShowModal(true);
         setError('');
+    };
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            // Validate file type
+            if (!file.type.startsWith('video/')) {
+                setError('Please select a video file');
+                return;
+            }
+            // Validate file size (100MB limit)
+            if (file.size > 100 * 1024 * 1024) {
+                setError('File size must be less than 100MB');
+                return;
+            }
+            setSelectedFile(file);
+            setError('');
+            // Auto-fill title from filename if empty
+            if (!formData.title) {
+                const name = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+                setFormData({ ...formData, title: name });
+            }
+        }
+    };
+
+    const uploadVideo = async (file: File): Promise<string> => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `videos/${fileName}`;
+
+        setUploading(true);
+        setUploadProgress(0);
+
+        try {
+            // Upload to Supabase Storage
+            const { error: uploadError } = await supabase.storage
+                .from('videos')
+                .upload(filePath, file, {
+                    cacheControl: '3600',
+                    upsert: false,
+                });
+
+            if (uploadError) throw uploadError;
+
+            // Get public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('videos')
+                .getPublicUrl(filePath);
+
+            setUploadProgress(100);
+            return publicUrl;
+        } catch (err: unknown) {
+            console.error('Upload error:', err);
+            throw err;
+        } finally {
+            setUploading(false);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -94,10 +161,29 @@ export default function AdminVideosPage() {
         setError('');
         setSuccess('');
 
+        let videoUrl = formData.url;
+
+        // If using file upload mode and a file is selected, upload it first
+        if (uploadMode === 'file' && selectedFile) {
+            try {
+                videoUrl = await uploadVideo(selectedFile);
+            } catch (err: unknown) {
+                const errorMessage = err instanceof Error ? err.message : 'Failed to upload video';
+                setError(errorMessage);
+                return;
+            }
+        } else if (uploadMode === 'file' && !editingVideo) {
+            setError('Please select a video file to upload');
+            return;
+        } else if (uploadMode === 'url' && !formData.url) {
+            setError('Please enter a video URL');
+            return;
+        }
+
         const payload = {
             title: formData.title,
             description: formData.description || null,
-            url: formData.url,
+            url: videoUrl,
             thumbnail_url: formData.thumbnail_url || null,
             category: formData.category,
             belt_level: formData.belt_level || null,
@@ -122,8 +208,9 @@ export default function AdminVideosPage() {
             }
             setShowModal(false);
             fetchVideos();
-        } catch (err: any) {
-            setError(err.message || 'Failed to save video');
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to save video';
+            setError(errorMessage);
         }
     };
 
@@ -143,7 +230,20 @@ export default function AdminVideosPage() {
         if (!confirm('Are you sure you want to delete this video?')) return;
 
         try {
+            // Find the video to get its URL
+            const video = videos.find(v => v.id === id);
+
+            // Delete from database
             await supabase.from('videos').delete().eq('id', id);
+
+            // If it's a storage URL, delete from storage too
+            if (video?.url.includes('supabase')) {
+                const path = video.url.split('/').pop();
+                if (path) {
+                    await supabase.storage.from('videos').remove([`videos/${path}`]);
+                }
+            }
+
             fetchVideos();
             setSuccess('Video deleted successfully!');
         } catch (err) {
@@ -348,16 +448,92 @@ export default function AdminVideosPage() {
                                     />
                                 </div>
 
+                                {/* Upload Mode Toggle */}
                                 <div className="form-group">
-                                    <label className="form-label">Video URL*</label>
-                                    <input
-                                        type="url"
-                                        className="form-input"
-                                        value={formData.url}
-                                        onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                                        required
-                                        placeholder="https://youtube.com/watch?v=..."
-                                    />
+                                    <label className="form-label">Video Source*</label>
+                                    <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setUploadMode('file')}
+                                            className={`btn ${uploadMode === 'file' ? 'btn-primary' : 'btn-ghost'}`}
+                                            style={{ flex: 1 }}
+                                        >
+                                            <Upload size={16} />
+                                            Upload File
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setUploadMode('url')}
+                                            className={`btn ${uploadMode === 'url' ? 'btn-primary' : 'btn-ghost'}`}
+                                            style={{ flex: 1 }}
+                                        >
+                                            <Link size={16} />
+                                            Enter URL
+                                        </button>
+                                    </div>
+
+                                    {uploadMode === 'file' ? (
+                                        <div>
+                                            <input
+                                                type="file"
+                                                ref={fileInputRef}
+                                                onChange={handleFileSelect}
+                                                accept="video/*"
+                                                style={{ display: 'none' }}
+                                            />
+                                            <div
+                                                onClick={() => fileInputRef.current?.click()}
+                                                style={{
+                                                    border: '2px dashed var(--border-medium)',
+                                                    borderRadius: 'var(--radius-lg)',
+                                                    padding: 'var(--space-6)',
+                                                    textAlign: 'center',
+                                                    cursor: 'pointer',
+                                                    background: selectedFile ? 'var(--bg-secondary)' : 'transparent',
+                                                }}
+                                            >
+                                                {selectedFile ? (
+                                                    <div>
+                                                        <Video size={32} color="var(--color-gold)" style={{ marginBottom: 'var(--space-2)' }} />
+                                                        <p style={{ fontWeight: '600', marginBottom: 'var(--space-1)' }}>
+                                                            {selectedFile.name}
+                                                        </p>
+                                                        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                                                            {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                                                        </p>
+                                                    </div>
+                                                ) : editingVideo ? (
+                                                    <div>
+                                                        <Video size={32} color="var(--text-tertiary)" style={{ marginBottom: 'var(--space-2)' }} />
+                                                        <p style={{ color: 'var(--text-secondary)' }}>
+                                                            Click to upload a new video (optional)
+                                                        </p>
+                                                        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
+                                                            Max 100MB • MP4, WebM, MOV
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <div>
+                                                        <Upload size={32} color="var(--text-tertiary)" style={{ marginBottom: 'var(--space-2)' }} />
+                                                        <p style={{ color: 'var(--text-secondary)' }}>
+                                                            Click to select video file
+                                                        </p>
+                                                        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
+                                                            Max 100MB • MP4, WebM, MOV
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <input
+                                            type="url"
+                                            className="form-input"
+                                            value={formData.url}
+                                            onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                                            placeholder="https://youtube.com/watch?v=..."
+                                        />
+                                    )}
                                 </div>
 
                                 <div className="form-group">
@@ -428,11 +604,18 @@ export default function AdminVideosPage() {
                             </div>
 
                             <div className="modal-footer">
-                                <button type="button" onClick={() => setShowModal(false)} className="btn btn-ghost">
+                                <button type="button" onClick={() => setShowModal(false)} className="btn btn-ghost" disabled={uploading}>
                                     Cancel
                                 </button>
-                                <button type="submit" className="btn btn-primary">
-                                    {editingVideo ? 'Save Changes' : 'Add Video'}
+                                <button type="submit" className="btn btn-primary" disabled={uploading}>
+                                    {uploading ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" />
+                                            Uploading...
+                                        </>
+                                    ) : (
+                                        editingVideo ? 'Save Changes' : 'Add Video'
+                                    )}
                                 </button>
                             </div>
                         </form>
