@@ -195,7 +195,7 @@ export default function ProfessorGradingPage() {
                         belt_rank: m.profile.belt_rank || 'white',
                         stripes: m.profile.stripes || 0,
                         is_child: m.profile.is_child,
-                        is_kids_program: m.profile.is_kids_program || false,
+                        is_kids_program: m.profile.is_kids_program || m.profile.is_child || false,
                         profile_image_url: m.profile.profile_image_url,
                         last_promotion_date: lastPromotionMap.get(m.profile.user_id),
                     }))
@@ -391,6 +391,7 @@ export default function ProfessorGradingPage() {
                                         belt={member.belt_rank as 'white' | 'blue' | 'purple' | 'brown' | 'black'}
                                         stripes={member.stripes}
                                         size="sm"
+                                        isChild={member.is_kids_program}
                                     />
                                     <div style={{ textAlign: 'center', minWidth: '60px' }}>
                                         <div style={{ textTransform: 'capitalize', fontWeight: '500', fontSize: 'var(--text-sm)' }}>
