@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, MapPin, Clock, CheckCircle, XCircle, AlertCircle, UserPlus, Trash2 } from 'lucide-react';
+import { Users, MapPin, Clock, CheckCircle, XCircle, AlertCircle, UserPlus, Trash2, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 
 interface WaitlistEntry {
@@ -16,6 +16,13 @@ interface WaitlistEntry {
         last_name: string;
         email: string;
         phone: string;
+        date_of_birth?: string;
+        address?: string;
+        city?: string;
+        postcode?: string;
+        emergency_contact_name?: string;
+        emergency_contact_phone?: string;
+        medical_info?: string;
     };
     location?: {
         name: string;
@@ -36,6 +43,7 @@ export default function AdminWaitlistPage() {
     const [selectedLocation, setSelectedLocation] = useState<string>('all');
     const [loading, setLoading] = useState(true);
     const [processingId, setProcessingId] = useState<string | null>(null);
+    const [expandedId, setExpandedId] = useState<string | null>(null);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
@@ -62,7 +70,7 @@ export default function AdminWaitlistPage() {
                     .select('id, name'),
                 supabase
                     .from('profiles')
-                    .select('user_id, first_name, last_name, email, phone'),
+                    .select('user_id, first_name, last_name, email, phone, date_of_birth, address, city, postcode, emergency_contact_name, emergency_contact_phone, medical_info'),
             ]);
 
             // Create lookup maps
@@ -73,7 +81,7 @@ export default function AdminWaitlistPage() {
                 (membershipTypesRes.data || []).map((mt: { id: string; name: string }) => [mt.id, mt])
             );
             const profilesMap = new Map(
-                (profilesRes.data || []).map((p: { user_id: string; first_name: string; last_name: string; email: string; phone: string }) => [p.user_id, p])
+                (profilesRes.data || []).map((p: any) => [p.user_id, p])
             );
 
             // Manually join all data
@@ -241,74 +249,132 @@ export default function AdminWaitlistPage() {
                             <div className="card">
                                 <div className="card-body" style={{ padding: 0 }}>
                                     {entries.map((entry, index) => (
-                                        <div
-                                            key={entry.id}
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'space-between',
-                                                padding: 'var(--space-4)',
-                                                borderBottom: index < entries.length - 1 ? '1px solid var(--border-light)' : 'none',
-                                            }}
-                                        >
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
-                                                {/* Position */}
-                                                <div style={{
-                                                    width: '36px',
-                                                    height: '36px',
-                                                    borderRadius: 'var(--radius-full)',
-                                                    background: 'var(--color-gold-gradient)',
+                                        <div key={entry.id}>
+                                            <div
+                                                style={{
                                                     display: 'flex',
                                                     alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    fontWeight: '700',
-                                                    color: 'var(--color-black)',
+                                                    justifyContent: 'space-between',
+                                                    padding: 'var(--space-4)',
+                                                    borderBottom: expandedId === entry.id || index < entries.length - 1 ? '1px solid var(--border-light)' : 'none',
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+                                                    {/* Position */}
+                                                    <div style={{
+                                                        width: '36px',
+                                                        height: '36px',
+                                                        borderRadius: 'var(--radius-full)',
+                                                        background: 'var(--color-gold-gradient)',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontWeight: '700',
+                                                        color: 'var(--color-black)',
+                                                    }}>
+                                                        #{entry.position}
+                                                    </div>
+
+                                                    <div>
+                                                        <p style={{ fontWeight: '600', margin: 0 }}>
+                                                            {entry.profile?.first_name} {entry.profile?.last_name}
+                                                        </p>
+                                                        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: 0 }}>
+                                                            {entry.profile?.email}
+                                                        </p>
+                                                        {entry.membership_type && (
+                                                            <span className="badge badge-gold" style={{ marginTop: 'var(--space-1)' }}>
+                                                                {entry.membership_type.name}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                                                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                                                        <Clock size={14} />
+                                                        {new Date(entry.created_at).toLocaleDateString('en-GB', {
+                                                            day: 'numeric',
+                                                            month: 'short',
+                                                        })}
+                                                    </span>
+
+                                                    <button
+                                                        onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)}
+                                                        className="btn btn-ghost btn-sm"
+                                                        title="View registration details"
+                                                    >
+                                                        <Info size={16} />
+                                                        {expandedId === entry.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                                    </button>
+
+                                                    <button
+                                                        onClick={() => approveWaitlist(entry)}
+                                                        disabled={processingId === entry.id}
+                                                        className="btn btn-primary btn-sm"
+                                                    >
+                                                        <UserPlus size={16} />
+                                                        Approve
+                                                    </button>
+
+                                                    <button
+                                                        onClick={() => removeFromWaitlist(entry.id)}
+                                                        disabled={processingId === entry.id}
+                                                        className="btn btn-ghost btn-sm"
+                                                        style={{ color: 'var(--color-red)' }}
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Expandable Details */}
+                                            {expandedId === entry.id && (
+                                                <div style={{
+                                                    padding: 'var(--space-4)',
+                                                    background: 'var(--bg-secondary)',
+                                                    borderBottom: index < entries.length - 1 ? '1px solid var(--border-light)' : 'none',
                                                 }}>
-                                                    #{entry.position}
+                                                    <div style={{
+                                                        display: 'grid',
+                                                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                                                        gap: 'var(--space-4)',
+                                                    }}>
+                                                        <div>
+                                                            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', margin: '0 0 var(--space-1)' }}>Phone</p>
+                                                            <p style={{ margin: 0, fontWeight: '500' }}>{entry.profile?.phone || 'Not provided'}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', margin: '0 0 var(--space-1)' }}>Date of Birth</p>
+                                                            <p style={{ margin: 0, fontWeight: '500' }}>
+                                                                {entry.profile?.date_of_birth
+                                                                    ? new Date(entry.profile.date_of_birth).toLocaleDateString('en-GB')
+                                                                    : 'Not provided'}
+                                                            </p>
+                                                        </div>
+                                                        <div>
+                                                            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', margin: '0 0 var(--space-1)' }}>Address</p>
+                                                            <p style={{ margin: 0, fontWeight: '500' }}>
+                                                                {[entry.profile?.address, entry.profile?.city, entry.profile?.postcode].filter(Boolean).join(', ') || 'Not provided'}
+                                                            </p>
+                                                        </div>
+                                                        <div>
+                                                            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', margin: '0 0 var(--space-1)' }}>Emergency Contact</p>
+                                                            <p style={{ margin: 0, fontWeight: '500' }}>
+                                                                {entry.profile?.emergency_contact_name
+                                                                    ? `${entry.profile.emergency_contact_name} (${entry.profile.emergency_contact_phone || 'No phone'})`
+                                                                    : 'Not provided'}
+                                                            </p>
+                                                        </div>
+                                                        {entry.profile?.medical_info && (
+                                                            <div style={{ gridColumn: '1 / -1' }}>
+                                                                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', margin: '0 0 var(--space-1)' }}>Medical Information</p>
+                                                                <p style={{ margin: 0, fontWeight: '500' }}>{entry.profile.medical_info}</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
-
-                                                <div>
-                                                    <p style={{ fontWeight: '600', margin: 0 }}>
-                                                        {entry.profile?.first_name} {entry.profile?.last_name}
-                                                    </p>
-                                                    <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: 0 }}>
-                                                        {entry.profile?.email}
-                                                    </p>
-                                                    {entry.membership_type && (
-                                                        <span className="badge badge-gold" style={{ marginTop: 'var(--space-1)' }}>
-                                                            {entry.membership_type.name}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                                                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-                                                    <Clock size={14} />
-                                                    {new Date(entry.created_at).toLocaleDateString('en-GB', {
-                                                        day: 'numeric',
-                                                        month: 'short',
-                                                    })}
-                                                </span>
-
-                                                <button
-                                                    onClick={() => approveWaitlist(entry)}
-                                                    disabled={processingId === entry.id}
-                                                    className="btn btn-primary btn-sm"
-                                                >
-                                                    <UserPlus size={16} />
-                                                    Approve
-                                                </button>
-
-                                                <button
-                                                    onClick={() => removeFromWaitlist(entry.id)}
-                                                    disabled={processingId === entry.id}
-                                                    className="btn btn-ghost btn-sm"
-                                                    style={{ color: 'var(--color-red)' }}
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
