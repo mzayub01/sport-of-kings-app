@@ -169,6 +169,7 @@ export default function GradingModal({ member, classId, onClose, onSuccess }: Gr
                                         belt={member.belt_rank as 'white' | 'blue' | 'purple' | 'brown' | 'black'}
                                         stripes={member.stripes}
                                         size="md"
+                                        isChild={member.is_kids_program}
                                     />
                                     <span style={{ textTransform: 'capitalize', fontWeight: '500' }}>
                                         {member.belt_rank} Belt • {member.stripes} stripe{member.stripes !== 1 ? 's' : ''}
@@ -249,6 +250,7 @@ export default function GradingModal({ member, classId, onClose, onSuccess }: Gr
                                         belt={newBelt as 'white' | 'blue' | 'purple' | 'brown' | 'black'}
                                         stripes={newStripes}
                                         size="md"
+                                        isChild={member.is_kids_program}
                                     />
                                     <span style={{ textTransform: 'capitalize', fontWeight: '500' }}>
                                         {newBelt} Belt • {newStripes} stripe{newStripes !== 1 ? 's' : ''}

@@ -136,6 +136,7 @@ export default function MemberProgressPage() {
                         belt={(currentBelt as 'white' | 'blue' | 'purple' | 'brown' | 'black')}
                         stripes={currentStripes}
                         size="lg"
+                        isChild={isChild}
                     />
                 </div>
                 <h2 style={{ textTransform: 'capitalize', marginBottom: 'var(--space-1)' }}>

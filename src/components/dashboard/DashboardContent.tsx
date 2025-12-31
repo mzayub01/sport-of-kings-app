@@ -147,6 +147,7 @@ export default function DashboardContent() {
                             belt={(profile?.belt_rank as 'white' | 'blue' | 'purple' | 'brown' | 'black') || 'white'}
                             stripes={profile?.stripes || 0}
                             size="sm"
+                            isChild={!isViewingParent}
                         />
                     </div>
                 </div>
