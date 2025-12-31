@@ -49,7 +49,7 @@ export default async function AdminFinancePage() {
         `)
         .eq('status', 'active');
 
-    // Calculate revenue by location
+    // Calculate revenue by location and type
     const revenueByLocation: Record<string, RevenueByLocation> = {};
     const revenueByType: Record<string, RevenueByType> = {};
     let totalMonthlyRevenue = 0;
@@ -64,13 +64,24 @@ export default async function AdminFinancePage() {
     let newMembersThisMonth = 0;
     let newMembersLastMonth = 0;
 
+    // Monthly member count tracking (last 6 months) - cumulative active members
+    const monthlyData: { month: string; revenue: number; members: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+        const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        monthlyData.push({
+            month: monthDate.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }),
+            revenue: 0,
+            members: 0,
+        });
+    }
+
     memberships?.forEach((m) => {
         const locationData = m.location as { id: string; name: string } | null;
         const typeData = m.membership_type as { id: string; name: string; price: number } | null;
         const price = typeData?.price || 0;
         const startDate = m.start_date ? new Date(m.start_date) : new Date(m.created_at);
 
-        // Monthly revenue = price per member (recurring)
+        // Simple calculation: price × 1 member = monthly revenue for this member
         totalMonthlyRevenue += price;
         totalMembers += 1;
 
@@ -103,12 +114,23 @@ export default async function AdminFinancePage() {
             revenueByType[typeData.id].total_revenue += price;
         }
 
-        // Track new signups
+        // Track new signups this month vs last month
         if (startDate >= currentMonthStart) {
             newMembersThisMonth += 1;
         } else if (startDate >= lastMonthStart && startDate <= lastMonthEnd) {
             newMembersLastMonth += 1;
         }
+
+        // Calculate cumulative member count for each month in the chart
+        // A member contributes to all months from their start date onwards
+        monthlyData.forEach((monthItem, index) => {
+            const monthStart = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+            // If member started before or during this month, they contribute
+            if (startDate <= new Date(now.getFullYear(), now.getMonth() - (4 - index), 0)) {
+                monthItem.members += 1;
+                monthItem.revenue += price;
+            }
+        });
     });
 
     const locationArray = Object.values(revenueByLocation).sort((a, b) => b.total_revenue - a.total_revenue);
@@ -123,12 +145,14 @@ export default async function AdminFinancePage() {
         return `£${(pence / 100).toFixed(2)}`;
     };
 
+    const maxMonthlyRevenue = Math.max(...monthlyData.map(m => m.revenue), 1);
+
     return (
         <div>
             <div className="dashboard-header">
                 <h1 className="dashboard-title">Financial MI</h1>
                 <p className="dashboard-subtitle">
-                    Revenue analysis and financial insights (Monthly Recurring Revenue)
+                    Revenue analysis and financial insights
                 </p>
             </div>
 
@@ -224,122 +248,155 @@ export default async function AdminFinancePage() {
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 'var(--space-6)' }}>
-                    {/* Revenue by Location */}
-                    <div className="card">
-                        <div className="card-header">
-                            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                                <Building size={20} color="var(--color-gold)" />
-                                Revenue by Location
-                            </h3>
-                        </div>
-                        <div className="card-body" style={{ padding: 0 }}>
-                            {locationArray.length === 0 ? (
-                                <div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                    No revenue data available
-                                </div>
-                            ) : (
-                                locationArray.map((loc, index) => (
-                                    <div
-                                        key={loc.location_id}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            padding: 'var(--space-4)',
-                                            borderBottom: index < locationArray.length - 1 ? '1px solid var(--border-light)' : 'none',
-                                        }}
-                                    >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                                            <div style={{
-                                                width: '40px',
-                                                height: '40px',
-                                                borderRadius: 'var(--radius-lg)',
-                                                background: 'var(--bg-tertiary)',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                            }}>
-                                                <MapPin size={20} color="var(--color-gold)" />
-                                            </div>
-                                            <div>
-                                                <p style={{ fontWeight: '600', margin: 0 }}>{loc.location_name}</p>
-                                                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: 0 }}>
-                                                    {loc.member_count} member{loc.member_count !== 1 ? 's' : ''}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <p style={{ fontWeight: '700', color: 'var(--color-gold)', margin: 0 }}>
-                                                {formatCurrency(loc.total_revenue)}
-                                            </p>
-                                            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', margin: 0 }}>
-                                                {((loc.total_revenue / totalMonthlyRevenue) * 100).toFixed(1)}% of total
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
+            {/* Monthly Trend */}
+            <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
+                <div className="card-header">
+                    <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                        <TrendingUp size={20} color="var(--color-gold)" />
+                        Revenue Trend (Last 6 Months)
+                    </h3>
+                </div>
+                <div className="card-body">
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--space-2)', height: '200px', padding: 'var(--space-4) 0' }}>
+                        {monthlyData.map((month, index) => (
+                            <div key={index} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-2)' }}>
+                                <div style={{
+                                    height: `${(month.revenue / maxMonthlyRevenue) * 150}px`,
+                                    minHeight: '4px',
+                                    width: '100%',
+                                    maxWidth: '60px',
+                                    background: index === monthlyData.length - 1 ? 'var(--color-gold-gradient)' : 'var(--bg-tertiary)',
+                                    borderRadius: 'var(--radius-md) var(--radius-md) 0 0',
+                                    transition: 'height 0.3s ease',
+                                }} />
+                                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
+                                    {month.month}
+                                </span>
+                                <span style={{ fontSize: 'var(--text-xs)', fontWeight: '600' }}>
+                                    {formatCurrency(month.revenue)}
+                                </span>
+                            </div>
+                        ))}
                     </div>
+                </div>
+            </div>
 
-                    {/* Revenue by Membership Type */}
-                    <div className="card">
-                        <div className="card-header">
-                            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                                <CreditCard size={20} color="var(--color-gold)" />
-                                Revenue by Membership Type
-                            </h3>
-                        </div>
-                        <div className="card-body" style={{ padding: 0 }}>
-                            {typeArray.length === 0 ? (
-                                <div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                    No revenue data available
-                                </div>
-                            ) : (
-                                typeArray.map((type, index) => (
-                                    <div
-                                        key={type.type_id}
-                                        style={{
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 'var(--space-6)' }}>
+                {/* Revenue by Location */}
+                <div className="card">
+                    <div className="card-header">
+                        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                            <Building size={20} color="var(--color-gold)" />
+                            Revenue by Location
+                        </h3>
+                    </div>
+                    <div className="card-body" style={{ padding: 0 }}>
+                        {locationArray.length === 0 ? (
+                            <div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                No revenue data available
+                            </div>
+                        ) : (
+                            locationArray.map((loc, index) => (
+                                <div
+                                    key={loc.location_id}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: 'var(--space-4)',
+                                        borderBottom: index < locationArray.length - 1 ? '1px solid var(--border-light)' : 'none',
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                                        <div style={{
+                                            width: '40px',
+                                            height: '40px',
+                                            borderRadius: 'var(--radius-lg)',
+                                            background: 'var(--bg-tertiary)',
                                             display: 'flex',
                                             alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            padding: 'var(--space-4)',
-                                            borderBottom: index < typeArray.length - 1 ? '1px solid var(--border-light)' : 'none',
-                                        }}
-                                    >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                                            <div style={{
-                                                width: '40px',
-                                                height: '40px',
-                                                borderRadius: 'var(--radius-lg)',
-                                                background: 'var(--bg-tertiary)',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                            }}>
-                                                <CreditCard size={20} color="var(--color-green)" />
-                                            </div>
-                                            <div>
-                                                <p style={{ fontWeight: '600', margin: 0 }}>{type.type_name}</p>
-                                                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: 0 }}>
-                                                    {formatCurrency(type.price)}/member • {type.member_count} member{type.member_count !== 1 ? 's' : ''}
-                                                </p>
-                                            </div>
+                                            justifyContent: 'center',
+                                        }}>
+                                            <MapPin size={20} color="var(--color-gold)" />
                                         </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <p style={{ fontWeight: '700', color: 'var(--color-gold)', margin: 0 }}>
-                                                {formatCurrency(type.total_revenue)}
-                                            </p>
-                                            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', margin: 0 }}>
-                                                {((type.total_revenue / totalMonthlyRevenue) * 100).toFixed(1)}% of total
+                                        <div>
+                                            <p style={{ fontWeight: '600', margin: 0 }}>{loc.location_name}</p>
+                                            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: 0 }}>
+                                                {loc.member_count} member{loc.member_count !== 1 ? 's' : ''}
                                             </p>
                                         </div>
                                     </div>
-                                ))
-                            )}
-                        </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <p style={{ fontWeight: '700', color: 'var(--color-gold)', margin: 0 }}>
+                                            {formatCurrency(loc.total_revenue)}
+                                        </p>
+                                        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', margin: 0 }}>
+                                            {((loc.total_revenue / totalMonthlyRevenue) * 100).toFixed(1)}% of total
+                                        </p>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+
+                {/* Revenue by Membership Type */}
+                <div className="card">
+                    <div className="card-header">
+                        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                            <CreditCard size={20} color="var(--color-gold)" />
+                            Revenue by Membership Type
+                        </h3>
+                    </div>
+                    <div className="card-body" style={{ padding: 0 }}>
+                        {typeArray.length === 0 ? (
+                            <div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                No revenue data available
+                            </div>
+                        ) : (
+                            typeArray.map((type, index) => (
+                                <div
+                                    key={type.type_id}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: 'var(--space-4)',
+                                        borderBottom: index < typeArray.length - 1 ? '1px solid var(--border-light)' : 'none',
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                                        <div style={{
+                                            width: '40px',
+                                            height: '40px',
+                                            borderRadius: 'var(--radius-lg)',
+                                            background: 'var(--bg-tertiary)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                        }}>
+                                            <CreditCard size={20} color="var(--color-green)" />
+                                        </div>
+                                        <div>
+                                            <p style={{ fontWeight: '600', margin: 0 }}>{type.type_name}</p>
+                                            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: 0 }}>
+                                                {formatCurrency(type.price)}/member × {type.member_count} = {formatCurrency(type.total_revenue)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <p style={{ fontWeight: '700', color: 'var(--color-gold)', margin: 0 }}>
+                                            {formatCurrency(type.total_revenue)}
+                                        </p>
+                                        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', margin: 0 }}>
+                                            {((type.total_revenue / totalMonthlyRevenue) * 100).toFixed(1)}% of total
+                                        </p>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
             </div>
