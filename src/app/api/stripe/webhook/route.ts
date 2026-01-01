@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isStripeConfigured, getStripeClient } from '@/lib/stripe';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import Stripe from 'stripe';
 
 export async function POST(request: NextRequest) {
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
         const { userId, locationId, membershipTypeId } = session.metadata || {};
 
         if (userId && locationId) {
-            const supabase = await createClient();
+            const supabase = await createAdminClient();
 
             // Check if membership already exists
             const { data: existingMembership } = await supabase
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     if (event.type === 'customer.subscription.deleted') {
         const subscription = event.data.object as Stripe.Subscription;
 
-        const supabase = await createClient();
+        const supabase = await createAdminClient();
 
         // Mark membership as cancelled
         await supabase
