@@ -46,6 +46,8 @@ export default function MemberEventsPage() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [userId, setUserId] = useState<string | null>(null);
+    const [userFullName, setUserFullName] = useState<string>('');
+    const [userEmail, setUserEmail] = useState<string>('');
 
     const supabase = getSupabaseClient();
     const today = new Date().toISOString().split('T')[0];
@@ -63,6 +65,18 @@ export default function MemberEventsPage() {
                 return;
             }
             setUserId(user.id);
+            setUserEmail(user.email || '');
+
+            // Fetch user's profile for full name
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('first_name, last_name')
+                .eq('user_id', user.id)
+                .single();
+
+            if (profile) {
+                setUserFullName(`${profile.first_name} ${profile.last_name}`.trim());
+            }
 
             // Fetch upcoming events
             const { data: eventsData } = await supabase
@@ -129,6 +143,8 @@ export default function MemberEventsPage() {
                     .insert({
                         event_id: eventId,
                         user_id: userId,
+                        full_name: userFullName || 'Unknown',
+                        email: userEmail,
                         status: status,
                     });
 
