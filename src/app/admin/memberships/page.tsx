@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, MapPin, Search, CheckCircle, XCircle, AlertCircle, Filter, Calendar, UserPlus } from 'lucide-react';
+import { Users, MapPin, Search, CheckCircle, XCircle, AlertCircle, Filter, Calendar, UserPlus, CreditCard, Ban } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 
 interface Membership {
@@ -13,6 +13,7 @@ interface Membership {
     start_date: string;
     end_date: string | null;
     created_at: string;
+    stripe_subscription_id: string | null;
     profile?: {
         first_name: string;
         last_name: string;
@@ -74,7 +75,7 @@ export default function AdminMembershipsPage() {
             const [membershipsRes, locationsRes, membersRes] = await Promise.all([
                 supabase
                     .from('memberships')
-                    .select('*, profile:profiles(id, first_name, last_name, email, is_child, parent_guardian_id), location:locations(name), membership_type:membership_types(name)')
+                    .select('*, stripe_subscription_id, profile:profiles(id, first_name, last_name, email, is_child, parent_guardian_id), location:locations(name), membership_type:membership_types(name)')
                     .order('created_at', { ascending: false }),
                 supabase
                     .from('locations')
@@ -212,6 +213,42 @@ export default function AdminMembershipsPage() {
             fetchData();
         } catch (err) {
             console.error('Error updating status:', err);
+        }
+    };
+
+    const cancelSubscription = async (membership: Membership) => {
+        if (!membership.stripe_subscription_id) {
+            setError('This membership does not have a Stripe subscription.');
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to cancel the subscription for ${membership.profile?.first_name} ${membership.profile?.last_name}? This will stop their recurring payments.`)) {
+            return;
+        }
+
+        try {
+            setSuccess('');
+            setError('');
+
+            const response = await fetch('/api/stripe/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    subscriptionId: membership.stripe_subscription_id,
+                    membershipId: membership.id,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setSuccess('Subscription cancelled successfully!');
+                fetchData();
+            } else {
+                setError(data.error || 'Failed to cancel subscription');
+            }
+        } catch (err: any) {
+            setError(err.message || 'Failed to cancel subscription');
         }
     };
 
@@ -385,9 +422,22 @@ export default function AdminMembershipsPage() {
                                         }) : '-'}
                                     </td>
                                     <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>
-                                        <button onClick={() => openModal(membership)} className="btn btn-ghost btn-sm">
-                                            Edit
-                                        </button>
+                                        <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+                                            <button onClick={() => openModal(membership)} className="btn btn-ghost btn-sm">
+                                                Edit
+                                            </button>
+                                            {membership.stripe_subscription_id && membership.status === 'active' && (
+                                                <button
+                                                    onClick={() => cancelSubscription(membership)}
+                                                    className="btn btn-ghost btn-sm"
+                                                    style={{ color: 'var(--color-red)' }}
+                                                    title="Cancel Stripe subscription"
+                                                >
+                                                    <Ban size={14} />
+                                                    Cancel
+                                                </button>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
