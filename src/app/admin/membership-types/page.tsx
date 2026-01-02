@@ -19,6 +19,7 @@ interface MembershipType {
     age_min: number | null;
     age_max: number | null;
     is_active: boolean;
+    stripe_price_id: string | null;
     location?: Location;
 }
 
@@ -51,6 +52,7 @@ export default function AdminMembershipTypesPage() {
         duration_days: 365,
         age_min: '',
         age_max: '',
+        stripe_price_id: '',
     });
 
     useEffect(() => {
@@ -134,6 +136,7 @@ export default function AdminMembershipTypesPage() {
                 duration_days: item.duration_days,
                 age_min: item.age_min?.toString() || '',
                 age_max: item.age_max?.toString() || '',
+                stripe_price_id: item.stripe_price_id || '',
             });
         } else {
             setEditItem(null);
@@ -145,6 +148,7 @@ export default function AdminMembershipTypesPage() {
                 duration_days: 365,
                 age_min: '',
                 age_max: '',
+                stripe_price_id: '',
             });
         }
         setShowModal(true);
@@ -169,6 +173,7 @@ export default function AdminMembershipTypesPage() {
             duration_days: formData.duration_days,
             age_min: formData.age_min ? parseInt(formData.age_min) : null,
             age_max: formData.age_max ? parseInt(formData.age_max) : null,
+            stripe_price_id: formData.stripe_price_id || null,
         };
 
         try {
@@ -510,6 +515,22 @@ export default function AdminMembershipTypesPage() {
                                             placeholder="e.g. 11"
                                         />
                                     </div>
+                                </div>
+
+                                {/* Stripe Integration */}
+                                <div className="form-group" style={{ marginTop: 'var(--space-4)', padding: 'var(--space-4)', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)' }}>
+                                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                                        <CreditCard size={16} color="var(--color-gold)" />
+                                        Stripe Price ID
+                                    </label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        value={formData.stripe_price_id}
+                                        onChange={(e) => setFormData({ ...formData, stripe_price_id: e.target.value })}
+                                        placeholder="price_1234..."
+                                    />
+                                    <p className="form-hint">Link to a Stripe Price for better tracking (optional)</p>
                                 </div>
                             </div>
                             <div className="modal-footer">
