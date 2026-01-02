@@ -35,7 +35,7 @@ interface RevenueByType {
 export default async function AdminFinancePage() {
     const supabase = await createAdminClient();
 
-    // Fetch all active memberships with their types and locations
+    // Fetch all memberships with their types and locations
     const { data: memberships } = await supabase
         .from('memberships')
         .select(`
@@ -45,16 +45,25 @@ export default async function AdminFinancePage() {
             membership_type_id,
             start_date,
             created_at,
+            status,
+            stripe_subscription_id,
             location:locations(id, name),
             membership_type:membership_types(id, name, price)
         `)
-        .eq('status', 'active');
+        .in('status', ['active', 'pending', 'cancelled']);
 
     // Calculate revenue by location and type
     const revenueByLocation: Record<string, RevenueByLocation> = {};
     const revenueByType: Record<string, RevenueByType> = {};
     let totalMonthlyRevenue = 0;
     let totalMembers = 0;
+
+    // Subscription tracking
+    let stripeActiveCount = 0;
+    let stripeActiveRevenue = 0;
+    let pendingPaymentCount = 0;
+    let freeCount = 0;
+    let cancelledCount = 0;
 
     // Get current month boundaries
     const now = new Date();
@@ -81,6 +90,30 @@ export default async function AdminFinancePage() {
         const typeData = m.membership_type as { id: string; name: string; price: number } | null;
         const price = typeData?.price || 0;
         const startDate = m.start_date ? new Date(m.start_date) : new Date(m.created_at);
+        const hasStripeSubscription = !!m.stripe_subscription_id;
+        const status = m.status as string;
+
+        // Track subscription status
+        if (status === 'cancelled') {
+            cancelledCount += 1;
+            return; // Don't count cancelled in revenue
+        }
+
+        if (status === 'pending') {
+            pendingPaymentCount += 1;
+            return; // Don't count pending in revenue
+        }
+
+        // Active members
+        if (price === 0) {
+            freeCount += 1;
+        } else if (hasStripeSubscription) {
+            stripeActiveCount += 1;
+            stripeActiveRevenue += price;
+        } else {
+            // Paid but no Stripe subscription (manual payment)
+            pendingPaymentCount += 1;
+        }
 
         // Simple calculation: price × 1 member = monthly revenue for this member
         totalMonthlyRevenue += price;
@@ -249,6 +282,90 @@ export default async function AdminFinancePage() {
                             <MapPin size={24} color="var(--color-black)" />
                         </div>
                     </div>
+                </div>
+            </div>
+
+            {/* Subscription Status Breakdown */}
+            <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
+                <div className="card-header">
+                    <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                        <CreditCard size={20} color="var(--color-gold)" />
+                        Subscription Status
+                    </h3>
+                </div>
+                <div className="card-body">
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 'var(--space-4)' }}>
+                        {/* Stripe Active */}
+                        <div style={{
+                            padding: 'var(--space-4)',
+                            background: 'rgba(45, 125, 70, 0.1)',
+                            borderRadius: 'var(--radius-lg)',
+                            borderLeft: '4px solid var(--color-green)',
+                        }}>
+                            <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', margin: 0 }}>Stripe Active</p>
+                            <p style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', margin: '4px 0', color: 'var(--color-green)' }}>{stripeActiveCount}</p>
+                            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', margin: 0 }}>
+                                {formatCurrency(stripeActiveRevenue)}/month
+                            </p>
+                        </div>
+
+                        {/* Free Members */}
+                        <div style={{
+                            padding: 'var(--space-4)',
+                            background: 'rgba(197, 164, 86, 0.1)',
+                            borderRadius: 'var(--radius-lg)',
+                            borderLeft: '4px solid var(--color-gold)',
+                        }}>
+                            <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', margin: 0 }}>Free Members</p>
+                            <p style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', margin: '4px 0', color: 'var(--color-gold)' }}>{freeCount}</p>
+                            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', margin: 0 }}>No payment required</p>
+                        </div>
+
+                        {/* Pending */}
+                        <div style={{
+                            padding: 'var(--space-4)',
+                            background: 'rgba(245, 158, 11, 0.1)',
+                            borderRadius: 'var(--radius-lg)',
+                            borderLeft: '4px solid #F59E0B',
+                        }}>
+                            <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', margin: 0 }}>Pending/Manual</p>
+                            <p style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', margin: '4px 0', color: '#F59E0B' }}>{pendingPaymentCount}</p>
+                            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', margin: 0 }}>Awaiting payment</p>
+                        </div>
+
+                        {/* Cancelled */}
+                        <div style={{
+                            padding: 'var(--space-4)',
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            borderRadius: 'var(--radius-lg)',
+                            borderLeft: '4px solid var(--color-red)',
+                        }}>
+                            <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', margin: 0 }}>Cancelled</p>
+                            <p style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', margin: '4px 0', color: 'var(--color-red)' }}>{cancelledCount}</p>
+                            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', margin: 0 }}>Subscription ended</p>
+                        </div>
+                    </div>
+
+                    {/* Subscription Coverage */}
+                    {totalMembers > 0 && (
+                        <div style={{ marginTop: 'var(--space-6)', padding: 'var(--space-4)', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+                                <span style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>Stripe Subscription Coverage</span>
+                                <span style={{ fontWeight: '600' }}>{((stripeActiveCount / Math.max(stripeActiveCount + pendingPaymentCount, 1)) * 100).toFixed(0)}%</span>
+                            </div>
+                            <div style={{ height: '8px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+                                <div style={{
+                                    height: '100%',
+                                    width: `${(stripeActiveCount / Math.max(stripeActiveCount + pendingPaymentCount, 1)) * 100}%`,
+                                    background: 'var(--color-green)',
+                                    borderRadius: 'var(--radius-full)',
+                                }} />
+                            </div>
+                            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginTop: 'var(--space-2)', margin: '8px 0 0 0' }}>
+                                {stripeActiveCount} of {stripeActiveCount + pendingPaymentCount} paid members have active Stripe subscriptions
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
 
