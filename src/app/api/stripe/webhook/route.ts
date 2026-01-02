@@ -95,5 +95,62 @@ export async function POST(request: NextRequest) {
             .eq('stripe_subscription_id', subscription.id);
     }
 
+    // Handle failed payment
+    if (event.type === 'invoice.payment_failed') {
+        const invoice = event.data.object as Stripe.Invoice;
+
+        console.log('Payment failed for invoice:', invoice.id, 'Customer:', invoice.customer);
+
+        // Get customer email from invoice
+        const customerEmail = invoice.customer_email;
+        const attemptCount = invoice.attempt_count || 1;
+
+        if (invoice.subscription) {
+            const supabase = await createAdminClient();
+
+            // If this is a recurring payment failure (not first charge), consider updating status
+            if (attemptCount >= 3) {
+                // After 3 failed attempts, mark as payment_failed
+                await supabase
+                    .from('memberships')
+                    .update({ status: 'payment_failed' })
+                    .eq('stripe_subscription_id', invoice.subscription as string);
+
+                console.log('Membership marked as payment_failed after', attemptCount, 'attempts');
+            } else {
+                console.log('Payment attempt', attemptCount, 'failed for subscription:', invoice.subscription);
+            }
+
+            // TODO: Send email notification to member about failed payment
+            // For now, just log it. In production, integrate with email service (Resend, SendGrid, etc.)
+            console.log('PAYMENT FAILED NOTIFICATION:', {
+                email: customerEmail,
+                invoiceId: invoice.id,
+                amount: (invoice.amount_due || 0) / 100,
+                attemptCount: attemptCount,
+                nextAttempt: invoice.next_payment_attempt
+                    ? new Date(invoice.next_payment_attempt * 1000).toISOString()
+                    : 'Final attempt',
+            });
+        }
+    }
+
+    // Handle subscription past due (entering dunning)
+    if (event.type === 'customer.subscription.updated') {
+        const subscription = event.data.object as Stripe.Subscription;
+
+        if (subscription.status === 'past_due') {
+            console.log('Subscription past due:', subscription.id);
+
+            const supabase = await createAdminClient();
+
+            // Mark membership as pending (payment issue)
+            await supabase
+                .from('memberships')
+                .update({ status: 'pending' })
+                .eq('stripe_subscription_id', subscription.id);
+        }
+    }
+
     return NextResponse.json({ received: true });
 }
