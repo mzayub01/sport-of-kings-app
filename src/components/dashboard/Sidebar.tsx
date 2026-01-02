@@ -27,7 +27,8 @@ import {
     UserPlus,
     Shield,
     GraduationCap,
-    PoundSterling
+    PoundSterling,
+    Receipt
 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -98,6 +99,7 @@ export default function DashboardSidebar({ role, userRole, userName = 'Member', 
         { href: '/dashboard/naseeha', label: 'Naseeha', icon: BookOpen },
         { href: '/dashboard/announcements', label: 'Announcements', icon: Bell },
         { href: '/dashboard/membership', label: 'Membership', icon: CreditCard },
+        { href: '/dashboard/payments', label: 'Payment History', icon: Receipt },
         { href: '/dashboard/add-child', label: 'Add Child', icon: UserPlus },
     ];
 
