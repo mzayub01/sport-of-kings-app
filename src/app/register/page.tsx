@@ -406,6 +406,8 @@ function RegisterPageContent() {
                         router.refresh();
                     } else {
                         // Paid membership - redirect to Stripe checkout
+                        console.log('Attempting Stripe checkout for membership type:', formData.selectedMembershipTypeId);
+
                         const response = await fetch('/api/stripe/checkout', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -421,12 +423,21 @@ function RegisterPageContent() {
                         });
 
                         const data = await response.json();
+                        console.log('Stripe checkout response:', data);
 
                         if (data.url) {
                             // Redirect to Stripe Checkout
+                            console.log('Redirecting to Stripe:', data.url);
                             window.location.href = data.url;
+                        } else if (data.error) {
+                            // Stripe returned an error - show it to user
+                            console.error('Stripe checkout error:', data.error);
+                            setError(`Payment setup failed: ${data.error}. Please try again or contact support.`);
+                            setLoading(false);
+                            return;
                         } else {
                             // Stripe not configured - create pending membership
+                            console.log('No URL returned, creating pending membership');
                             const { error: membershipError } = await supabase
                                 .from('memberships')
                                 .insert({
