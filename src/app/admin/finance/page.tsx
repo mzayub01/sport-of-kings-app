@@ -176,6 +176,16 @@ export default async function AdminFinancePage() {
         ? ((newMembersThisMonth - newMembersLastMonth) / newMembersLastMonth) * 100
         : newMembersThisMonth > 0 ? 100 : 0;
 
+    // Calculate projected MRR (Monthly Recurring Revenue)
+    // This is based on all active Stripe subscriptions
+    const projectedMRR = stripeActiveRevenue;
+
+    // Calculate last month's revenue for comparison
+    const lastMonthRevenue = monthlyData.length >= 2 ? monthlyData[monthlyData.length - 2]?.revenue || 0 : 0;
+    const mrrGrowth = lastMonthRevenue > 0
+        ? ((projectedMRR - lastMonthRevenue) / lastMonthRevenue) * 100
+        : projectedMRR > 0 ? 100 : 0;
+
     const formatCurrency = (pounds: number) => {
         return `£${pounds.toFixed(2)}`;
     };
@@ -281,6 +291,35 @@ export default async function AdminFinancePage() {
                         }}>
                             <MapPin size={24} color="var(--color-black)" />
                         </div>
+                    </div>
+                </div>
+
+                {/* Projected MRR */}
+                <div className="stat-card glass-card">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                            <p className="stat-label">Projected MRR</p>
+                            <p className="stat-value">{formatCurrency(projectedMRR)}</p>
+                        </div>
+                        <div style={{
+                            width: '48px',
+                            height: '48px',
+                            borderRadius: 'var(--radius-lg)',
+                            background: mrrGrowth >= 0 ? 'var(--color-green)' : 'var(--color-red)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}>
+                            {mrrGrowth >= 0 ? (
+                                <TrendingUp size={24} color="white" />
+                            ) : (
+                                <TrendingDown size={24} color="white" />
+                            )}
+                        </div>
+                    </div>
+                    <div className={`stat-change ${mrrGrowth >= 0 ? 'positive' : 'negative'}`}>
+                        {mrrGrowth >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                        <span>{mrrGrowth >= 0 ? '+' : ''}{mrrGrowth.toFixed(0)}% vs last month</span>
                     </div>
                 </div>
             </div>
