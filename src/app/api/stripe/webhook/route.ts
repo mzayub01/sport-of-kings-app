@@ -98,14 +98,16 @@ export async function POST(request: NextRequest) {
     // Handle failed payment
     if (event.type === 'invoice.payment_failed') {
         const invoice = event.data.object as Stripe.Invoice;
+        const invoiceWithSub = invoice as any; // Cast for subscription access
 
         console.log('Payment failed for invoice:', invoice.id, 'Customer:', invoice.customer);
 
         // Get customer email from invoice
         const customerEmail = invoice.customer_email;
         const attemptCount = invoice.attempt_count || 1;
+        const subscriptionId = invoiceWithSub.subscription;
 
-        if (invoice.subscription) {
+        if (subscriptionId) {
             const supabase = await createAdminClient();
 
             // If this is a recurring payment failure (not first charge), consider updating status
@@ -114,11 +116,11 @@ export async function POST(request: NextRequest) {
                 await supabase
                     .from('memberships')
                     .update({ status: 'payment_failed' })
-                    .eq('stripe_subscription_id', invoice.subscription as string);
+                    .eq('stripe_subscription_id', String(subscriptionId));
 
                 console.log('Membership marked as payment_failed after', attemptCount, 'attempts');
             } else {
-                console.log('Payment attempt', attemptCount, 'failed for subscription:', invoice.subscription);
+                console.log('Payment attempt', attemptCount, 'failed for subscription:', subscriptionId);
             }
 
             // TODO: Send email notification to member about failed payment
