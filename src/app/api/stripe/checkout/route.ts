@@ -96,10 +96,11 @@ export async function POST(request: NextRequest) {
         console.log('Stripe checkout: Session created with URL:', session.url);
 
         return NextResponse.json({ url: session.url });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Stripe checkout error:', error);
+        const errorMessage = error?.message || error?.raw?.message || 'Failed to create checkout session';
         return NextResponse.json(
-            { error: 'Failed to create checkout session', url: null },
+            { error: errorMessage, url: null },
             { status: 500 }
         );
     }
