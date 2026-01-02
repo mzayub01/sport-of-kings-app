@@ -77,30 +77,54 @@ export async function POST(request: NextRequest) {
             couponParams.max_redemptions = parseInt(max_redemptions);
         }
 
-        const coupon = await stripe.coupons.create(couponParams);
+        console.log('Creating coupon with params:', JSON.stringify(couponParams));
+        let coupon;
+        try {
+            coupon = await stripe.coupons.create(couponParams);
+            console.log('Coupon created:', coupon.id);
+        } catch (err: any) {
+            console.error('Failed to create coupon:', err);
+            return NextResponse.json({ error: 'Failed to create coupon: ' + err.message }, { status: 500 });
+        }
 
         // Crucial: Create a Promotion Code for this coupon so it works in Checkout
         // The coupon ID defines the discount, but the Promotion Code is what the user types
-        const promotionCode = await stripe.promotionCodes.create({
-            coupon: coupon.id,
-            code: id.toUpperCase().replace(/\s/g, ''),
-            restrictions: {
-                first_time_transaction: duration === 'once',
-            },
-        } as any);
+        try {
+            const promoParams: any = {
+                coupon: coupon.id,
+                code: id.toUpperCase().replace(/\s/g, ''),
+                restrictions: {
+                    first_time_transaction: duration === 'once',
+                },
+            };
+            console.log('Creating promotion code with params:', JSON.stringify(promoParams));
 
-        return NextResponse.json({
-            success: true,
-            coupon: {
-                id: coupon.id,
-                name: coupon.name,
-                percent_off: coupon.percent_off,
-                amount_off: coupon.amount_off ? coupon.amount_off / 100 : null,
-                promo_code: promotionCode.code,
-            },
-        });
+            const promotionCode = await stripe.promotionCodes.create(promoParams);
+            console.log('Promotion code created:', promotionCode.id);
+
+            return NextResponse.json({
+                success: true,
+                coupon: {
+                    id: coupon.id,
+                    name: coupon.name,
+                    percent_off: coupon.percent_off,
+                    amount_off: coupon.amount_off ? coupon.amount_off / 100 : null,
+                    promo_code: promotionCode.code,
+                },
+            });
+        } catch (err: any) {
+            console.error('Failed to create promotion code:', err);
+            // If promo code creation fails, try to rollback (delete) the coupon to avoid orphans
+            try {
+                await stripe.coupons.del(coupon.id);
+                console.log('Rolled back (deleted) orphan coupon:', coupon.id);
+            } catch (delErr) {
+                console.error('Failed to rollback coupon:', delErr);
+            }
+            return NextResponse.json({ error: 'Failed to create promotion code: ' + err.message }, { status: 500 });
+        }
     } catch (error: any) {
-        console.error('Error creating coupon:', error);
+        console.error('Unexpected error in promo creation:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
