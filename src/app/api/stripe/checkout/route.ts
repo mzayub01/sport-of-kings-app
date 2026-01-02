@@ -52,11 +52,39 @@ export async function POST(request: NextRequest) {
 
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
+        // Create or get Stripe customer (required for Stripe Accounts V2)
+        let customer;
+        try {
+            // Check if customer already exists
+            const existingCustomers = await stripe.customers.list({
+                email: userEmail,
+                limit: 1,
+            });
+
+            if (existingCustomers.data.length > 0) {
+                customer = existingCustomers.data[0];
+                console.log('Stripe checkout: Found existing customer:', customer.id);
+            } else {
+                // Create new customer
+                customer = await stripe.customers.create({
+                    email: userEmail,
+                    metadata: {
+                        userId,
+                        locationId,
+                    },
+                });
+                console.log('Stripe checkout: Created new customer:', customer.id);
+            }
+        } catch (customerError) {
+            console.error('Stripe checkout: Error creating customer:', customerError);
+            throw customerError;
+        }
+
         // Create Checkout Session
         const sessionParams: Stripe.Checkout.SessionCreateParams = {
             mode: 'subscription',
             payment_method_types: ['card'],
-            customer_email: userEmail,
+            customer: customer.id,
             metadata: {
                 userId,
                 locationId,
