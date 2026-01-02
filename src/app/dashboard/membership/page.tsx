@@ -49,44 +49,35 @@ export default function MembershipPage() {
 
         setLoading(true);
 
-        // Fetch profile for selected profile (could be parent or child)
+        // selectedProfileId is actually the user_id from DashboardProvider
+        // Fetch profile for selected user
         const { data: profileData } = await supabase
             .from('profiles')
             .select('id, first_name, last_name, email, stripe_customer_id')
-            .eq('id', selectedProfileId)
+            .eq('user_id', selectedProfileId)
             .single();
 
         if (profileData) {
             setProfile(profileData);
         }
 
-        // Fetch memberships for selected profile
-        // Note: memberships are linked to user_id, but for child profiles we need to look up by profile id
-        // First get the user_id for this profile
-        const { data: profileWithUserId } = await supabase
-            .from('profiles')
-            .select('user_id')
-            .eq('id', selectedProfileId)
-            .single();
+        // Fetch memberships - memberships are linked directly to user_id
+        const { data: membershipData } = await supabase
+            .from('memberships')
+            .select(`
+                id,
+                status,
+                start_date,
+                stripe_subscription_id,
+                created_at,
+                location:locations(id, name),
+                membership_type:membership_types(id, name, price, description)
+            `)
+            .eq('user_id', selectedProfileId)
+            .order('created_at', { ascending: false });
 
-        if (profileWithUserId?.user_id) {
-            const { data: membershipData } = await supabase
-                .from('memberships')
-                .select(`
-                    id,
-                    status,
-                    start_date,
-                    stripe_subscription_id,
-                    created_at,
-                    location:locations(id, name),
-                    membership_type:membership_types(id, name, price, description)
-                `)
-                .eq('user_id', profileWithUserId.user_id)
-                .order('created_at', { ascending: false });
-
-            if (membershipData) {
-                setMemberships(membershipData as Membership[]);
-            }
+        if (membershipData) {
+            setMemberships(membershipData as Membership[]);
         } else {
             setMemberships([]);
         }
