@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isStripeConfigured, getStripeClient } from '@/lib/stripe';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import Stripe from 'stripe';
 
 export async function POST(request: NextRequest) {
     // Return a specific JSON response when Stripe is not configured
     if (!isStripeConfigured()) {
+        console.log('Stripe checkout: Stripe not configured');
         return NextResponse.json(
             { error: 'Stripe is not configured', url: null },
             { status: 200 }
@@ -14,6 +15,7 @@ export async function POST(request: NextRequest) {
 
     const stripe = getStripeClient();
     if (!stripe) {
+        console.log('Stripe checkout: Stripe client not available');
         return NextResponse.json(
             { error: 'Stripe client not available', url: null },
             { status: 200 }
@@ -32,13 +34,21 @@ export async function POST(request: NextRequest) {
             userEmail,
         } = body;
 
-        // Get Stripe price ID from membership type or create a checkout with price_data
-        const supabase = await createClient();
-        const { data: membershipType } = await supabase
+        console.log('Stripe checkout: Creating session for user', userId, 'membership type', membershipTypeId);
+
+        // Get Stripe price ID from membership type using admin client to bypass RLS
+        const supabase = await createAdminClient();
+        const { data: membershipType, error: fetchError } = await supabase
             .from('membership_types')
             .select('stripe_price_id')
             .eq('id', membershipTypeId)
             .single();
+
+        if (fetchError) {
+            console.error('Stripe checkout: Error fetching membership type:', fetchError);
+        }
+
+        console.log('Stripe checkout: Membership type data:', membershipType);
 
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
@@ -58,11 +68,13 @@ export async function POST(request: NextRequest) {
 
         // Use existing Stripe Price ID if available, otherwise create price data
         if (membershipType?.stripe_price_id) {
+            console.log('Stripe checkout: Using stored price ID:', membershipType.stripe_price_id);
             sessionParams.line_items = [{
                 price: membershipType.stripe_price_id,
                 quantity: 1,
             }];
         } else {
+            console.log('Stripe checkout: Using inline price_data for price:', price);
             // Create inline price (for testing or when no Stripe Price ID is set)
             sessionParams.line_items = [{
                 price_data: {
@@ -81,6 +93,7 @@ export async function POST(request: NextRequest) {
         }
 
         const session = await stripe.checkout.sessions.create(sessionParams);
+        console.log('Stripe checkout: Session created with URL:', session.url);
 
         return NextResponse.json({ url: session.url });
     } catch (error) {
@@ -91,3 +104,4 @@ export async function POST(request: NextRequest) {
         );
     }
 }
+
