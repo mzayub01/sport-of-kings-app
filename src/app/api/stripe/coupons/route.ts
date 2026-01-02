@@ -79,6 +79,16 @@ export async function POST(request: NextRequest) {
 
         const coupon = await stripe.coupons.create(couponParams);
 
+        // Crucial: Create a Promotion Code for this coupon so it works in Checkout
+        // The coupon ID defines the discount, but the Promotion Code is what the user types
+        const promotionCode = await stripe.promotionCodes.create({
+            coupon: coupon.id,
+            code: id.toUpperCase().replace(/\s/g, ''),
+            restrictions: {
+                first_time_transaction: duration === 'once',
+            },
+        });
+
         return NextResponse.json({
             success: true,
             coupon: {
@@ -86,6 +96,7 @@ export async function POST(request: NextRequest) {
                 name: coupon.name,
                 percent_off: coupon.percent_off,
                 amount_off: coupon.amount_off ? coupon.amount_off / 100 : null,
+                promo_code: promotionCode.code,
             },
         });
     } catch (error: any) {
