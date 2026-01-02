@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { CreditCard, Calendar, MapPin, CheckCircle, AlertCircle, Clock, ExternalLink } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { useDashboard } from '@/components/dashboard/DashboardProvider';
 
 interface Membership {
     id: string;
@@ -35,43 +36,59 @@ export default function MembershipPage() {
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const supabase = getSupabaseClient();
+    const { selectedProfileId } = useDashboard();
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        if (selectedProfileId) {
+            fetchData();
+        }
+    }, [selectedProfileId]);
 
     const fetchData = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!selectedProfileId) return;
 
-        // Fetch profile
+        setLoading(true);
+
+        // Fetch profile for selected profile (could be parent or child)
         const { data: profileData } = await supabase
             .from('profiles')
             .select('id, first_name, last_name, email, stripe_customer_id')
-            .eq('user_id', user.id)
+            .eq('id', selectedProfileId)
             .single();
 
         if (profileData) {
             setProfile(profileData);
         }
 
-        // Fetch memberships
-        const { data: membershipData } = await supabase
-            .from('memberships')
-            .select(`
-                id,
-                status,
-                start_date,
-                stripe_subscription_id,
-                created_at,
-                location:locations(id, name),
-                membership_type:membership_types(id, name, price, description)
-            `)
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
+        // Fetch memberships for selected profile
+        // Note: memberships are linked to user_id, but for child profiles we need to look up by profile id
+        // First get the user_id for this profile
+        const { data: profileWithUserId } = await supabase
+            .from('profiles')
+            .select('user_id')
+            .eq('id', selectedProfileId)
+            .single();
 
-        if (membershipData) {
-            setMemberships(membershipData as Membership[]);
+        if (profileWithUserId?.user_id) {
+            const { data: membershipData } = await supabase
+                .from('memberships')
+                .select(`
+                    id,
+                    status,
+                    start_date,
+                    stripe_subscription_id,
+                    created_at,
+                    location:locations(id, name),
+                    membership_type:membership_types(id, name, price, description)
+                `)
+                .eq('user_id', profileWithUserId.user_id)
+                .order('created_at', { ascending: false });
+
+            if (membershipData) {
+                setMemberships(membershipData as Membership[]);
+            }
+        } else {
+            setMemberships([]);
         }
 
         setLoading(false);
