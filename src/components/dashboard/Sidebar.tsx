@@ -97,6 +97,7 @@ export default function DashboardSidebar({ role, userRole, userName = 'Member', 
         { href: '/dashboard/videos', label: 'Video Library', icon: Video },
         { href: '/dashboard/naseeha', label: 'Naseeha', icon: BookOpen },
         { href: '/dashboard/announcements', label: 'Announcements', icon: Bell },
+        { href: '/dashboard/membership', label: 'Membership', icon: CreditCard },
         { href: '/dashboard/add-child', label: 'Add Child', icon: UserPlus },
     ];
 
