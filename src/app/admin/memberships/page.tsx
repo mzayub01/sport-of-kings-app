@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, MapPin, Search, CheckCircle, XCircle, AlertCircle, Filter, Calendar, UserPlus, CreditCard, Ban } from 'lucide-react';
+import { Users, MapPin, Search, CheckCircle, XCircle, AlertCircle, Filter, Calendar, UserPlus, CreditCard, Ban, Receipt, RefreshCw } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 
 interface Membership {
@@ -20,6 +20,7 @@ interface Membership {
         email: string;
         is_child?: boolean;
         parent_guardian_id?: string;
+        stripe_customer_id?: string;
     };
     guardian_email?: string; // Parent's email for child profiles
     location?: {
@@ -75,7 +76,7 @@ export default function AdminMembershipsPage() {
             const [membershipsRes, locationsRes, membersRes] = await Promise.all([
                 supabase
                     .from('memberships')
-                    .select('*, stripe_subscription_id, profile:profiles(id, first_name, last_name, email, is_child, parent_guardian_id), location:locations(name), membership_type:membership_types(name)')
+                    .select('*, stripe_subscription_id, profile:profiles(id, first_name, last_name, email, is_child, parent_guardian_id, stripe_customer_id), location:locations(name), membership_type:membership_types(name)')
                     .order('created_at', { ascending: false }),
                 supabase
                     .from('locations')
@@ -422,10 +423,23 @@ export default function AdminMembershipsPage() {
                                         }) : '-'}
                                     </td>
                                     <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>
-                                        <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+                                        <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                                             <button onClick={() => openModal(membership)} className="btn btn-ghost btn-sm">
                                                 Edit
                                             </button>
+                                            {membership.profile?.stripe_customer_id && (
+                                                <a
+                                                    href={`https://dashboard.stripe.com/customers/${membership.profile.stripe_customer_id}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="btn btn-ghost btn-sm"
+                                                    style={{ color: 'var(--color-gold)' }}
+                                                    title="View payments in Stripe"
+                                                >
+                                                    <Receipt size={14} />
+                                                    Payments
+                                                </a>
+                                            )}
                                             {membership.stripe_subscription_id && membership.status === 'active' && (
                                                 <button
                                                     onClick={() => cancelSubscription(membership)}
