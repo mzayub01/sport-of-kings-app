@@ -85,6 +85,7 @@ export async function POST(request: NextRequest) {
             mode: 'subscription',
             payment_method_types: ['card'],
             customer: customer.id,
+            allow_promotion_codes: true, // Enable promo code field at checkout
             metadata: {
                 userId,
                 locationId,
