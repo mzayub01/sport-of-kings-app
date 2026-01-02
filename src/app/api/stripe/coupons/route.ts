@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
             restrictions: {
                 first_time_transaction: duration === 'once',
             },
-        });
+        } as any);
 
         return NextResponse.json({
             success: true,
