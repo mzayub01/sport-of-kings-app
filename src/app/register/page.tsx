@@ -271,6 +271,12 @@ function RegisterPageContent() {
                         setError('Email and password are required');
                         return false;
                     }
+                    // Email format validation
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(formData.email)) {
+                        setError('Please enter a valid email address');
+                        return false;
+                    }
                     if (formData.password.length < 6) {
                         setError('Password must be at least 6 characters');
                         return false;
@@ -287,8 +293,26 @@ function RegisterPageContent() {
                     setError('Please fill in all address fields');
                     return false;
                 }
+                // Phone number validation (digits only, allow spaces and common separators)
+                const phoneDigits = formData.phone.replace(/[\s\-\(\)]/g, '');
+                if (!/^\d{10,15}$/.test(phoneDigits)) {
+                    setError('Please enter a valid phone number (10-15 digits)');
+                    return false;
+                }
+                // UK Postcode validation (basic format)
+                const postcodeRegex = /^[A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2}$/i;
+                if (!postcodeRegex.test(formData.postcode.trim())) {
+                    setError('Please enter a valid UK postcode');
+                    return false;
+                }
                 if (!formData.emergencyName || !formData.emergencyPhone) {
                     setError('Emergency contact is required');
+                    return false;
+                }
+                // Emergency phone validation
+                const emergencyPhoneDigits = formData.emergencyPhone.replace(/[\s\-\(\)]/g, '');
+                if (!/^\d{10,15}$/.test(emergencyPhoneDigits)) {
+                    setError('Please enter a valid emergency contact phone number');
                     return false;
                 }
                 return true;
