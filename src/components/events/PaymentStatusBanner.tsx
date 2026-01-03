@@ -40,7 +40,7 @@ export default function PaymentStatusBanner() {
                         Payment Successful!
                     </h3>
                     <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-                        Thank you for your registration. You will receive a confirmation email shortly.
+                        Thank you for your registration, we look forward to seeing you at the event.
                     </p>
                 </div>
             </div>
