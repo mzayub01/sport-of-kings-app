@@ -51,8 +51,7 @@ export default function EventRegistration({ event, user }: EventRegistrationProp
         setLoading(true);
 
         try {
-            // Check capacity (optional, but good)
-            // Ideally should be done on server/database trigger, but simple check here:
+            // Check capacity
             const { count } = await supabase
                 .from('event_rsvps')
                 .select('*', { count: 'exact', head: true })
@@ -83,11 +82,43 @@ export default function EventRegistration({ event, user }: EventRegistrationProp
                 if (existing) throw new Error('This email is already registered for this event');
             }
 
+            // If event has a price, redirect to Stripe checkout
+            if (event.price > 0) {
+                const response = await fetch('/api/stripe/event-checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        eventId: event.id,
+                        eventTitle: event.title,
+                        price: event.price, // Already in pence
+                        userEmail: user?.email || formData.email,
+                        userName: user?.full_name || formData.full_name,
+                        userPhone: formData.phone,
+                        userId: user?.id || null,
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                if (data.url) {
+                    // Redirect to Stripe checkout
+                    window.location.href = data.url;
+                    return; // Don't set success or stop loading - we're redirecting
+                } else {
+                    throw new Error('Unable to create checkout session');
+                }
+            }
+
+            // Free event - direct RSVP
             const { error: insertError } = await supabase.from('event_rsvps').insert({
                 event_id: event.id,
                 user_id: user?.id || null,
-                full_name: formData.full_name,
-                email: formData.email,
+                full_name: user?.full_name || formData.full_name,
+                email: user?.email || formData.email,
                 phone: formData.phone || null,
                 status: 'confirmed',
             });
