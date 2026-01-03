@@ -38,7 +38,7 @@ export default function AdminClassesPage() {
         end_time: '11:30',
         max_capacity: 30,
         is_recurring: true,
-        membership_type_id: '',
+        membership_type_ids: [] as string[],
     });
 
     useEffect(() => {
@@ -47,7 +47,7 @@ export default function AdminClassesPage() {
 
     const fetchData = async () => {
         const [classesRes, locationsRes, instructorsRes, membershipTypesRes] = await Promise.all([
-            supabase.from('classes').select('*, location:locations(*), instructor:instructors(*, profile:profiles(*)), membership_type:membership_types(id, name)').order('day_of_week'),
+            supabase.from('classes').select('*, location:locations(*), instructor:instructors(*, profile:profiles(*)), class_membership_types(membership_type_id)').order('day_of_week'),
             supabase.from('locations').select('*').eq('is_active', true),
             supabase.from('instructors').select('*, profile:profiles(*)').eq('is_active', true),
             supabase.from('membership_types').select('id, name, location_id').eq('is_active', true),
@@ -63,6 +63,10 @@ export default function AdminClassesPage() {
     const openModal = (classItem?: Class) => {
         if (classItem) {
             setEditClass(classItem);
+            // Extract membership type IDs from junction table data
+            const classMembershipTypes = (classItem as any).class_membership_types || [];
+            const typeIds = classMembershipTypes.map((cmt: { membership_type_id: string }) => cmt.membership_type_id);
+
             setFormData({
                 name: classItem.name,
                 description: classItem.description || '',
@@ -74,7 +78,7 @@ export default function AdminClassesPage() {
                 end_time: classItem.end_time,
                 max_capacity: classItem.max_capacity || 30,
                 is_recurring: classItem.is_recurring,
-                membership_type_id: classItem.membership_type_id || '',
+                membership_type_ids: typeIds,
             });
         } else {
             setEditClass(null);
@@ -89,7 +93,7 @@ export default function AdminClassesPage() {
                 end_time: '11:30',
                 max_capacity: 30,
                 is_recurring: true,
-                membership_type_id: '',
+                membership_type_ids: [],
             });
         }
         setShowModal(true);
@@ -118,17 +122,34 @@ export default function AdminClassesPage() {
                 end_time: formData.end_time,
                 max_capacity: formData.max_capacity,
                 is_recurring: formData.is_recurring,
-                membership_type_id: formData.membership_type_id || null,
             };
+
+            let classId: string;
 
             if (editClass) {
                 const { error } = await supabase.from('classes').update(payload).eq('id', editClass.id);
                 if (error) throw error;
+                classId = editClass.id;
                 setSuccess('Class updated successfully');
             } else {
-                const { error } = await supabase.from('classes').insert(payload);
+                const { data, error } = await supabase.from('classes').insert(payload).select('id').single();
                 if (error) throw error;
+                classId = data.id;
                 setSuccess('Class created successfully');
+            }
+
+            // Update membership type associations in junction table
+            // First, delete existing associations for this class
+            await supabase.from('class_membership_types').delete().eq('class_id', classId);
+
+            // Then, insert new associations
+            if (formData.membership_type_ids.length > 0) {
+                const associations = formData.membership_type_ids.map(typeId => ({
+                    class_id: classId,
+                    membership_type_id: typeId,
+                }));
+                const { error: assocError } = await supabase.from('class_membership_types').insert(associations);
+                if (assocError) throw assocError;
             }
 
             setShowModal(false);
@@ -293,22 +314,70 @@ export default function AdminClassesPage() {
 
                                 <div className="form-group">
                                     <label className="form-label">Location*</label>
-                                    <select className="form-input" value={formData.location_id} onChange={(e) => setFormData({ ...formData, location_id: e.target.value, membership_type_id: '' })} required>
+                                    <select className="form-input" value={formData.location_id} onChange={(e) => setFormData({ ...formData, location_id: e.target.value, membership_type_ids: [] })} required>
                                         <option value="">Select location</option>
                                         {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
                                     </select>
                                 </div>
 
                                 <div className="form-group">
-                                    <label className="form-label">Membership Tier (optional)</label>
-                                    <select className="form-input" value={formData.membership_type_id} onChange={(e) => setFormData({ ...formData, membership_type_id: e.target.value })}>
-                                        <option value="">All members at this location</option>
+                                    <label className="form-label">Membership Tiers (optional)</label>
+                                    <div style={{
+                                        border: '1px solid var(--border-light)',
+                                        borderRadius: 'var(--radius-md)',
+                                        padding: 'var(--space-3)',
+                                        maxHeight: '150px',
+                                        overflowY: 'auto',
+                                        background: 'var(--bg-primary)',
+                                    }}>
                                         {membershipTypes
                                             .filter(mt => mt.location_id === formData.location_id)
-                                            .map((mt) => <option key={mt.id} value={mt.id}>{mt.name}</option>)}
-                                    </select>
+                                            .length === 0 ? (
+                                            <p style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)', margin: 0 }}>
+                                                No membership tiers for this location
+                                            </p>
+                                        ) : (
+                                            membershipTypes
+                                                .filter(mt => mt.location_id === formData.location_id)
+                                                .map((mt) => (
+                                                    <label
+                                                        key={mt.id}
+                                                        style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: 'var(--space-2)',
+                                                            padding: 'var(--space-2)',
+                                                            cursor: 'pointer',
+                                                            borderRadius: 'var(--radius-sm)',
+                                                        }}
+                                                        className="hover-highlight"
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={formData.membership_type_ids.includes(mt.id)}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    setFormData({
+                                                                        ...formData,
+                                                                        membership_type_ids: [...formData.membership_type_ids, mt.id]
+                                                                    });
+                                                                } else {
+                                                                    setFormData({
+                                                                        ...formData,
+                                                                        membership_type_ids: formData.membership_type_ids.filter(id => id !== mt.id)
+                                                                    });
+                                                                }
+                                                            }}
+                                                            style={{ width: '16px', height: '16px' }}
+                                                        />
+                                                        <span style={{ fontSize: 'var(--text-sm)' }}>{mt.name}</span>
+                                                    </label>
+                                                ))
+                                        )
+                                        }
+                                    </div>
                                     <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginTop: 'var(--space-1)' }}>
-                                        Leave empty to make class available to all members
+                                        Leave all unchecked to make class available to all members at this location
                                     </p>
                                 </div>
 
