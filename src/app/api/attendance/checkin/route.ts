@@ -21,14 +21,26 @@ export async function POST(request: NextRequest) {
 
         // If checking in for a different profile, validate parent-child relationship
         if (profileId && profileId !== user.id) {
+            // First get the parent's profile ID (not user_id)
+            const { data: parentProfile } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('user_id', user.id)
+                .single();
+
+            if (!parentProfile) {
+                return NextResponse.json({ error: 'Parent profile not found' }, { status: 403 });
+            }
+
+            // Check if the child profile has this parent as their guardian
             const { data: childProfile } = await supabase
                 .from('profiles')
-                .select('guardian_user_id')
+                .select('id, parent_guardian_id')
                 .eq('user_id', profileId)
                 .single();
 
             // Verify the authenticated user is the guardian of this profile
-            if (!childProfile || childProfile.guardian_user_id !== user.id) {
+            if (!childProfile || childProfile.parent_guardian_id !== parentProfile.id) {
                 return NextResponse.json({ error: 'Not authorized to check in for this profile' }, { status: 403 });
             }
         }
