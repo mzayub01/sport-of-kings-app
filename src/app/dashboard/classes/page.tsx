@@ -242,7 +242,7 @@ export default function MemberClassesPage() {
             const response = await fetch('/api/attendance/checkin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ classId }),
+                body: JSON.stringify({ classId, profileId: selectedProfileId }),
             });
 
             const data = await response.json();

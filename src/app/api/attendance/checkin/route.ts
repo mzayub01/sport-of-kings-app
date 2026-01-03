@@ -10,19 +10,36 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { classId } = await request.json();
+        const { classId, profileId } = await request.json();
 
         if (!classId) {
             return NextResponse.json({ error: 'Class ID required' }, { status: 400 });
         }
 
-        // Check if already checked in today for this class
+        // Use provided profileId or fall back to authenticated user
+        let targetUserId = profileId || user.id;
+
+        // If checking in for a different profile, validate parent-child relationship
+        if (profileId && profileId !== user.id) {
+            const { data: childProfile } = await supabase
+                .from('profiles')
+                .select('guardian_user_id')
+                .eq('user_id', profileId)
+                .single();
+
+            // Verify the authenticated user is the guardian of this profile
+            if (!childProfile || childProfile.guardian_user_id !== user.id) {
+                return NextResponse.json({ error: 'Not authorized to check in for this profile' }, { status: 403 });
+            }
+        }
+
+        // Check if already checked in today for this class AND this profile
         const today = new Date().toISOString().split('T')[0];
         const { data: existing } = await supabase
             .from('attendance')
             .select('id')
             .eq('class_id', classId)
-            .eq('user_id', user.id)
+            .eq('user_id', targetUserId)
             .eq('class_date', today)
             .single();
 
@@ -34,12 +51,12 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        // Create attendance record
+        // Create attendance record for the target profile
         const { error } = await supabase
             .from('attendance')
             .insert({
                 class_id: classId,
-                user_id: user.id,
+                user_id: targetUserId,
                 class_date: today,
                 check_in_time: new Date().toISOString(),
             });
