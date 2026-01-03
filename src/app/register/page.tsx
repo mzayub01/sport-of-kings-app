@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
     Eye, EyeOff, User, Mail, Phone, MapPin, Calendar,
     AlertCircle, Shield, Heart, ChevronRight, ChevronLeft,
-    Check, Users, CreditCard, Camera, Loader2
+    Check, Users, CreditCard, Camera, Loader2, Search
 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 
@@ -138,6 +138,7 @@ function RegisterPageContent() {
     const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
     const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
     const [uploadingImage, setUploadingImage] = useState(false);
+    const [lookingUpPostcode, setLookingUpPostcode] = useState(false);
 
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -1212,24 +1213,71 @@ function RegisterPageContent() {
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-4)' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--space-4)' }}>
                                     <div className="form-group">
-                                        <label className="form-label">City*</label>
+                                        <label className="form-label">Postcode* (Enter and click Lookup)</label>
+                                        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                                            <input
+                                                type="text"
+                                                className="form-input"
+                                                placeholder="e.g. M1 2AB"
+                                                value={formData.postcode}
+                                                onChange={(e) => updateField('postcode', e.target.value.toUpperCase())}
+                                                required
+                                                style={{ flex: 1 }}
+                                            />
+                                            <button
+                                                type="button"
+                                                className="btn btn-primary"
+                                                disabled={lookingUpPostcode || !formData.postcode}
+                                                onClick={async () => {
+                                                    const postcode = formData.postcode.trim().replace(/\s/g, '');
+                                                    if (!postcode) return;
+
+                                                    setLookingUpPostcode(true);
+                                                    setError('');
+
+                                                    try {
+                                                        const response = await fetch(`https://api.postcodes.io/postcodes/${postcode}`);
+                                                        const data = await response.json();
+
+                                                        if (data.status === 200 && data.result) {
+                                                            const result = data.result;
+                                                            // Auto-fill city from admin_district or nearest town
+                                                            const city = result.admin_district || result.admin_ward || result.parish || '';
+                                                            updateField('city', city);
+                                                            // Format postcode properly
+                                                            updateField('postcode', result.postcode);
+                                                        } else {
+                                                            setError('Postcode not found. Please check and try again.');
+                                                        }
+                                                    } catch (err) {
+                                                        console.error('Postcode lookup error:', err);
+                                                        setError('Could not look up postcode. Please enter address manually.');
+                                                    } finally {
+                                                        setLookingUpPostcode(false);
+                                                    }
+                                                }}
+                                                style={{ minWidth: '100px' }}
+                                            >
+                                                {lookingUpPostcode ? (
+                                                    <Loader2 size={16} className="spinner" />
+                                                ) : (
+                                                    <>
+                                                        <Search size={16} />
+                                                        Lookup
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">City/Town*</label>
                                         <input
                                             type="text"
                                             className="form-input"
                                             value={formData.city}
                                             onChange={(e) => updateField('city', e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">Postcode*</label>
-                                        <input
-                                            type="text"
-                                            className="form-input"
-                                            value={formData.postcode}
-                                            onChange={(e) => updateField('postcode', e.target.value)}
                                             required
                                         />
                                     </div>
