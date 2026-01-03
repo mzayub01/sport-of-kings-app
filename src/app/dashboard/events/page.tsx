@@ -125,14 +125,23 @@ export default function MemberEventsPage() {
 
             if (existingRsvp) {
                 // Cancel RSVP
-                await supabase
+                const { error: deleteError } = await supabase
                     .from('event_rsvps')
                     .delete()
                     .eq('event_id', eventId)
                     .eq('user_id', userId);
 
+                if (deleteError) {
+                    console.error('Delete RSVP error:', deleteError);
+                    throw new Error('Failed to cancel RSVP: ' + deleteError.message);
+                }
+
+                // Update local state immediately
                 setMyRsvps(prev => prev.filter(r => r.event_id !== eventId));
                 setSuccess('RSVP cancelled');
+
+                // Refresh data to ensure sync
+                await fetchData();
             } else {
                 // Create RSVP
                 const event = events.find(e => e.id === eventId);
