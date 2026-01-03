@@ -356,6 +356,7 @@ export default function AdminEventsPage() {
                                                     <th>Name</th>
                                                     <th>Email</th>
                                                     <th>Phone</th>
+                                                    <th>Payment</th>
                                                     <th>Date</th>
                                                     <th>Status</th>
                                                 </tr>
@@ -366,6 +367,11 @@ export default function AdminEventsPage() {
                                                         <td style={{ fontWeight: '500' }}>{attendee.full_name}</td>
                                                         <td style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{attendee.email}</td>
                                                         <td style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{attendee.phone || '-'}</td>
+                                                        <td>
+                                                            <span className={`badge ${attendee.payment_status === 'paid' ? 'badge-green' : attendee.payment_status === 'pending' ? 'badge-gold' : 'badge-gray'}`} style={{ textTransform: 'capitalize' }}>
+                                                                {attendee.payment_status || 'free'}
+                                                            </span>
+                                                        </td>
                                                         <td style={{ fontSize: 'var(--text-xs)' }}>{new Date(attendee.created_at).toLocaleDateString()}</td>
                                                         <td>
                                                             <span className="badge badge-green" style={{ textTransform: 'capitalize' }}>

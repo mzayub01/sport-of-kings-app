@@ -9,6 +9,7 @@ import {
     Building,
     ArrowUpRight,
     ArrowDownRight,
+    Calendar,
 } from 'lucide-react';
 
 export const metadata = {
@@ -51,6 +52,49 @@ export default async function AdminFinancePage() {
             membership_type:membership_types(id, name, price)
         `)
         .in('status', ['active', 'pending', 'cancelled']);
+
+    // Fetch paid event RSVPs with event details
+    const { data: eventRsvps } = await supabase
+        .from('event_rsvps')
+        .select(`
+            id,
+            event_id,
+            payment_status,
+            created_at,
+            event:events(id, title, price)
+        `)
+        .eq('payment_status', 'paid');
+
+    // Calculate event revenue by event
+    interface EventRevenue {
+        event_id: string;
+        event_title: string;
+        attendee_count: number;
+        total_revenue: number;
+    }
+    const eventRevenueMap: Record<string, EventRevenue> = {};
+    let totalEventRevenue = 0;
+
+    eventRsvps?.forEach((rsvp) => {
+        const eventData = rsvp.event as { id: string; title: string; price: number } | null;
+        if (!eventData) return;
+
+        const price = eventData.price || 0;
+        totalEventRevenue += price / 100;
+
+        if (!eventRevenueMap[eventData.id]) {
+            eventRevenueMap[eventData.id] = {
+                event_id: eventData.id,
+                event_title: eventData.title,
+                attendee_count: 0,
+                total_revenue: 0,
+            };
+        }
+        eventRevenueMap[eventData.id].attendee_count += 1;
+        eventRevenueMap[eventData.id].total_revenue += price / 100;
+    });
+
+    const eventRevenueArray = Object.values(eventRevenueMap).sort((a, b) => b.total_revenue - a.total_revenue);
 
     // Calculate revenue by location and type
     const revenueByLocation: Record<string, RevenueByLocation> = {};
@@ -558,6 +602,66 @@ export default async function AdminFinancePage() {
                             ))
                         )}
                     </div>
+                </div>
+            </div>
+
+            {/* Events Revenue Section */}
+            <div className="card" style={{ marginTop: 'var(--space-6)' }}>
+                <div className="card-header">
+                    <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                        <Calendar size={20} color="var(--color-gold)" />
+                        Event Revenue
+                    </h3>
+                </div>
+                <div className="card-body">
+                    {eventRevenueArray.length === 0 ? (
+                        <div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                            No paid event registrations yet
+                        </div>
+                    ) : (
+                        <>
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: 'var(--space-4)',
+                                background: 'var(--bg-secondary)',
+                                borderRadius: 'var(--radius-lg)',
+                                marginBottom: 'var(--space-4)',
+                            }}>
+                                <span style={{ fontWeight: '600' }}>Total Event Revenue</span>
+                                <span style={{ fontWeight: '700', fontSize: 'var(--text-xl)', color: 'var(--color-gold)' }}>
+                                    {formatCurrency(totalEventRevenue)}
+                                </span>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                                {eventRevenueArray.map((evt) => (
+                                    <div
+                                        key={evt.event_id}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: 'var(--space-3)',
+                                            borderBottom: '1px solid var(--border-light)',
+                                        }}
+                                    >
+                                        <div>
+                                            <p style={{ fontWeight: '500', margin: 0 }}>{evt.event_title}</p>
+                                            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', margin: 0 }}>
+                                                {evt.attendee_count} paid attendee{evt.attendee_count !== 1 ? 's' : ''}
+                                            </p>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <p style={{ fontWeight: '700', color: 'var(--color-gold)', margin: 0 }}>
+                                                {formatCurrency(evt.total_revenue)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { Calendar, ChevronRight } from 'lucide-react';
+import { Suspense } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { createClient } from '@/lib/supabase/server';
 import EventRegistration from '@/components/events/EventRegistration';
+import PaymentStatusBanner from '@/components/events/PaymentStatusBanner';
 
 export const metadata = {
     title: 'Events | Sport of Kings',
@@ -74,6 +76,11 @@ export default async function EventsPage() {
                         </p>
                     </div>
                 </section>
+
+                {/* Payment Status Banner */}
+                <Suspense fallback={null}>
+                    <PaymentStatusBanner />
+                </Suspense>
 
                 {/* Events List */}
                 <section className="section" style={{ background: 'var(--bg-primary)' }}>
