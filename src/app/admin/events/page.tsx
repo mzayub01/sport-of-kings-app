@@ -31,6 +31,7 @@ export default function AdminEventsPage() {
         description: '',
         event_type: 'gathering',
         location_id: '',
+        custom_location: '',
         start_date: '',
         end_date: '',
         start_time: '',
@@ -95,6 +96,7 @@ export default function AdminEventsPage() {
                 description: event.description || '',
                 event_type: event.event_type,
                 location_id: event.location_id || '',
+                custom_location: (event as any).custom_location || '',
                 start_date: event.start_date,
                 end_date: event.end_date || '',
                 start_time: event.start_time || '',
@@ -111,6 +113,7 @@ export default function AdminEventsPage() {
                 description: '',
                 event_type: 'gathering',
                 location_id: '',
+                custom_location: '',
                 start_date: '',
                 end_date: '',
                 start_time: '',
@@ -141,6 +144,7 @@ export default function AdminEventsPage() {
                 description: formData.description || null,
                 event_type: formData.event_type,
                 location_id: formData.location_id || null,
+                custom_location: formData.custom_location || null,
                 start_date: formData.start_date,
                 end_date: formData.end_date || null,
                 start_time: formData.start_time || null,
@@ -234,7 +238,11 @@ export default function AdminEventsPage() {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}><Calendar size={14} />{new Date(event.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                                     {event.start_time && <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}><Clock size={14} />{event.start_time} - {event.end_time || 'TBD'}</div>}
-                                    {event.location && <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}><MapPin size={14} />{(event.location as { name: string }).name}</div>}
+                                    {event.location ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}><MapPin size={14} />{(event.location as { name: string }).name}</div>
+                                    ) : (event as any).custom_location ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}><MapPin size={14} />{(event as any).custom_location}</div>
+                                    ) : null}
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}><Users size={14} />Max: {event.max_capacity}</div>
                                 </div>
                                 <div style={{ marginTop: 'var(--space-4)', padding: 'var(--space-3)', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -272,8 +280,22 @@ export default function AdminEventsPage() {
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
                                     <div className="form-group"><label className="form-label">Event Type*</label><select className="form-input" value={formData.event_type} onChange={(e) => setFormData({ ...formData, event_type: e.target.value })}>{EVENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}</select></div>
-                                    <div className="form-group"><label className="form-label">Location</label><select className="form-input" value={formData.location_id} onChange={(e) => setFormData({ ...formData, location_id: e.target.value })}><option value="">Select location</option>{locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}</select></div>
+                                    <div className="form-group"><label className="form-label">Training Location</label><select className="form-input" value={formData.location_id} onChange={(e) => setFormData({ ...formData, location_id: e.target.value, custom_location: e.target.value ? '' : formData.custom_location })}><option value="">-- Or use custom below --</option>{locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}</select></div>
                                 </div>
+
+                                {!formData.location_id && (
+                                    <div className="form-group">
+                                        <label className="form-label">Custom Location</label>
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            placeholder="e.g. Manchester Sports Arena, 123 High Street"
+                                            value={formData.custom_location}
+                                            onChange={(e) => setFormData({ ...formData, custom_location: e.target.value })}
+                                        />
+                                        <p className="form-hint">Enter a custom venue for events not at a training location</p>
+                                    </div>
+                                )}
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
                                     <div className="form-group"><label className="form-label">Start Date*</label><input type="date" className="form-input" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} required /></div>

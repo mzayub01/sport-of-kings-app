@@ -14,6 +14,7 @@ interface EventRegistrationProps {
         start_time?: string;
         end_time?: string;
         location?: { name: string } | null;
+        custom_location?: string | null;
         max_capacity: number;
         price: number; // in pence
         rsvp_deadline?: string;
@@ -157,10 +158,10 @@ export default function EventRegistration({ event, user }: EventRegistrationProp
                             <span>{event.start_time}{event.end_time ? ` - ${event.end_time}` : ''}</span>
                         </div>
                     )}
-                    {event.location && (
+                    {(event.location || event.custom_location) && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                             <MapPin size={18} color="var(--color-gold)" />
-                            <span>{event.location.name}</span>
+                            <span>{event.location?.name || event.custom_location}</span>
                         </div>
                     )}
                     <div style={{ marginTop: 'var(--space-2)', fontWeight: '600', color: 'var(--text-primary)' }}>
