@@ -1260,7 +1260,7 @@ function RegisterPageContent() {
                                 {/* House Number / Building */}
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 'var(--space-4)' }}>
                                     <div className="form-group">
-                                        <label className="form-label">House/Flat No.*</label>
+                                        <label className="form-label">House No.*</label>
                                         <input
                                             type="text"
                                             className="form-input"
