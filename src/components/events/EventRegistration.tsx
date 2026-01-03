@@ -34,6 +34,7 @@ export default function EventRegistration({ event, user }: EventRegistrationProp
     const [formData, setFormData] = useState({
         full_name: user?.full_name || '',
         email: user?.email || '',
+        phone: '',
     });
 
     const isPastDeadline = event.rsvp_deadline && new Date(event.rsvp_deadline) < new Date();
@@ -87,6 +88,7 @@ export default function EventRegistration({ event, user }: EventRegistrationProp
                 user_id: user?.id || null,
                 full_name: formData.full_name,
                 email: formData.email,
+                phone: formData.phone || null,
                 status: 'confirmed',
             });
 
@@ -221,6 +223,19 @@ export default function EventRegistration({ event, user }: EventRegistrationProp
                             Registering as <strong>{user.full_name || user.email}</strong>
                         </div>
                     )}
+
+                    {/* Phone number for all registrants */}
+                    <div className="form-group">
+                        <label className="form-label">Phone Number</label>
+                        <input
+                            type="tel"
+                            className="form-input"
+                            value={formData.phone}
+                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            required
+                            placeholder="Enter your phone number"
+                        />
+                    </div>
 
                     <button
                         type="submit"

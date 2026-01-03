@@ -355,6 +355,7 @@ export default function AdminEventsPage() {
                                                 <tr>
                                                     <th>Name</th>
                                                     <th>Email</th>
+                                                    <th>Phone</th>
                                                     <th>Date</th>
                                                     <th>Status</th>
                                                 </tr>
@@ -364,6 +365,7 @@ export default function AdminEventsPage() {
                                                     <tr key={attendee.id}>
                                                         <td style={{ fontWeight: '500' }}>{attendee.full_name}</td>
                                                         <td style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{attendee.email}</td>
+                                                        <td style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{attendee.phone || '-'}</td>
                                                         <td style={{ fontSize: 'var(--text-xs)' }}>{new Date(attendee.created_at).toLocaleDateString()}</td>
                                                         <td>
                                                             <span className="badge badge-green" style={{ textTransform: 'capitalize' }}>
