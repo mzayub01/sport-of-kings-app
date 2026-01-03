@@ -1198,89 +1198,113 @@ function RegisterPageContent() {
                                     </div>
                                 </div>
 
+                                {/* Postcode Lookup - First */}
                                 <div className="form-group">
-                                    <label className="form-label">Address*</label>
-                                    <div style={{ position: 'relative' }}>
-                                        <MapPin size={18} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-tertiary)' }} />
+                                    <label className="form-label">Postcode* (Enter and click Lookup to auto-fill city)</label>
+                                    <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                                         <input
                                             type="text"
                                             className="form-input"
-                                            style={{ paddingLeft: '42px' }}
-                                            value={formData.address}
-                                            onChange={(e) => updateField('address', e.target.value)}
+                                            placeholder="e.g. M1 2AB"
+                                            value={formData.postcode}
+                                            onChange={(e) => updateField('postcode', e.target.value.toUpperCase())}
+                                            required
+                                            style={{ flex: 1 }}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="btn btn-primary"
+                                            disabled={lookingUpPostcode || !formData.postcode}
+                                            onClick={async () => {
+                                                const postcode = formData.postcode.trim().replace(/\s/g, '');
+                                                if (!postcode) return;
+
+                                                setLookingUpPostcode(true);
+                                                setError('');
+
+                                                try {
+                                                    const response = await fetch(`https://api.postcodes.io/postcodes/${postcode}`);
+                                                    const data = await response.json();
+
+                                                    if (data.status === 200 && data.result) {
+                                                        const result = data.result;
+                                                        // Auto-fill city from admin_district
+                                                        const city = result.admin_district || result.admin_ward || result.parish || '';
+                                                        updateField('city', city);
+                                                        // Format postcode properly
+                                                        updateField('postcode', result.postcode);
+                                                    } else {
+                                                        setError('Postcode not found. Please check and try again.');
+                                                    }
+                                                } catch (err) {
+                                                    console.error('Postcode lookup error:', err);
+                                                    setError('Could not look up postcode. Please enter address manually.');
+                                                } finally {
+                                                    setLookingUpPostcode(false);
+                                                }
+                                            }}
+                                            style={{ minWidth: '100px' }}
+                                        >
+                                            {lookingUpPostcode ? (
+                                                <Loader2 size={16} className="spinner" />
+                                            ) : (
+                                                <>
+                                                    <Search size={16} />
+                                                    Lookup
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* House Number / Building */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 'var(--space-4)' }}>
+                                    <div className="form-group">
+                                        <label className="form-label">House/Flat No.*</label>
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            placeholder="e.g. 42 or Flat 3"
+                                            value={formData.address.split(',')[0]?.trim() || ''}
+                                            onChange={(e) => {
+                                                const street = formData.address.includes(',')
+                                                    ? formData.address.split(',').slice(1).join(',').trim()
+                                                    : formData.address;
+                                                const newAddress = e.target.value ? `${e.target.value}, ${street}` : street;
+                                                updateField('address', newAddress);
+                                            }}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Street Name*</label>
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            placeholder="e.g. High Street"
+                                            value={formData.address.includes(',')
+                                                ? formData.address.split(',').slice(1).join(',').trim()
+                                                : formData.address}
+                                            onChange={(e) => {
+                                                const houseNo = formData.address.split(',')[0]?.trim() || '';
+                                                const newAddress = houseNo ? `${houseNo}, ${e.target.value}` : e.target.value;
+                                                updateField('address', newAddress);
+                                            }}
                                             required
                                         />
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--space-4)' }}>
-                                    <div className="form-group">
-                                        <label className="form-label">Postcode* (Enter and click Lookup)</label>
-                                        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                                            <input
-                                                type="text"
-                                                className="form-input"
-                                                placeholder="e.g. M1 2AB"
-                                                value={formData.postcode}
-                                                onChange={(e) => updateField('postcode', e.target.value.toUpperCase())}
-                                                required
-                                                style={{ flex: 1 }}
-                                            />
-                                            <button
-                                                type="button"
-                                                className="btn btn-primary"
-                                                disabled={lookingUpPostcode || !formData.postcode}
-                                                onClick={async () => {
-                                                    const postcode = formData.postcode.trim().replace(/\s/g, '');
-                                                    if (!postcode) return;
-
-                                                    setLookingUpPostcode(true);
-                                                    setError('');
-
-                                                    try {
-                                                        const response = await fetch(`https://api.postcodes.io/postcodes/${postcode}`);
-                                                        const data = await response.json();
-
-                                                        if (data.status === 200 && data.result) {
-                                                            const result = data.result;
-                                                            // Auto-fill city from admin_district or nearest town
-                                                            const city = result.admin_district || result.admin_ward || result.parish || '';
-                                                            updateField('city', city);
-                                                            // Format postcode properly
-                                                            updateField('postcode', result.postcode);
-                                                        } else {
-                                                            setError('Postcode not found. Please check and try again.');
-                                                        }
-                                                    } catch (err) {
-                                                        console.error('Postcode lookup error:', err);
-                                                        setError('Could not look up postcode. Please enter address manually.');
-                                                    } finally {
-                                                        setLookingUpPostcode(false);
-                                                    }
-                                                }}
-                                                style={{ minWidth: '100px' }}
-                                            >
-                                                {lookingUpPostcode ? (
-                                                    <Loader2 size={16} className="spinner" />
-                                                ) : (
-                                                    <>
-                                                        <Search size={16} />
-                                                        Lookup
-                                                    </>
-                                                )}
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">City/Town*</label>
-                                        <input
-                                            type="text"
-                                            className="form-input"
-                                            value={formData.city}
-                                            onChange={(e) => updateField('city', e.target.value)}
-                                            required
-                                        />
-                                    </div>
+                                {/* City/Town */}
+                                <div className="form-group">
+                                    <label className="form-label">City/Town* (auto-filled from postcode)</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        value={formData.city}
+                                        onChange={(e) => updateField('city', e.target.value)}
+                                        required
+                                    />
                                 </div>
 
                                 <hr style={{ margin: 'var(--space-6) 0', border: 'none', borderTop: '1px solid var(--border-light)' }} />
