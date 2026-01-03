@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
     Eye, EyeOff, User, Mail, Phone, MapPin, Calendar,
     AlertCircle, Shield, Heart, ChevronRight, ChevronLeft,
-    Check, Users, CreditCard
+    Check, Users, CreditCard, Camera, Loader2
 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 
@@ -135,6 +135,9 @@ function RegisterPageContent() {
     const [location, setLocation] = useState<Location | null>(null);
     const [membershipTypes, setMembershipTypes] = useState<MembershipType[]>([]);
     const [capacityConfigs, setCapacityConfigs] = useState<CapacityConfig[]>([]);
+    const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+    const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
+    const [uploadingImage, setUploadingImage] = useState(false);
 
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -259,6 +262,10 @@ function RegisterPageContent() {
                     setError('Please select your gender');
                     return false;
                 }
+                if (!profileImageFile) {
+                    setError('Please upload a profile picture');
+                    return false;
+                }
                 if (formData.membershipType === 'adult') {
                     if (!formData.email || !formData.password) {
                         setError('Email and password are required');
@@ -347,7 +354,31 @@ function RegisterPageContent() {
             if (authError) throw authError;
 
             if (authData.user) {
-                // Update profile with additional details including gender and belt
+                // Upload profile image first if provided
+                let profileImageUrl = null;
+                if (profileImageFile) {
+                    try {
+                        const fileExt = profileImageFile.name.split('.').pop();
+                        const fileName = `${authData.user.id}/${Date.now()}.${fileExt}`;
+
+                        const { error: uploadError } = await supabase.storage
+                            .from('profile-images')
+                            .upload(fileName, profileImageFile, { upsert: true });
+
+                        if (uploadError) {
+                            console.error('Profile image upload error:', uploadError);
+                        } else {
+                            const { data: { publicUrl } } = supabase.storage
+                                .from('profile-images')
+                                .getPublicUrl(fileName);
+                            profileImageUrl = publicUrl;
+                        }
+                    } catch (imgErr) {
+                        console.error('Profile image upload failed:', imgErr);
+                    }
+                }
+
+                // Update profile with additional details including gender, belt, and profile image
                 const { error: profileError } = await supabase
                     .from('profiles')
                     .update({
@@ -369,6 +400,7 @@ function RegisterPageContent() {
                         best_practice_accepted_at: new Date().toISOString(),
                         waiver_accepted: true,
                         waiver_accepted_at: new Date().toISOString(),
+                        profile_image_url: profileImageUrl,
                     })
                     .eq('user_id', authData.user.id);
 
@@ -854,6 +886,90 @@ function RegisterPageContent() {
                                             Female
                                         </label>
                                     </div>
+                                </div>
+
+                                {/* Profile Picture Upload */}
+                                <div className="form-group">
+                                    <label className="form-label">Profile Picture*</label>
+                                    <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-3)' }}>
+                                        Upload a clear photo of {formData.membershipType === 'child' ? 'the child' : 'yourself'} for identification
+                                    </p>
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            gap: 'var(--space-3)',
+                                            padding: 'var(--space-6)',
+                                            border: profileImagePreview ? '2px solid var(--color-gold)' : '2px dashed var(--border-light)',
+                                            borderRadius: 'var(--radius-lg)',
+                                            background: profileImagePreview ? 'rgba(197, 164, 86, 0.1)' : 'var(--bg-secondary)',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease',
+                                        }}
+                                        onClick={() => document.getElementById('profile-image-input')?.click()}
+                                    >
+                                        {profileImagePreview ? (
+                                            <>
+                                                <div style={{
+                                                    width: 100,
+                                                    height: 100,
+                                                    borderRadius: '50%',
+                                                    overflow: 'hidden',
+                                                    border: '3px solid var(--color-gold)',
+                                                }}>
+                                                    <img
+                                                        src={profileImagePreview}
+                                                        alt="Preview"
+                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    />
+                                                </div>
+                                                <span style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
+                                                    Click to change photo
+                                                </span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div style={{
+                                                    width: 80,
+                                                    height: 80,
+                                                    borderRadius: '50%',
+                                                    background: 'var(--bg-primary)',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    border: '2px solid var(--border-light)',
+                                                }}>
+                                                    <Camera size={32} color="var(--text-tertiary)" />
+                                                </div>
+                                                <span style={{ fontWeight: '500' }}>Upload Profile Picture</span>
+                                                <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)' }}>
+                                                    Click to select an image (max 5MB)
+                                                </span>
+                                            </>
+                                        )}
+                                    </div>
+                                    <input
+                                        id="profile-image-input"
+                                        type="file"
+                                        accept="image/*"
+                                        style={{ display: 'none' }}
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (!file) return;
+                                            if (!file.type.startsWith('image/')) {
+                                                setError('Please select an image file');
+                                                return;
+                                            }
+                                            if (file.size > 5 * 1024 * 1024) {
+                                                setError('Image must be less than 5MB');
+                                                return;
+                                            }
+                                            setProfileImageFile(file);
+                                            setProfileImagePreview(URL.createObjectURL(file));
+                                            setError('');
+                                        }}
+                                    />
                                 </div>
 
                                 {/* Belt Selection (Optional - for existing practitioners) */}
