@@ -65,6 +65,11 @@ export default function MemberClassesPage() {
     const todayDate = new Date().toISOString().split('T')[0];
 
     useEffect(() => {
+        // Reset state when profile changes
+        setLoading(true);
+        setUpcomingClasses([]);
+        setPastClasses([]);
+        setHasActiveMembership(false);
         fetchData();
     }, [selectedProfileId]);
 
