@@ -136,8 +136,42 @@ export default function MemberEventsPage() {
             } else {
                 // Create RSVP
                 const event = events.find(e => e.id === eventId);
-                const status = event && event.current_rsvps >= event.max_capacity ? 'waitlist' : 'confirmed';
+                if (!event) throw new Error('Event not found');
 
+                const status = event.current_rsvps >= event.max_capacity ? 'waitlist' : 'confirmed';
+
+                // If event has a price, redirect to Stripe checkout
+                if (event.price > 0) {
+                    const response = await fetch('/api/stripe/event-checkout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            eventId: event.id,
+                            eventTitle: event.title,
+                            price: event.price, // Already in pence
+                            userEmail: userEmail,
+                            userName: userFullName,
+                            userPhone: '', // Phone not collected in dashboard
+                            userId: userId,
+                        }),
+                    });
+
+                    const data = await response.json();
+
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+
+                    if (data.url) {
+                        // Redirect to Stripe checkout
+                        window.location.href = data.url;
+                        return; // Don't set success or stop loading - we're redirecting
+                    } else {
+                        throw new Error('Unable to create checkout session');
+                    }
+                }
+
+                // Free event - direct RSVP
                 const { error: insertError } = await supabase
                     .from('event_rsvps')
                     .insert({
