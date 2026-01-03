@@ -17,6 +17,7 @@ export default async function ClassesPage() {
         {
             name: "Fats Gym",
             area: "Manchester City Centre",
+            day: "Saturday",
             classes: [
                 { type: "Kids (Under 11)", gender: "Male & Female" },
                 { type: "Teens", gender: "Male & Female" },
@@ -27,6 +28,7 @@ export default async function ClassesPage() {
         {
             name: "Cheadle Masjid",
             area: "Cheadle",
+            day: "Sunday",
             classes: [
                 { type: "Kids (Under 11)", gender: "Male & Female" },
                 { type: "Teens", gender: "Male & Female" },
@@ -37,6 +39,7 @@ export default async function ClassesPage() {
         {
             name: "Guidance Hub",
             area: "Manchester",
+            day: "Monday",
             classes: [
                 { type: "Kids (Under 11)", gender: "Male Only" },
                 { type: "Teens", gender: "Male Only" },
@@ -47,6 +50,7 @@ export default async function ClassesPage() {
         {
             name: "Afifah School",
             area: "Manchester",
+            day: "Sunday",
             classes: [
                 { type: "Kids (Under 11)", gender: "Male Only" },
                 { type: "Teens", gender: "Male Only" },
@@ -57,6 +61,7 @@ export default async function ClassesPage() {
         {
             name: "Pakistani Community Centre",
             area: "Manchester",
+            day: "Wednesday",
             partner: "Delivered by our brother organisation 313",
             classes: [
                 { type: "Kids (Under 11)", gender: "Male Only" },
@@ -136,6 +141,20 @@ export default async function ClassesPage() {
                                             <p style={{ margin: 0, color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)' }}>
                                                 {location.area}
                                             </p>
+                                            {'day' in location && location.day && (
+                                                <p style={{
+                                                    margin: 'var(--space-1) 0 0 0',
+                                                    color: 'var(--color-gold)',
+                                                    fontSize: 'var(--text-sm)',
+                                                    fontWeight: '600',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 'var(--space-1)',
+                                                }}>
+                                                    <Calendar size={14} />
+                                                    {location.day}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
 
