@@ -66,10 +66,10 @@ export default function TodayClassCard({ selectedUserId }: TodayClassCardProps) 
             const currentTime = today.toTimeString().slice(0, 5);
             const todayDate = today.toISOString().split('T')[0];
 
-            // Fetch today's classes for this location
+            // Fetch today's classes for this location, including tier associations
             const { data: classes } = await supabase
                 .from('classes')
-                .select('id, name, start_time, end_time, membership_type_id, location:locations(name)')
+                .select('id, name, start_time, end_time, location:locations(name), class_membership_types(membership_type_id)')
                 .eq('location_id', membership.location_id)
                 .eq('day_of_week', currentDayOfWeek)
                 .eq('is_active', true)
@@ -80,10 +80,18 @@ export default function TodayClassCard({ selectedUserId }: TodayClassCardProps) 
                 return;
             }
 
-            // Filter by membership type
-            const accessibleClasses = classes.filter(c =>
-                c.membership_type_id === null || c.membership_type_id === membership.membership_type_id
-            );
+            // Filter by membership type using junction table
+            // If class has no tier associations, it's available to all members
+            // If class has tier associations, member's tier must be in the list
+            const accessibleClasses = classes.filter((c: any) => {
+                const classTiers = c.class_membership_types || [];
+                // No tier restrictions = available to all members at this location
+                if (classTiers.length === 0) return true;
+                // Has tier restrictions - check if member's tier is in the list
+                return classTiers.some((t: { membership_type_id: string }) =>
+                    t.membership_type_id === membership.membership_type_id
+                );
+            });
 
             if (accessibleClasses.length === 0) {
                 setLoading(false);
@@ -149,17 +157,19 @@ export default function TodayClassCard({ selectedUserId }: TodayClassCardProps) 
                 return;
             }
 
-            // Check if already checked in today
+            // Check if already checked in today for the selected profile
             const { data: existingAttendance } = await supabase
                 .from('attendance')
                 .select('id')
-                .eq('user_id', user.id)
+                .eq('user_id', targetUserId)
                 .eq('class_id', selectedClass.id)
                 .eq('class_date', todayDate)
                 .single();
 
             if (existingAttendance) {
                 setCheckedIn(true);
+            } else {
+                setCheckedIn(false); // Reset when switching profiles
             }
 
             setTodayClass({
@@ -191,7 +201,7 @@ export default function TodayClassCard({ selectedUserId }: TodayClassCardProps) 
             const response = await fetch('/api/attendance/checkin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ classId: todayClass.id }),
+                body: JSON.stringify({ classId: todayClass.id, profileId: selectedUserId }),
             });
 
             const data = await response.json();
