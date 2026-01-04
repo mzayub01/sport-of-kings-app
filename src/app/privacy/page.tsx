@@ -108,7 +108,7 @@ export default async function PrivacyPage() {
                                 <ul style={{ paddingLeft: 'var(--space-6)' }}>
                                     <li><strong>Instructors:</strong> Relevant information to conduct safe and effective training</li>
                                     <li><strong>Payment Processors:</strong> Stripe processes payments securely on our behalf</li>
-                                    <li><strong>Hosting Providers:</strong> Vercel and Supabase host our website and database securely</li>
+                                    <li><strong>Service Providers:</strong> Our website and database are hosted securely with industry-approved encryption standards and security protocols</li>
                                     <li><strong>Legal Authorities:</strong> When required by law or to protect safety</li>
                                     <li><strong>Partner Organisations:</strong> Only with your consent for collaborative events</li>
                                 </ul>
