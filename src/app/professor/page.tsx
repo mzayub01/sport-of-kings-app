@@ -129,23 +129,24 @@ export default function ProfessorGradingPage() {
             const classInfo = classes.find(c => c.id === selectedClass);
             if (!classInfo) return;
 
-            // Get the class's membership_type_id
-            const { data: classData } = await supabase
-                .from('classes')
+            // Get the class's assigned membership types from junction table
+            const { data: classTiers } = await supabase
+                .from('class_membership_types')
                 .select('membership_type_id')
-                .eq('id', selectedClass)
-                .single();
+                .eq('class_id', selectedClass);
 
-            // Build memberships query - filter by location AND membership type
+            const tierIds = classTiers?.map(t => t.membership_type_id) || [];
+
+            // Build memberships query - filter by location AND membership type(s)
             let query = supabase
                 .from('memberships')
                 .select('user_id, membership_type_id, profile:profiles(user_id, first_name, last_name, belt_rank, stripes, is_child, is_kids_program, profile_image_url)')
                 .eq('location_id', classInfo.location_id)
                 .eq('status', 'active');
 
-            // Only show members with the matching membership type for this class
-            if (classData?.membership_type_id) {
-                query = query.eq('membership_type_id', classData.membership_type_id);
+            // Only filter by membership type if the class has tier restrictions
+            if (tierIds.length > 0) {
+                query = query.in('membership_type_id', tierIds);
             }
 
             const { data: memberships, error: membershipsError } = await query;
@@ -154,7 +155,7 @@ export default function ProfessorGradingPage() {
                 memberships,
                 membershipsError,
                 location_id: classInfo.location_id,
-                membership_type_id: classData?.membership_type_id
+                tier_ids: tierIds
             });
 
             if (memberships && memberships.length > 0) {
