@@ -24,8 +24,8 @@ export default async function HomePage() {
   const features = [
     {
       icon: Shield,
-      title: 'Prophetic Traditions',
-      description: 'Reviving the Sunnah of wrestling and physical strength as encouraged by our beloved Prophet ﷺ.',
+      title: 'Sunnah Sports Revival',
+      description: 'BJJ, wrestling, and grappling now — with archery and horse riding coming soon. Training rooted in prophetic tradition.',
     },
     {
       icon: Users,
@@ -35,22 +35,22 @@ export default async function HomePage() {
     {
       icon: Award,
       title: 'Technical Excellence',
-      description: 'Experienced instructors who uphold both technical skill and good adab in every session.',
+      description: 'Direct lineage through Professor Mario Sukata. Instructors who uphold both technical skill and good adab.',
     },
     {
       icon: Target,
       title: 'Clear Pathways',
-      description: 'Structured progression from beginner to advanced, with belt gradings and leadership opportunities.',
+      description: 'Structured progression from beginner to advanced, with belt gradings, leadership roles, and mentorship.',
     },
     {
       icon: Heart,
-      title: 'Beyond Sport',
-      description: 'Training as a means of developing character, discipline, and resilience that extends beyond the mats.',
+      title: 'Spiritual Development',
+      description: 'Dhikr, nasheeds, youth dars, retreats, and naseeha sessions. Training body and soul together.',
     },
     {
       icon: Calendar,
       title: 'Community Events',
-      description: 'Seminars, retreats, and gatherings that create spaces for learning, reflection, and connection.',
+      description: 'Grading ceremonies, competitions, workshops, and family gatherings that extend beyond the mats.',
     },
   ];
 
@@ -97,12 +97,23 @@ export default async function HomePage() {
                 }}
               />
             </div>
+            <div style={{
+              display: 'inline-block',
+              background: 'rgba(197, 164, 86, 0.15)',
+              padding: 'var(--space-1) var(--space-4)',
+              borderRadius: 'var(--radius-full)',
+              marginBottom: 'var(--space-4)',
+            }}>
+              <span style={{ color: 'var(--color-gold)', fontSize: 'var(--text-sm)', fontWeight: '600' }}>
+                Registered Charity • Seerat Un Nabi
+              </span>
+            </div>
             <h1 className="hero-title">
               Strength with Purpose<br />Faith with Discipline
             </h1>
             <p className="hero-subtitle">
-              A community-led movement reviving the Sunnah of wrestling through Brazilian Jiu-Jitsu.
-              Building strong individuals, resilient families, and confident communities.
+              A non-profit charity using Sunnah sports to build strong, disciplined, faith-anchored Muslims.
+              More than just BJJ — training body, mind, and soul for the mats and for life.
             </p>
             <div className="hero-actions">
               <Link href="/register" className="btn btn-primary btn-lg">
@@ -136,7 +147,7 @@ export default async function HomePage() {
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                 <Swords size={16} />
-                Brazilian Jiu-Jitsu
+                BJJ • Wrestling • More
               </span>
             </div>
           </div>
@@ -164,7 +175,7 @@ export default async function HomePage() {
                 lineHeight: '1.8',
                 marginBottom: 'var(--space-6)',
               }}>
-                We see training as a means of developing <strong style={{ color: 'var(--color-gold)' }}>character</strong>, <strong style={{ color: 'var(--color-gold)' }}>discipline</strong>, <strong style={{ color: 'var(--color-gold)' }}>humility</strong>, and <strong style={{ color: 'var(--color-gold)' }}>brotherhood</strong> — rooted in Islamic values and lived practice.
+                Sport of Kings is a <strong style={{ color: 'var(--color-gold)' }}>registered charity</strong> dedicated to whole-person development — <strong style={{ color: 'var(--color-gold)' }}>physical</strong>, <strong style={{ color: 'var(--color-gold)' }}>spiritual</strong>, and <strong style={{ color: 'var(--color-gold)' }}>communal</strong>. We train Muslims for the mats and for the world.
               </p>
               <p style={{
                 fontSize: 'var(--text-lg)',
@@ -172,7 +183,7 @@ export default async function HomePage() {
                 lineHeight: '1.8',
                 marginBottom: 0,
               }}>
-                Sport of Kings is not about trophies or titles. It is about showing up consistently, training with intention, and carrying the lessons of the mat into everyday life.
+                Our approach goes beyond sport. We see training as a means of developing character, discipline, humility, and brotherhood — rooted in Islamic values and lived practice.
               </p>
             </div>
           </div>
@@ -477,6 +488,9 @@ export default async function HomePage() {
               <Link href="/register" className="btn btn-primary btn-lg">
                 <Star size={20} />
                 Register Now
+              </Link>
+              <Link href="/faq" className="btn btn-outline btn-lg">
+                Read FAQ
               </Link>
               <Link href="/classes" className="btn btn-secondary btn-lg">
                 <Calendar size={20} />
