@@ -320,7 +320,7 @@ export default function FAQPage() {
                         <div>
                             <p style={{ marginTop: 0 }}>We offer a rich programme of community activities:</p>
                             <ul style={{ paddingLeft: 'var(--space-5)', marginBottom: 0 }}>
-                                <li>Monthly brotherhood/sisterhood gatherings</li>
+                                <li>Monthly brotherhood gatherings</li>
                                 <li>Youth empowerment and mentorship programmes</li>
                                 <li>Grading ceremonies rooted in adab and achievement</li>
                                 <li>Competitions and tournaments</li>
@@ -336,7 +336,7 @@ export default function FAQPage() {
                 },
                 {
                     question: 'Are there opportunities for retreats or trips?',
-                    answer: 'Yes! We organise retreats that combine training with worship and reflection. Past trips have included destinations like Morocco. These experiences deepen bonds of brotherhood/sisterhood and allow for focused spiritual and physical development away from daily distractions.'
+                    answer: 'Yes! We organise retreats that combine training with worship and reflection. Past trips have included destinations like Morocco. These experiences deepen bonds of brotherhood and allow for focused spiritual and physical development away from daily distractions.'
                 },
             ]
         },
