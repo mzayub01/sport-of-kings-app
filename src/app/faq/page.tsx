@@ -105,7 +105,7 @@ export default function FAQPage() {
             items: [
                 {
                     question: 'What is Sport of Kings?',
-                    answer: 'Sport of Kings is a non-profit registered charity organisation that uses Sunnah sports to build strong, disciplined, faith-anchored individuals and communities — not just fighters. We are a holistic development platform rooted in Sunnah sports, faith, and community, training Muslims for the mats and for the world.'
+                    answer: 'Sport of Kings is a non-profit registered charity organisation that uses Sunnah sports to build strong, disciplined, faith-anchored individuals and communities — not just fighters. We are a holistic development platform rooted in Sunnah sports, faith, and community, training individuals for the mats and for life. Everyone is welcome.'
                 },
                 {
                     question: 'Is Sport of Kings just about Brazilian Jiu-Jitsu?',
@@ -332,7 +332,7 @@ export default function FAQPage() {
                 },
                 {
                     question: 'What is the Fajr40 Challenge?',
-                    answer: 'The Fajr40 Challenge is a Sport of Kings initiative encouraging 40 days of Fajr prayer in congregation. It\'s a spiritual challenge to build consistency, discipline, and connection with Allah ﷻ. It demonstrates our commitment to developing Muslims on and off the mats.'
+                    answer: 'The Fajr40 Challenge is a Sport of Kings initiative encouraging 40 days of Fajr prayer in congregation. It\'s a spiritual challenge to build consistency, discipline, and connection with Allah ﷻ. It demonstrates our commitment to developing individuals on and off the mats.'
                 },
                 {
                     question: 'Are there opportunities for retreats or trips?',

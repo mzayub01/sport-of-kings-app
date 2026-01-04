@@ -288,7 +288,7 @@ export default async function HomePage() {
               marginTop: 'var(--space-6)',
               marginBottom: 0,
             }}>
-              Sport of Kings is more than BJJ — we&apos;re building strong Muslims on and off the mats.
+              Sport of Kings is more than BJJ — we&apos;re building strong individuals on and off the mats.
             </p>
           </div>
         </section>

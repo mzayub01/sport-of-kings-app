@@ -349,7 +349,7 @@ export default async function AboutPage() {
                             maxWidth: '600px',
                             margin: '0 auto var(--space-8)',
                         }}>
-                            Sport of Kings trains Muslims for the mats and for the world.
+                            Sport of Kings trains individuals for the mats and for life.
                         </p>
 
                         <div style={{
@@ -512,7 +512,7 @@ export default async function AboutPage() {
                             fontSize: 'var(--text-lg)',
                         }}>
                             Whether you&apos;re a complete beginner or an experienced martial artist,
-                            Sport of Kings welcomes you. Join a movement building strong Muslims on and off the mats.
+                            Sport of Kings welcomes you. Join a movement building strong individuals on and off the mats.
                         </p>
                         <div style={{
                             display: 'flex',
