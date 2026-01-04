@@ -87,17 +87,13 @@ export default function Footer() {
                 <div>
                     <h4 className="footer-title">Contact Us</h4>
                     <ul className="footer-links">
-                        <li style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-2)' }}>
-                            <MapPin size={16} style={{ marginTop: '4px', flexShrink: 0 }} />
-                            <span>Manchester, UK<br />Near Piccadilly Station</span>
+                        <li style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                            <MapPin size={16} />
+                            <span>Manchester, UK</span>
                         </li>
                         <li style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                             <Mail size={16} />
                             <a href="mailto:info@sportofkings.co.uk">info@sportofkings.co.uk</a>
-                        </li>
-                        <li style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                            <Phone size={16} />
-                            <span>Free On-site Parking</span>
                         </li>
                     </ul>
                 </div>
