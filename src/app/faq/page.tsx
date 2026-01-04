@@ -105,7 +105,7 @@ export default function FAQPage() {
             items: [
                 {
                     question: 'What is Sport of Kings?',
-                    answer: 'Sport of Kings is a movement that uses Sunnah sports to build strong, disciplined, faith-anchored individuals and communities — not just fighters. We are a holistic development platform rooted in Sunnah sports, faith, and community, training Muslims for the mats and for the world.'
+                    answer: 'Sport of Kings is a non-profit registered charity organisation that uses Sunnah sports to build strong, disciplined, faith-anchored individuals and communities — not just fighters. We are a holistic development platform rooted in Sunnah sports, faith, and community, training Muslims for the mats and for the world.'
                 },
                 {
                     question: 'Is Sport of Kings just about Brazilian Jiu-Jitsu?',
@@ -201,10 +201,6 @@ export default function FAQPage() {
                 {
                     question: 'How do I make changes to my membership?',
                     answer: 'For any changes to your membership — including upgrades, downgrades, pausing, or cancellations — please contact us directly at info@sportofkings.co.uk. Our team will be happy to assist you and discuss the best options for your situation.'
-                },
-                {
-                    question: 'Do you offer trial classes?',
-                    answer: 'Please contact us to discuss trial options. We want to ensure Sport of Kings is the right fit for you before committing to membership.'
                 },
             ]
         },
@@ -404,52 +400,6 @@ export default function FAQPage() {
                             Everything you need to know about Sport of Kings —
                             a movement building strong, disciplined, faith-anchored individuals and communities.
                         </p>
-                    </div>
-                </section>
-
-                {/* Quick Nav */}
-                <section style={{ background: 'var(--bg-primary)', padding: 'var(--space-6)' }}>
-                    <div className="container">
-                        <div style={{
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            gap: 'var(--space-2)',
-                            justifyContent: 'center',
-                        }}>
-                            {faqSections.map((section, index) => {
-                                const Icon = section.icon;
-                                return (
-                                    <a
-                                        key={index}
-                                        href={`#section-${index}`}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 'var(--space-2)',
-                                            padding: 'var(--space-2) var(--space-4)',
-                                            background: 'var(--bg-secondary)',
-                                            borderRadius: 'var(--radius-full)',
-                                            color: 'var(--text-secondary)',
-                                            fontSize: 'var(--text-sm)',
-                                            textDecoration: 'none',
-                                            border: '1px solid var(--border-light)',
-                                            transition: 'all 0.2s ease',
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.borderColor = 'var(--color-gold)';
-                                            e.currentTarget.style.color = 'var(--color-gold)';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.borderColor = 'var(--border-light)';
-                                            e.currentTarget.style.color = 'var(--text-secondary)';
-                                        }}
-                                    >
-                                        <Icon size={16} />
-                                        {section.title}
-                                    </a>
-                                );
-                            })}
-                        </div>
                     </div>
                 </section>
 
