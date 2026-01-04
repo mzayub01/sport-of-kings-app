@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { MapPin, Users, Clock, ChevronRight, AlertCircle } from 'lucide-react';
+import { MapPin, Users, ChevronRight, AlertCircle } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 
 interface Location {
@@ -14,13 +14,17 @@ interface Location {
     city: string;
     postcode: string;
     description: string | null;
-    max_capacity: number;
-    current_members: number;
     settings: { allow_waitlist?: boolean } | null;
+}
+
+interface CapacityInfo {
+    totalCapacity: number | null; // null means unlimited
+    currentCount: number;
 }
 
 export default function JoinPage() {
     const [locations, setLocations] = useState<Location[]>([]);
+    const [capacityMap, setCapacityMap] = useState<Record<string, CapacityInfo>>({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const router = useRouter();
@@ -32,14 +36,83 @@ export default function JoinPage() {
 
     const fetchLocations = async () => {
         try {
-            const { data, error } = await supabase
+            // Fetch active locations
+            const { data: locData, error: locError } = await supabase
                 .from('locations')
                 .select('*')
                 .eq('is_active', true)
                 .order('name');
 
-            if (error) throw error;
-            setLocations(data || []);
+            if (locError) throw locError;
+            setLocations(locData || []);
+
+            // Fetch capacity configs for all locations
+            const locationIds = (locData || []).map(l => l.id);
+            if (locationIds.length === 0) {
+                setLoading(false);
+                return;
+            }
+
+            // Get all membership configs with their capacities
+            const { data: configsData } = await supabase
+                .from('location_membership_configs')
+                .select('location_id, membership_type_id, capacity')
+                .in('location_id', locationIds);
+
+            // Get active membership types for each location
+            const { data: typesData } = await supabase
+                .from('membership_types')
+                .select('id, location_id')
+                .in('location_id', locationIds)
+                .eq('is_active', true);
+
+            // Get current member counts per location (active/pending memberships)
+            const { data: membershipData } = await supabase
+                .from('memberships')
+                .select('location_id, membership_type_id')
+                .in('location_id', locationIds)
+                .in('status', ['active', 'pending']);
+
+            // Calculate capacity info per location
+            const capacityInfo: Record<string, CapacityInfo> = {};
+
+            for (const loc of locData || []) {
+                const locConfigs = (configsData || []).filter(c => c.location_id === loc.id);
+                const locTypes = (typesData || []).filter(t => t.location_id === loc.id);
+                const locMemberships = (membershipData || []).filter(m => m.location_id === loc.id);
+
+                // If no configs exist, capacity is unlimited
+                if (locConfigs.length === 0) {
+                    capacityInfo[loc.id] = { totalCapacity: null, currentCount: locMemberships.length };
+                    continue;
+                }
+
+                // Calculate total capacity across all membership types at this location
+                let totalCapacity: number | null = 0;
+                let hasUnlimited = false;
+
+                for (const type of locTypes) {
+                    const config = locConfigs.find(c => c.membership_type_id === type.id);
+                    if (!config || config.capacity === null) {
+                        // No config or null capacity = unlimited for this type
+                        hasUnlimited = true;
+                    } else if (config.capacity === 0) {
+                        // Capacity 0 means no spots available (full/closed)
+                        // Don't add to total - this type has 0 spots
+                    } else {
+                        totalCapacity = (totalCapacity || 0) + config.capacity;
+                    }
+                }
+
+                // If any type has unlimited capacity, the location is unlimited
+                if (hasUnlimited) {
+                    capacityInfo[loc.id] = { totalCapacity: null, currentCount: locMemberships.length };
+                } else {
+                    capacityInfo[loc.id] = { totalCapacity, currentCount: locMemberships.length };
+                }
+            }
+
+            setCapacityMap(capacityInfo);
         } catch (err) {
             console.error('Error fetching locations:', err);
             setError('Failed to load locations');
@@ -49,16 +122,27 @@ export default function JoinPage() {
     };
 
     const getCapacityStatus = (location: Location) => {
-        const spotsRemaining = location.max_capacity - location.current_members;
-        const hasCapacity = spotsRemaining > 0;
+        const info = capacityMap[location.id];
         const allowWaitlist = location.settings?.allow_waitlist !== false;
 
-        if (hasCapacity) {
+        // If no capacity info or unlimited capacity
+        if (!info || info.totalCapacity === null) {
             return {
                 status: 'open',
                 label: 'Open for Registration',
                 badgeClass: 'badge-green',
-                spotsText: `${spotsRemaining} spots available`,
+                spotsText: 'Spaces available',
+            };
+        }
+
+        const spotsRemaining = Math.max(0, info.totalCapacity - info.currentCount);
+
+        if (spotsRemaining > 0) {
+            return {
+                status: 'open',
+                label: 'Open for Registration',
+                badgeClass: 'badge-green',
+                spotsText: `${spotsRemaining} spot${spotsRemaining !== 1 ? 's' : ''} available`,
             };
         } else if (allowWaitlist) {
             return {
