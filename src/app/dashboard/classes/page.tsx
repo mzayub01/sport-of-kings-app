@@ -100,7 +100,7 @@ export default function MemberClassesPage() {
             setHasActiveMembership(true);
 
             // Fetch classes for member's location, including tier associations
-            const { data: classesData, error: classesError } = await supabase
+            const { data: classesData } = await supabase
                 .from('classes')
                 .select('*, location:locations(name), instructor:instructors(*, profile:profiles(first_name, last_name)), class_membership_types(membership_type_id)')
                 .eq('is_active', true)
@@ -108,35 +108,18 @@ export default function MemberClassesPage() {
                 .order('day_of_week')
                 .order('start_time');
 
-            if (classesError) {
-                console.error('Error fetching classes:', classesError);
-            }
-
-            console.log('Member membership_type_id:', membership.membership_type_id);
-            console.log('Classes data:', classesData?.map(c => ({
-                name: (c as any).name,
-                tiers: (c as any).class_membership_types
-            })));
-
             // Filter by membership type using junction table
             // If class has no tier associations, it's available to all members
             // If class has tier associations, member's tier must be in the list
             const accessibleClasses = (classesData || []).filter((c: any) => {
                 const classTiers = c.class_membership_types || [];
                 // No tier restrictions = available to all members at this location
-                if (classTiers.length === 0) {
-                    console.log(`Class "${c.name}" has no tier restrictions - showing to all`);
-                    return true;
-                }
+                if (classTiers.length === 0) return true;
                 // Has tier restrictions - check if member's tier is in the list
-                const hasAccess = classTiers.some((t: { membership_type_id: string }) =>
+                return classTiers.some((t: { membership_type_id: string }) =>
                     t.membership_type_id === membership.membership_type_id
                 );
-                console.log(`Class "${c.name}" has tiers:`, classTiers.map((t: any) => t.membership_type_id), `member tier: ${membership.membership_type_id}, hasAccess: ${hasAccess}`);
-                return hasAccess;
             });
-
-            console.log('Accessible classes count:', accessibleClasses.length);
 
             // Fetch ALL past attendance for this user
             const { data: allAttendance } = await supabase
