@@ -146,7 +146,7 @@ export default async function AboutPage() {
                                 maxWidth: '800px',
                                 margin: '0 auto var(--space-6)',
                             }}>
-                                We exist to build <strong>strong individuals</strong>, <strong>resilient families</strong>, and <strong>confident communities</strong> — physically, mentally, and spiritually. Sport of Kings is a holistic development platform rooted in Sunnah sports, faith, and community, training Muslims for the mats and for the world.
+                                We exist to build <strong>strong individuals</strong>, <strong>resilient families</strong>, and <strong>confident communities</strong> — physically, mentally, and spiritually. Sport of Kings is a holistic development platform rooted in Sunnah sports, faith, and community, training individuals for the mats and for life. Everyone is welcome.
                             </p>
 
                             <p style={{
