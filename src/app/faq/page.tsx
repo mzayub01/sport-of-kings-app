@@ -168,7 +168,7 @@ export default function FAQPage() {
                 },
                 {
                     question: 'What should I wear to training?',
-                    answer: 'For beginners, comfortable athletic clothing (t-shirt and shorts/tracksuit bottoms) is fine. As you progress, you\'ll want to get a BJJ gi (uniform). We can advise on where to purchase appropriate training gear. Modest clothing that allows movement is preferred in line with Islamic values.'
+                    answer: 'A BJJ gi (uniform) is mandatory for all classes. A link to purchase your gi will be provided during the sign-up process. Modest clothing that allows movement is required in line with Islamic values. Footwear isn\'t needed on the mats (we train barefoot), but bring flip-flops/sandals for walking around the venue.'
                 },
             ]
         },
@@ -199,8 +199,8 @@ export default function FAQPage() {
                     answer: 'Membership payments are handled through our secure online system via Stripe. You can set up monthly recurring payments with a credit or debit card. Your subscription can be managed through your member dashboard.'
                 },
                 {
-                    question: 'Can I cancel my membership?',
-                    answer: 'Yes, you can cancel your membership at any time through your member dashboard. There are no long-term contracts or cancellation fees. We simply ask for notice before your next billing date.'
+                    question: 'How do I make changes to my membership?',
+                    answer: 'For any changes to your membership — including upgrades, downgrades, pausing, or cancellations — please contact us directly at info@sportofkings.co.uk. Our team will be happy to assist you and discuss the best options for your situation.'
                 },
                 {
                     question: 'Do you offer trial classes?',
@@ -236,10 +236,7 @@ export default function FAQPage() {
                     question: 'What are the class times?',
                     answer: 'Class times vary by location and age group. Please check our Classes page or contact us directly for the most up-to-date schedule. Classes are generally structured around salah times where relevant.'
                 },
-                {
-                    question: 'Can I attend multiple locations?',
-                    answer: 'Yes, your membership allows you to attend classes at any of our locations. This gives you flexibility to train at different venues depending on your schedule and preference.'
-                },
+
             ]
         },
         {
@@ -260,7 +257,7 @@ export default function FAQPage() {
                 },
                 {
                     question: 'Do parents need to stay during classes?',
-                    answer: 'For younger children, parents are welcome to stay and observe. For older children and teens, it\'s your choice. We maintain an open-door policy so parents always know what\'s happening in our sessions.'
+                    answer: 'Generally, parents are asked to vacate the training area during classes to allow students to focus and develop independence. However, some locations do offer viewing areas where parents can observe. It\'s important to adhere to the specific guidelines of each training location — your instructor will advise on the arrangements at your venue.'
                 },
                 {
                     question: 'How can parents get involved?',
