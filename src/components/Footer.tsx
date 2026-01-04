@@ -60,13 +60,13 @@ export default function Footer() {
                     </div>
                 </div>
 
-                {/* Quick Links */}
                 <div>
                     <h4 className="footer-title">Quick Links</h4>
                     <ul className="footer-links">
                         <li><Link href="/about">About Us</Link></li>
                         <li><Link href="/classes">BJJ Classes</Link></li>
                         <li><Link href="/events">Events</Link></li>
+                        <li><Link href="/faq">FAQ</Link></li>
                         <li><Link href="/register">Register</Link></li>
                     </ul>
                 </div>
