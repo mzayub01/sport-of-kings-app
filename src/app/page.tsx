@@ -97,23 +97,12 @@ export default async function HomePage() {
                 }}
               />
             </div>
-            <div style={{
-              display: 'inline-block',
-              background: 'rgba(197, 164, 86, 0.15)',
-              padding: 'var(--space-1) var(--space-4)',
-              borderRadius: 'var(--radius-full)',
-              marginBottom: 'var(--space-4)',
-            }}>
-              <span style={{ color: 'var(--color-gold)', fontSize: 'var(--text-sm)', fontWeight: '600' }}>
-                Registered Charity • Seerat Un Nabi
-              </span>
-            </div>
             <h1 className="hero-title">
               Strength with Purpose<br />Faith with Discipline
             </h1>
             <p className="hero-subtitle">
-              A non-profit charity using Sunnah sports to build strong, disciplined, faith-anchored Muslims.
-              More than just BJJ — training body, mind, and soul for the mats and for life.
+              A community-led movement using Sunnah sports to build strong, disciplined, faith-anchored individuals.
+              More than just BJJ — training body, mind, and soul for the mats and for life. Everyone welcome.
             </p>
             <div className="hero-actions">
               <Link href="/register" className="btn btn-primary btn-lg">
@@ -175,7 +164,7 @@ export default async function HomePage() {
                 lineHeight: '1.8',
                 marginBottom: 'var(--space-6)',
               }}>
-                Sport of Kings is a <strong style={{ color: 'var(--color-gold)' }}>registered charity</strong> dedicated to whole-person development — <strong style={{ color: 'var(--color-gold)' }}>physical</strong>, <strong style={{ color: 'var(--color-gold)' }}>spiritual</strong>, and <strong style={{ color: 'var(--color-gold)' }}>communal</strong>. We train Muslims for the mats and for the world.
+                Sport of Kings is a <strong style={{ color: 'var(--color-gold)' }}>registered charity</strong> dedicated to whole-person development — <strong style={{ color: 'var(--color-gold)' }}>physical</strong>, <strong style={{ color: 'var(--color-gold)' }}>spiritual</strong>, and <strong style={{ color: 'var(--color-gold)' }}>communal</strong>. We train individuals for the mats and for life, welcoming everyone from all backgrounds.
               </p>
               <p style={{
                 fontSize: 'var(--text-lg)',
