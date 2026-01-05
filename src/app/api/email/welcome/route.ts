@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email';
 import { renderWelcomeEmail } from '@/lib/email-templates';
+import { renderEmailFromDatabase } from '@/lib/email-templates-db';
 
 export async function POST(request: NextRequest) {
     try {
@@ -14,17 +15,34 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Render the welcome email
-        const html = renderWelcomeEmail({
+        // Try to get template from database first
+        const dbTemplate = await renderEmailFromDatabase('welcome', {
             firstName,
             locationName: locationName || 'Sport of Kings',
             membershipType: membershipType || 'Member',
         });
 
+        let html: string;
+        let subject: string;
+
+        if (dbTemplate) {
+            // Use database template
+            html = dbTemplate.html;
+            subject = dbTemplate.subject;
+        } else {
+            // Fallback to static template
+            html = renderWelcomeEmail({
+                firstName,
+                locationName: locationName || 'Sport of Kings',
+                membershipType: membershipType || 'Member',
+            });
+            subject = `Welcome to Sport of Kings, ${firstName}!`;
+        }
+
         // Send the email
         const result = await sendEmail({
             to: email,
-            subject: `Welcome to Sport of Kings, ${firstName}!`,
+            subject,
             html,
         });
 

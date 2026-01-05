@@ -8,6 +8,7 @@ import {
     renderPaymentFailedEmail,
     renderWelcomeEmail,
 } from '@/lib/email-templates';
+import { renderEmailFromDatabase } from '@/lib/email-templates-db';
 import Stripe from 'stripe';
 
 export async function POST(request: NextRequest) {

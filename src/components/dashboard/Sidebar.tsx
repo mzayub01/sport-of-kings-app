@@ -29,7 +29,8 @@ import {
     GraduationCap,
     PoundSterling,
     Receipt,
-    Tag
+    Tag,
+    Mail
 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -135,6 +136,7 @@ export default function DashboardSidebar({ role, userRole, userName = 'Member', 
         { href: '/admin/events', label: 'Events', icon: PartyPopper },
         { href: '/admin/naseeha', label: 'Naseeha', icon: BookOpen },
         { href: '/admin/announcements', label: 'Announcements', icon: Bell },
+        { href: '/admin/email-templates', label: 'Email Templates', icon: Mail },
         { href: '/admin/promo-codes', label: 'Promo Codes', icon: Tag },
         { href: '/admin/settings', label: 'Settings', icon: Settings },
     ];
