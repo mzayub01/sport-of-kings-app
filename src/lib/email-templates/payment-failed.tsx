@@ -17,7 +17,7 @@ export function PaymentFailedEmail({
     amountDue,
     attemptCount,
     nextAttemptDate,
-    updatePaymentUrl = 'https://sport-of-kings-iota.vercel.app/dashboard/membership',
+    updatePaymentUrl = 'https://sportofkings.info/dashboard/membership',
 }: PaymentFailedEmailProps) {
     const isLastAttempt = attemptCount >= 3;
 

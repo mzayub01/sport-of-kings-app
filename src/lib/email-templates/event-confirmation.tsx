@@ -21,7 +21,7 @@ export function EventConfirmationEmail({
     eventLocation,
     ticketType,
     amountPaid,
-    eventUrl = 'https://sport-of-kings-iota.vercel.app/events',
+    eventUrl = 'https://sportofkings.info/events',
 }: EventConfirmationEmailProps) {
     return (
         <BaseEmailLayout previewText={`Your booking for ${eventTitle} is confirmed!`}>

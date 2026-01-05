@@ -57,7 +57,7 @@ export function replacePlaceholders(text: string, data: Record<string, string>):
 export function renderTemplateToHtml(
     template: EmailTemplateData,
     data: Record<string, string>,
-    logoUrl: string = 'https://sport-of-kings-iota.vercel.app/logo-full.png'
+    logoUrl: string = 'https://sportofkings.info/logo-full.png'
 ): string {
     const subject = replacePlaceholders(template.subject, data);
     const greeting = replacePlaceholders(template.greeting, data);
@@ -163,7 +163,7 @@ export function renderTemplateToHtml(
                             <p style="font-size: 14px; color: #888888; margin: 0 0 8px;">
                                 Brazilian Jiu-Jitsu Classes in Manchester
                             </p>
-                            <a href="https://sport-of-kings-iota.vercel.app" style="font-size: 14px; color: #c5a456; text-decoration: none;">
+                            <a href="https://sportofkings.info" style="font-size: 14px; color: #c5a456; text-decoration: none;">
                                 Visit our website
                             </a>
                         </td>

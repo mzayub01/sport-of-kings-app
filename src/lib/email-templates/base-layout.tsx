@@ -94,7 +94,7 @@ export function BaseEmailLayout({ children, previewText }: BaseLayoutProps) {
                 <Container style={baseStyles.container}>
                     <Section style={baseStyles.card}>
                         <Img
-                            src="https://sport-of-kings-iota.vercel.app/logo-full.png"
+                            src="https://sportofkings.info/logo-full.png"
                             alt="Sport of Kings"
                             style={baseStyles.logo}
                             height={60}
@@ -108,7 +108,7 @@ export function BaseEmailLayout({ children, previewText }: BaseLayoutProps) {
                         <Text style={baseStyles.footerText}>
                             Brazilian Jiu-Jitsu Classes in Manchester
                         </Text>
-                        <Link href="https://sport-of-kings-iota.vercel.app" style={baseStyles.footerLink}>
+                        <Link href="https://sportofkings.info" style={baseStyles.footerLink}>
                             Visit our website
                         </Link>
                     </Section>

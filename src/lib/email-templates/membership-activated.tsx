@@ -17,7 +17,7 @@ export function MembershipActivatedEmail({
     membershipType,
     price,
     startDate,
-    dashboardUrl = 'https://sport-of-kings-iota.vercel.app/dashboard',
+    dashboardUrl = 'https://sportofkings.info/dashboard',
 }: MembershipActivatedEmailProps) {
     return (
         <BaseEmailLayout previewText={`Your ${membershipType} membership is now active!`}>

@@ -52,7 +52,7 @@ INSERT INTO email_templates (template_key, name, description, subject, greeting,
 'If you have any questions, please don''t hesitate to reach out to us. See you on the mats!',
 'The Sport of Kings Team',
 'Go to Dashboard',
-'https://sport-of-kings-iota.vercel.app/dashboard'),
+'https://sportofkings.info/dashboard'),
 
 -- Event Confirmation Email
 ('event_confirmation', 'Event Confirmation', 'Sent after event booking/payment',
@@ -68,7 +68,7 @@ INSERT INTO email_templates (template_key, name, description, subject, greeting,
 'We look forward to seeing you there!',
 'The Sport of Kings Team',
 'View Event Details',
-'https://sport-of-kings-iota.vercel.app/events'),
+'https://sportofkings.info/events'),
 
 -- Membership Activated Email
 ('membership_activated', 'Membership Activated', 'Sent after successful Stripe payment',
@@ -83,7 +83,7 @@ INSERT INTO email_templates (template_key, name, description, subject, greeting,
 'Thank you for joining our martial arts community!',
 'The Sport of Kings Team',
 'Go to Dashboard',
-'https://sport-of-kings-iota.vercel.app/dashboard'),
+'https://sportofkings.info/dashboard'),
 
 -- Payment Failed Email
 ('payment_failed', 'Payment Failed', 'Sent when subscription payment fails',
@@ -97,7 +97,7 @@ INSERT INTO email_templates (template_key, name, description, subject, greeting,
 'If you have any questions or need assistance, please don''t hesitate to contact us.',
 'The Sport of Kings Team',
 'Update Payment Method',
-'https://sport-of-kings-iota.vercel.app/dashboard/membership')
+'https://sportofkings.info/dashboard/membership')
 
 ON CONFLICT (template_key) DO NOTHING;
 

@@ -13,7 +13,7 @@ export function WelcomeEmail({
     firstName,
     locationName,
     membershipType,
-    dashboardUrl = 'https://sport-of-kings-iota.vercel.app/dashboard',
+    dashboardUrl = 'https://sportofkings.info/dashboard',
 }: WelcomeEmailProps) {
     return (
         <BaseEmailLayout previewText={`Welcome to Sport of Kings, ${firstName}!`}>
