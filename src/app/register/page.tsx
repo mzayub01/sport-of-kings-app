@@ -473,8 +473,41 @@ function RegisterPageContent() {
                         // Redirect to dashboard for free members
                         router.push('/dashboard?registered=true');
                         router.refresh();
+                    } else if (location.name.toLowerCase().includes('cheadle masjid') || location.name.toLowerCase().includes('cheadle mosque')) {
+                        // Cheadle Masjid Exception - They handle their own payments
+                        // Create as active immediately (payments handled externally)
+                        const { error: membershipError } = await supabase
+                            .from('memberships')
+                            .insert({
+                                user_id: authData.user.id,
+                                location_id: locationId,
+                                membership_type_id: formData.selectedMembershipTypeId,
+                                status: 'active',
+                                start_date: new Date().toISOString().split('T')[0],
+                            });
+
+                        if (membershipError) {
+                            console.error('Membership creation error:', membershipError);
+                        }
+
+                        // Send welcome email
+                        fetch('/api/email/welcome', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                email: isChildMembership ? formData.parentEmail : formData.email,
+                                firstName: formData.firstName,
+                                locationName: location.name,
+                                membershipType: selectedType?.name || 'Member',
+                            }),
+                        }).catch(err => console.error('Welcome email error:', err));
+
+                        // Redirect to dashboard with special flag for Cheadle message
+                        router.push('/dashboard?registered=true&cheadle=true');
+                        router.refresh();
+
                     } else {
-                        // Paid membership - redirect to Stripe checkout
+                        // All other locations - Paid membership via Stripe
                         console.log('Attempting Stripe checkout for membership type:', formData.selectedMembershipTypeId);
 
                         const response = await fetch('/api/stripe/checkout', {

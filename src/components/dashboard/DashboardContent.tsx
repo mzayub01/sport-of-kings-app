@@ -13,8 +13,10 @@ import {
     Clock,
     CreditCard,
     MapPin,
-    Loader2
+    Loader2,
+    X
 } from 'lucide-react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useDashboard } from '@/components/dashboard/DashboardProvider';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import BJJBelt from '@/components/BJJBelt';
@@ -45,6 +47,18 @@ export default function DashboardContent() {
     const [attendanceCount, setAttendanceCount] = useState(0);
     const [membership, setMembership] = useState<MembershipData | null>(null);
     const [announcements, setAnnouncements] = useState<{ id: string; title: string; message: string; created_at: string }[]>([]);
+    const [showCheadleModal, setShowCheadleModal] = useState(false);
+
+    const searchParams = useSearchParams();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (searchParams.get('cheadle') === 'true') {
+            setShowCheadleModal(true);
+            // Clean up URL
+            router.replace('/dashboard');
+        }
+    }, [searchParams, router]);
 
     // Determine if we're viewing the parent or a child
     const isViewingParent = selectedProfileId === parentProfile?.user_id;
@@ -268,6 +282,87 @@ export default function DashboardContent() {
                     <p style={{ color: 'var(--text-secondary)', marginBottom: 0 }}>
                         No announcements at the moment. Check back later!
                     </p>
+                </div>
+            )}
+
+            {/* Cheadle Masjid Payment Modal */}
+            {showCheadleModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000,
+                    padding: 'var(--space-4)',
+                }}>
+                    <div className="animate-scale-in" style={{
+                        backgroundColor: 'var(--bg-primary)',
+                        padding: 'var(--space-6)',
+                        borderRadius: 'var(--radius-xl)',
+                        maxWidth: '500px',
+                        width: '100%',
+                        position: 'relative',
+                        border: '1px solid var(--color-gold)',
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                    }}>
+                        <div style={{ textAlign: 'center', marginBottom: 'var(--space-6)' }}>
+                            <div style={{
+                                width: '60px',
+                                height: '60px',
+                                borderRadius: 'var(--radius-full)',
+                                background: 'rgba(197, 164, 86, 0.1)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                margin: '0 auto var(--space-4)',
+                            }}>
+                                <CreditCard size={32} color="var(--color-gold)" />
+                            </div>
+                            <h2 style={{ fontSize: 'var(--text-xl)', marginBottom: 'var(--space-2)' }}>
+                                Registration Successful!
+                            </h2>
+                            <p style={{ color: 'var(--text-secondary)' }}>
+                                Important Payment Information
+                            </p>
+                        </div>
+
+                        <div style={{
+                            background: 'var(--bg-secondary)',
+                            padding: 'var(--space-4)',
+                            borderRadius: 'var(--radius-lg)',
+                            marginBottom: 'var(--space-6)',
+                            fontSize: 'var(--text-md)',
+                            lineHeight: '1.6',
+                            color: 'var(--text-primary)',
+                            borderLeft: '4px solid var(--color-gold)',
+                        }}>
+                            <p style={{ marginBottom: 'var(--space-4)' }}>
+                                Your payments will be collected directly through <strong>Cheadle Masjid&apos;s</strong> Stripe payment system.
+                            </p>
+                            <p style={{ marginBottom: 'var(--space-4)' }}>
+                                If there are any issues with your payment set up then please note your membership may become inactive until the payments are set up.
+                            </p>
+                            <p style={{ marginBottom: 'var(--space-4)' }}>
+                                <strong>For existing members:</strong> Your payments should already be set up. If they have not, please email <a href="mailto:sportofkings786@gmail.com" style={{ color: 'var(--color-gold)' }}>sportofkings786@gmail.com</a> stating your payments have not yet been set up.
+                            </p>
+                            <p style={{ marginBottom: 0 }}>
+                                <strong>New members:</strong> You will receive separate email instructions on setting up payment for the first time.
+                            </p>
+                        </div>
+
+                        <button
+                            onClick={() => setShowCheadleModal(false)}
+                            className="btn btn-primary"
+                            style={{ width: '100%' }}
+                        >
+                            I Understand
+                        </button>
+                    </div>
                 </div>
             )}
         </div>
