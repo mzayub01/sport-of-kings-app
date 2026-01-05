@@ -458,6 +458,18 @@ function RegisterPageContent() {
                             console.error('Membership creation error:', membershipError);
                         }
 
+                        // Send welcome email (fire and forget - don't block registration)
+                        fetch('/api/email/welcome', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                email: isChildMembership ? formData.parentEmail : formData.email,
+                                firstName: formData.firstName,
+                                locationName: location.name,
+                                membershipType: selectedType?.name || 'Member',
+                            }),
+                        }).catch(err => console.error('Welcome email error:', err));
+
                         // Redirect to dashboard for free members
                         router.push('/dashboard?registered=true');
                         router.refresh();

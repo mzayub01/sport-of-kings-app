@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isStripeConfigured, getStripeClient } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase/server';
+import { sendEmail } from '@/lib/email';
+import {
+    renderMembershipActivatedEmail,
+    renderEventConfirmationEmail,
+    renderPaymentFailedEmail,
+    renderWelcomeEmail,
+} from '@/lib/email-templates';
 import Stripe from 'stripe';
 
 export async function POST(request: NextRequest) {
@@ -84,6 +91,36 @@ export async function POST(request: NextRequest) {
                     .eq('id', existingRsvp.id);
                 console.log('Existing RSVP updated to paid for:', userEmail);
             }
+
+            // Send event confirmation email
+            try {
+                const { data: eventData } = await supabase
+                    .from('events')
+                    .select('title, event_date, location, price')
+                    .eq('id', eventId)
+                    .single();
+
+                if (eventData && userEmail) {
+                    const eventDate = new Date(eventData.event_date);
+                    const html = renderEventConfirmationEmail({
+                        firstName: userName?.split(' ')[0] || 'Guest',
+                        eventTitle: eventData.title,
+                        eventDate: eventDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+                        eventTime: eventDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+                        eventLocation: eventData.location || 'TBC',
+                        amountPaid: eventData.price ? `£${eventData.price}` : 'Free',
+                    });
+
+                    await sendEmail({
+                        to: userEmail,
+                        subject: `Booking Confirmed: ${eventData.title}`,
+                        html,
+                    });
+                    console.log('Event confirmation email sent to:', userEmail);
+                }
+            } catch (emailErr) {
+                console.error('Failed to send event confirmation email:', emailErr);
+            }
         } else {
             // Membership payment (existing logic)
             const { userId, locationId, membershipTypeId } = metadata;
@@ -128,6 +165,46 @@ export async function POST(request: NextRequest) {
                     .from('profiles')
                     .update({ stripe_customer_id: session.customer as string })
                     .eq('user_id', userId);
+
+                // Send membership activation email
+                try {
+                    const { data: profileData } = await supabase
+                        .from('profiles')
+                        .select('first_name, email')
+                        .eq('user_id', userId)
+                        .single();
+
+                    const { data: locationData } = await supabase
+                        .from('locations')
+                        .select('name')
+                        .eq('id', locationId)
+                        .single();
+
+                    const { data: membershipTypeData } = await supabase
+                        .from('membership_types')
+                        .select('name, price')
+                        .eq('id', membershipTypeId)
+                        .single();
+
+                    if (profileData?.email) {
+                        const html = renderMembershipActivatedEmail({
+                            firstName: profileData.first_name || 'Member',
+                            locationName: locationData?.name || 'Sport of Kings',
+                            membershipType: membershipTypeData?.name || 'Membership',
+                            price: membershipTypeData?.price ? `£${membershipTypeData.price}/month` : 'N/A',
+                            startDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+                        });
+
+                        await sendEmail({
+                            to: profileData.email,
+                            subject: 'Your Sport of Kings Membership is Now Active!',
+                            html,
+                        });
+                        console.log('Membership activation email sent to:', profileData.email);
+                    }
+                } catch (emailErr) {
+                    console.error('Failed to send membership activation email:', emailErr);
+                }
             }
         }
     }
@@ -173,17 +250,39 @@ export async function POST(request: NextRequest) {
                 console.log('Payment attempt', attemptCount, 'failed for subscription:', subscriptionId);
             }
 
-            // TODO: Send email notification to member about failed payment
-            // For now, just log it. In production, integrate with email service (Resend, SendGrid, etc.)
-            console.log('PAYMENT FAILED NOTIFICATION:', {
-                email: customerEmail,
-                invoiceId: invoice.id,
-                amount: (invoice.amount_due || 0) / 100,
-                attemptCount: attemptCount,
-                nextAttempt: invoice.next_payment_attempt
-                    ? new Date(invoice.next_payment_attempt * 1000).toISOString()
-                    : 'Final attempt',
-            });
+            // Send payment failed notification email
+            if (customerEmail) {
+                try {
+                    // Get membership details
+                    const { data: membershipData } = await supabase
+                        .from('memberships')
+                        .select('membership_type:membership_types(name), profiles(first_name)')
+                        .eq('stripe_subscription_id', String(subscriptionId))
+                        .single();
+
+                    const membershipTypeName = (membershipData?.membership_type as { name: string } | null)?.name || 'Membership';
+                    const firstName = (membershipData?.profiles as { first_name: string } | null)?.first_name || 'Member';
+
+                    const html = renderPaymentFailedEmail({
+                        firstName,
+                        membershipType: membershipTypeName,
+                        amountDue: `£${((invoice.amount_due || 0) / 100).toFixed(2)}`,
+                        attemptCount,
+                        nextAttemptDate: invoice.next_payment_attempt
+                            ? new Date(invoice.next_payment_attempt * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+                            : undefined,
+                    });
+
+                    await sendEmail({
+                        to: customerEmail,
+                        subject: `Action Required: Payment Failed for Your Membership`,
+                        html,
+                    });
+                    console.log('Payment failed email sent to:', customerEmail);
+                } catch (emailErr) {
+                    console.error('Failed to send payment failed email:', emailErr);
+                }
+            }
         }
     }
 
