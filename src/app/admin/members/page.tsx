@@ -213,6 +213,38 @@ export default function AdminMembersPage() {
 
             if (error) throw error;
 
+            // Handle instructor record creation/management
+            if (formData.role === 'instructor' && editingMember.role !== 'instructor') {
+                // Check if instructor record already exists
+                const { data: existingInstructor } = await supabase
+                    .from('instructors')
+                    .select('id')
+                    .eq('user_id', editingMember.user_id)
+                    .single();
+
+                if (!existingInstructor) {
+                    // Create new instructor record
+                    await supabase
+                        .from('instructors')
+                        .insert({
+                            user_id: editingMember.user_id,
+                            is_active: true,
+                        });
+                } else {
+                    // Reactivate existing instructor record
+                    await supabase
+                        .from('instructors')
+                        .update({ is_active: true })
+                        .eq('user_id', editingMember.user_id);
+                }
+            } else if (formData.role !== 'instructor' && editingMember.role === 'instructor') {
+                // Deactivate instructor record when role changed from instructor
+                await supabase
+                    .from('instructors')
+                    .update({ is_active: false })
+                    .eq('user_id', editingMember.user_id);
+            }
+
             // Also record belt progression if belt changed
             if (formData.belt_rank !== editingMember.belt_rank || formData.stripes !== editingMember.stripes) {
                 const { data: { user } } = await supabase.auth.getUser();
