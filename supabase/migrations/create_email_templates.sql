@@ -112,7 +112,7 @@ USING (
     EXISTS (
         SELECT 1 FROM profiles
         WHERE profiles.user_id = auth.uid()
-        AND profiles.role IN ('admin', 'super_admin')
+        AND profiles.role = 'admin'
     )
 );
 

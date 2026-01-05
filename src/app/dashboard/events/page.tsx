@@ -193,6 +193,22 @@ export default function MemberEventsPage() {
 
                 if (insertError) throw insertError;
 
+                // Send confirmation email for free event RSVP
+                if (status === 'confirmed') {
+                    fetch('/api/email/event-confirmation', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            email: userEmail,
+                            firstName: userFullName?.split(' ')[0] || 'Guest',
+                            eventTitle: event.title,
+                            eventDate: event.start_date,
+                            eventTime: event.start_time || '',
+                            eventLocation: event.location?.name || 'TBC',
+                        }),
+                    }).catch(err => console.error('Event confirmation email error:', err));
+                }
+
                 setMyRsvps(prev => [...prev, { event_id: eventId, status }]);
                 setSuccess(status === 'waitlist'
                     ? "You've been added to the waitlist!"

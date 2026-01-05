@@ -125,6 +125,23 @@ export default function EventRegistration({ event, user }: EventRegistrationProp
 
             if (insertError) throw insertError;
 
+            // Send confirmation email for free event RSVP
+            const emailAddress = user?.email || formData.email;
+            const firstName = (user?.full_name || formData.full_name)?.split(' ')[0] || 'Guest';
+
+            fetch('/api/email/event-confirmation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: emailAddress,
+                    firstName,
+                    eventTitle: event.title,
+                    eventDate: event.start_date,
+                    eventTime: event.start_time || '',
+                    eventLocation: event.location?.name || event.custom_location || 'TBC',
+                }),
+            }).catch(err => console.error('Event confirmation email error:', err));
+
             setSuccess(true);
         } catch (err: any) {
             setError(err.message || 'Failed to register');
