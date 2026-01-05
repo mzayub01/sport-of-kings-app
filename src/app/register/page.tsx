@@ -1277,7 +1277,7 @@ function RegisterPageContent() {
                                             type="text"
                                             className="form-input"
                                             placeholder="e.g. 42 or Flat 3"
-                                            value={formData.address.split(',')[0]?.trim() || ''}
+                                            value={formData.address.split(',')[0] || ''}
                                             onChange={(e) => {
                                                 const street = formData.address.includes(',')
                                                     ? formData.address.split(',').slice(1).join(',').trim()
@@ -1295,7 +1295,7 @@ function RegisterPageContent() {
                                             className="form-input"
                                             placeholder="e.g. High Street"
                                             value={formData.address.includes(',')
-                                                ? formData.address.split(',').slice(1).join(',').trim()
+                                                ? formData.address.split(',').slice(1).join(',').replace(/^\s+/, '')
                                                 : formData.address}
                                             onChange={(e) => {
                                                 const houseNo = formData.address.split(',')[0]?.trim() || '';
