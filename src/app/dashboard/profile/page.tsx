@@ -21,6 +21,7 @@ interface Profile {
     emergency_contact_phone: string;
     medical_info: string;
     belt_rank: string;
+    stripes: number;
     is_child: boolean;
     profile_image_url?: string;
     created_at: string;
@@ -93,6 +94,8 @@ export default function ProfilePage() {
                     emergency_contact_name: formData.emergency_contact_name,
                     emergency_contact_phone: formData.emergency_contact_phone,
                     medical_info: formData.medical_info,
+                    belt_rank: formData.belt_rank,
+                    stripes: formData.stripes,
                 })
                 .eq('id', profile.id);
 
@@ -286,6 +289,86 @@ export default function ProfilePage() {
                                     <p style={{ margin: 0, fontWeight: '500', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                                         <Phone size={16} color="var(--text-secondary)" />
                                         {profile.phone || 'Not set'}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* BJJ Progress */}
+                <div className="card">
+                    <div className="card-header">
+                        <h3 style={{ margin: 0, fontSize: 'var(--text-lg)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                            <Award size={20} color="var(--color-gold)" />
+                            BJJ Progress
+                        </h3>
+                    </div>
+                    <div className="card-body">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                            <div className="form-group">
+                                <label className="form-label">Belt Rank</label>
+                                {isEditing ? (
+                                    <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                                        {(profile.is_child
+                                            ? ['white', 'grey-white', 'grey', 'grey-black', 'yellow-white', 'yellow', 'yellow-black', 'orange-white', 'orange', 'orange-black', 'green-white', 'green', 'green-black']
+                                            : ['white', 'blue', 'purple', 'brown', 'black']
+                                        ).map((belt) => (
+                                            <button
+                                                key={belt}
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({ ...prev, belt_rank: belt }))}
+                                                style={{
+                                                    padding: 'var(--space-2) var(--space-3)',
+                                                    borderRadius: 'var(--radius-md)',
+                                                    border: formData.belt_rank === belt ? '2px solid var(--color-gold)' : '1px solid var(--border-light)',
+                                                    background: formData.belt_rank === belt ? 'rgba(197, 164, 86, 0.15)' : 'var(--bg-primary)',
+                                                    cursor: 'pointer',
+                                                    textTransform: 'capitalize',
+                                                    fontWeight: formData.belt_rank === belt ? '600' : '400',
+                                                    fontSize: 'var(--text-sm)',
+                                                }}
+                                            >
+                                                {belt.replace('-', ' ')}
+                                            </button>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p style={{ margin: 0, fontWeight: '500', textTransform: 'capitalize' }}>
+                                        {(profile.belt_rank || 'white').replace('-', ' ')} Belt
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Stripes {profile.is_child ? '(0-12)' : '(0-4)'}</label>
+                                {isEditing ? (
+                                    <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                                        {(profile.is_child
+                                            ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+                                            : [0, 1, 2, 3, 4]
+                                        ).map((s) => (
+                                            <button
+                                                key={s}
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({ ...prev, stripes: s }))}
+                                                style={{
+                                                    width: '36px',
+                                                    height: '36px',
+                                                    borderRadius: 'var(--radius-md)',
+                                                    border: formData.stripes === s ? '2px solid var(--color-gold)' : '1px solid var(--border-light)',
+                                                    background: formData.stripes === s ? 'rgba(197, 164, 86, 0.15)' : 'var(--bg-primary)',
+                                                    cursor: 'pointer',
+                                                    fontWeight: formData.stripes === s ? '600' : '400',
+                                                }}
+                                            >
+                                                {s}
+                                            </button>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p style={{ margin: 0, fontWeight: '500' }}>
+                                        {profile.stripes || 0} stripe{(profile.stripes || 0) !== 1 ? 's' : ''}
                                     </p>
                                 )}
                             </div>
