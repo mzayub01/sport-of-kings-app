@@ -128,6 +128,28 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Fetch membership type to check if it's paid
+        const { data: membershipType } = await supabaseAdmin
+            .from('membership_types')
+            .select('name, price')
+            .eq('id', membershipTypeId)
+            .single();
+
+        const isFree = !membershipType || membershipType.price === 0;
+
+        // Fetch location to check for Cheadle Masjid exception
+        const { data: locationData } = await supabaseAdmin
+            .from('locations')
+            .select('name')
+            .eq('id', locationId)
+            .single();
+
+        const isCheadleMasjid = locationData?.name?.toLowerCase().includes('cheadle masjid') ||
+            locationData?.name?.toLowerCase().includes('cheadle mosque');
+
+        // Determine membership status based on payment type
+        const membershipStatus = (isFree || isCheadleMasjid) ? 'active' : 'pending';
+
         // Create membership for child
         const { error: membershipError } = await supabaseAdmin
             .from('memberships')
@@ -135,7 +157,7 @@ export async function POST(request: NextRequest) {
                 user_id: childAuth.user.id,
                 location_id: locationId,
                 membership_type_id: membershipTypeId,
-                status: 'active',
+                status: membershipStatus,
                 start_date: new Date().toISOString().split('T')[0],
             });
 
@@ -157,6 +179,18 @@ export async function POST(request: NextRequest) {
                 user_id: childProfile.user_id,
                 first_name: childProfile.first_name,
                 last_name: childProfile.last_name,
+            },
+            // Include info for client to handle payment
+            requiresPayment: !isFree && !isCheadleMasjid,
+            isCheadleMasjid,
+            membershipType: {
+                id: membershipTypeId,
+                name: membershipType?.name || 'Membership',
+                price: membershipType?.price || 0,
+            },
+            location: {
+                id: locationId,
+                name: locationData?.name || '',
             },
         });
 

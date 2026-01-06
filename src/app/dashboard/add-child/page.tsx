@@ -233,10 +233,48 @@ export default function AddChildPage() {
                 throw new Error(errorMsg || 'Failed to add child');
             }
 
+            // Check if payment is required
+            if (data.requiresPayment) {
+                // Redirect to Stripe checkout for paid memberships
+                const stripeResponse = await fetch('/api/stripe/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        membershipTypeId: data.membershipType.id,
+                        membershipTypeName: data.membershipType.name,
+                        price: data.membershipType.price,
+                        userId: data.child.user_id,
+                        locationId: data.location.id,
+                        locationName: data.location.name,
+                        userEmail: '', // Will be handled by Stripe
+                    }),
+                });
+
+                const stripeData = await stripeResponse.json();
+
+                if (stripeData.url) {
+                    // Redirect to Stripe Checkout
+                    window.location.href = stripeData.url;
+                    return;
+                } else {
+                    // Stripe not configured - show pending notice
+                    setSuccess(true);
+                    setTimeout(() => {
+                        router.push('/dashboard?registered=true&pending=true');
+                        router.refresh();
+                    }, 2000);
+                    return;
+                }
+            }
+
+            // Free membership or Cheadle Masjid - show success
             setSuccess(true);
-            // Redirect after 2 seconds
             setTimeout(() => {
-                router.push('/dashboard');
+                if (data.isCheadleMasjid) {
+                    router.push('/dashboard?cheadle=true');
+                } else {
+                    router.push('/dashboard');
+                }
                 router.refresh();
             }, 2000);
 
