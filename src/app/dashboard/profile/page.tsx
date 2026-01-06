@@ -139,7 +139,7 @@ export default function ProfilePage() {
     });
 
     return (
-        <div>
+        <div style={{ paddingBottom: '120px' }}>
             <div className="dashboard-header">
                 <h1 className="dashboard-title">My Profile</h1>
                 <p className="dashboard-subtitle">
