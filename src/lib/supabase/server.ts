@@ -78,6 +78,9 @@ export async function createClient() {
 }
 
 // Admin client with service role (server-side only)
+// Uses standard client (not SSR) to properly bypass RLS
+import { createClient as createStandardClient } from '@supabase/supabase-js';
+
 export async function createAdminClient() {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -87,31 +90,11 @@ export async function createAdminClient() {
         return createMockClient() as ReturnType<typeof createServerClient>;
     }
 
-    const cookieStore = await cookies();
-
-    return createServerClient(
-        supabaseUrl,
-        serviceKey,
-        {
-            cookies: {
-                get(name: string) {
-                    return cookieStore.get(name)?.value;
-                },
-                set(name: string, value: string, options: CookieOptions) {
-                    try {
-                        cookieStore.set({ name, value, ...options });
-                    } catch {
-                        // Handle cookies in read-only context
-                    }
-                },
-                remove(name: string, options: CookieOptions) {
-                    try {
-                        cookieStore.set({ name, value: '', ...options });
-                    } catch {
-                        // Handle cookies in read-only context
-                    }
-                },
-            },
-        }
-    );
+    // Use standard client with service role key to bypass RLS
+    return createStandardClient(supabaseUrl, serviceKey, {
+        auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+        },
+    });
 }
