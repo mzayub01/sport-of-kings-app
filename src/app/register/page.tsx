@@ -1312,10 +1312,11 @@ function RegisterPageContent() {
                                             placeholder="e.g. 42 or Flat 3"
                                             value={formData.address.split(',')[0] || ''}
                                             onChange={(e) => {
-                                                const street = formData.address.includes(',')
-                                                    ? formData.address.split(',').slice(1).join(',').trim()
-                                                    : formData.address;
-                                                const newAddress = e.target.value ? `${e.target.value}, ${street}` : street;
+                                                const parts = formData.address.split(',');
+                                                const street = parts.length > 1 ? parts.slice(1).join(',') : '';
+                                                const houseNo = e.target.value;
+                                                // Allow empty house number - don't force comma
+                                                const newAddress = houseNo && street ? `${houseNo},${street}` : houseNo || street;
                                                 updateField('address', newAddress);
                                             }}
                                             required
@@ -1327,12 +1328,12 @@ function RegisterPageContent() {
                                             type="text"
                                             className="form-input"
                                             placeholder="e.g. High Street"
-                                            value={formData.address.includes(',')
-                                                ? formData.address.split(',').slice(1).join(',').replace(/^\s+/, '')
-                                                : formData.address}
+                                            value={formData.address.split(',').slice(1).join(',').trimStart()}
                                             onChange={(e) => {
-                                                const houseNo = formData.address.split(',')[0]?.trim() || '';
-                                                const newAddress = houseNo ? `${houseNo}, ${e.target.value}` : e.target.value;
+                                                const houseNo = formData.address.split(',')[0] || '';
+                                                const street = e.target.value;
+                                                // Allow empty street - don't force comma
+                                                const newAddress = houseNo && street ? `${houseNo}, ${street}` : houseNo || street;
                                                 updateField('address', newAddress);
                                             }}
                                             required
