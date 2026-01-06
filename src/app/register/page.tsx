@@ -1088,8 +1088,8 @@ function RegisterPageContent() {
                                         ))}
                                     </div>
 
-                                    {/* Stripes Selection */}
-                                    {formData.beltRank !== 'white' && (
+                                    {/* Stripes Selection - shown for all belt colors */}
+                                    {(
                                         <div>
                                             <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
                                                 Stripes {formData.membershipType === 'adult' ? '(0-4)' : '(White 1-4, Red 5-8, Grey 9-12)'}
