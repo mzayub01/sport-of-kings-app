@@ -1279,11 +1279,13 @@ function RegisterPageContent() {
                                                         // Format postcode properly
                                                         updateField('postcode', result.postcode);
                                                     } else {
-                                                        setError('Postcode not found. Please check and try again.');
+                                                        // Don't block registration - just show info message
+                                                        alert('Postcode not found in database. You can still continue with registration - please enter your city manually.');
                                                     }
                                                 } catch (err) {
                                                     console.error('Postcode lookup error:', err);
-                                                    setError('Could not look up postcode. Please enter address manually.');
+                                                    // Don't block registration - just show info message
+                                                    alert('Could not look up postcode. You can still continue with registration - please enter your address manually.');
                                                 } finally {
                                                     setLookingUpPostcode(false);
                                                 }
