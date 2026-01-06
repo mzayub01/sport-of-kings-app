@@ -195,7 +195,7 @@ export default function AddChildPage() {
     }
 
     return (
-        <div>
+        <div style={{ paddingBottom: '120px' }}>
             <div className="dashboard-header">
                 <button
                     onClick={() => router.back()}
