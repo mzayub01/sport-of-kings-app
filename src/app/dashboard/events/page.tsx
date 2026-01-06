@@ -180,16 +180,16 @@ export default function MemberEventsPage() {
                     }
                 }
 
-                // Free event - direct RSVP
+                // Free event - direct RSVP (upsert to prevent duplicates)
                 const { error: insertError } = await supabase
                     .from('event_rsvps')
-                    .insert({
+                    .upsert({
                         event_id: eventId,
                         user_id: userId,
                         full_name: userFullName || 'Unknown',
                         email: userEmail,
                         status: status,
-                    });
+                    }, { onConflict: 'event_id,email' });
 
                 if (insertError) throw insertError;
 

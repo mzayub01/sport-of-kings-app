@@ -113,15 +113,17 @@ export default function EventRegistration({ event, user }: EventRegistrationProp
                 }
             }
 
-            // Free event - direct RSVP
-            const { error: insertError } = await supabase.from('event_rsvps').insert({
-                event_id: event.id,
-                user_id: user?.id || null,
-                full_name: user?.full_name || formData.full_name,
-                email: user?.email || formData.email,
-                phone: formData.phone || null,
-                status: 'confirmed',
-            });
+            // Free event - direct RSVP (upsert to prevent duplicates)
+            const { error: insertError } = await supabase
+                .from('event_rsvps')
+                .upsert({
+                    event_id: event.id,
+                    user_id: user?.id || null,
+                    full_name: user?.full_name || formData.full_name,
+                    email: user?.email || formData.email,
+                    phone: formData.phone || null,
+                    status: 'confirmed',
+                }, { onConflict: 'event_id,email' });
 
             if (insertError) throw insertError;
 
