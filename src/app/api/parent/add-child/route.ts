@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
             membershipTypeId,
             beltRank,
             stripes,
+            profileImageUrl,
         } = body;
 
         // Validate required fields
@@ -108,6 +109,7 @@ export async function POST(request: NextRequest) {
                 role: 'member',
                 belt_rank: beltRank || 'white',
                 stripes: typeof stripes === 'number' ? stripes : 0,
+                profile_image_url: profileImageUrl || null,
                 best_practice_accepted: true,
                 best_practice_accepted_at: new Date().toISOString(),
                 waiver_accepted: true,

@@ -4,9 +4,55 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     User, Calendar, Phone, MapPin, Heart, AlertCircle,
-    ChevronLeft, Check, Loader2
+    ChevronLeft, Check, Loader2, Camera, Shield
 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
+
+// Best Practice and Etiquette text
+const BEST_PRACTICE_TEXT = `Best Practice and Etiquette
+
+In attending Brazilian Jiu Jitsu classes, we aim to uphold the sunnah of our beloved Prophet Muhammad ﷺ and build a strong bond of brotherhood/sisterhood amongst us. We believe in the importance of intention and self-reflection (muhasaba), striving to be competitive but respectful to our opponents. To ensure a harmonious environment, we must adhere to the following etiquette:
+
+Respect for the Professor and Coaches: Islam teaches us to respect our instructors, as they guide us in our practice. Listen attentively to their guidance and follow their instructions diligently.
+
+Wearing a Gi: During the class, it is important to wear a gi (uniform) as this is a gi session. This shows respect for the tradition and uniformity among participants.
+
+No Eating or Drinking on the Mats: To maintain cleanliness and hygiene, refrain from eating or drinking on the mats. This helps us to avoid any contamination or distractions during training.
+
+No Shoes on Mats: Shoes are not allowed on the mats to keep them clean and safe for everyone. Remember to remove your shoes before stepping onto the training area.
+
+Personal Hygiene: Being in close contact with others during training requires proper personal hygiene. Ensure that there are no unpleasant odors on your clothes or body to maintain a comfortable environment for everyone.
+
+Clipped Finger and Toe Nails: For the safety of yourself and others, trim your finger and toe nails regularly to prevent accidental scratching or injury.
+
+No Eye Gouging, Punching, or Kicking: We have a strict policy against any form of violence or aggressive behavior during training. Engaging in eye gouging, punching, or kicking is not tolerated. If an accident happens, quickly apologize and rectify the situation.
+
+Parental Involvement and Side Coaching: Parents are kindly requested to refrain from entering the mats during kids' classes. Avoid giving instructions or coaching from the sidelines to maintain a focused learning environment.
+
+Displaying Good Adab: Adab (good manners) is a fundamental aspect of our practice. Always exhibit respect, humility, and kindness towards fellow participants on and off the mats. Show appreciation and congratulate your training partners for their efforts.
+
+By following these guidelines, we can create a respectful and inclusive atmosphere that aligns with the teachings of Islam and promotes the revival of our beloved Prophet Muhammad's Sunnah. May Allah bless our training and strengthen our bonds of brotherhood/sisterhood.`;
+
+// Waiver text
+const WAIVER_TEXT = `Disclaimer and Waiver of Liability for Brazilian Jiu-Jitsu Classes by Sport of Kings Seerat Un Nabi
+
+As the participant or legal guardian of the participant(s), I hereby acknowledge and agree to the following terms and conditions for participation in the Brazilian Jiu-Jitsu (BJJ) classes:
+
+Risk Acknowledgement: I understand that Brazilian Jiu-Jitsu is a contact sport that involves physical exertion and carries an inherent risk of injury. I acknowledge these risks, which may include, but are not limited to, bruises, strains, sprains, fractures, concussions, and other physical or mental harm.
+
+Fitness and Health: I confirm that the participant(s) is/are physically fit, in good health, and do not have any condition or ailment that could be adversely affected by participation in these classes.
+
+Rules and Supervision: I agree that the participant(s) will adhere to all class rules and instructions provided by instructors and staff members of Sport of Kings Seerat Un Nabi. I understand that supervision and guidance will be provided during all class sessions.
+
+Waiver of Liability: I hereby release, waive, discharge, and covenant not to sue Sport of Kings Seerat Un Nabi, their officers, agents, employees, coaches, volunteers, or other representatives for any injury, loss, or damage to the participant(s) or my/our property arising out of or in connection with participation in these classes, whether caused by negligence or otherwise.
+
+Medical Attention: In the event of an injury, I authorise the class staff to secure emergency medical care for the participant(s). I agree to be responsible for any medical or other charges in connection with the participant's participation in these classes.
+
+Photography/Video Consent: I consent to the use of photographs and videos taken during the classes for promotional, educational, or training purposes by Sport of Kings Seerat Un Nabi.
+
+Compliance with Policies: I agree to comply with all the policies, procedures, and regulations set by Sport of Kings Seerat Un Nabi during the classes.
+
+Understanding of Terms: I have read this waiver and release of liability and fully understand its terms. I understand that I/we have given up substantial rights by agreeing to it and do so freely and voluntarily without any inducement.`;
 
 interface Location {
     id: string;
@@ -31,6 +77,17 @@ export default function AddChildPage() {
     const [locations, setLocations] = useState<Location[]>([]);
     const [membershipTypes, setMembershipTypes] = useState<MembershipType[]>([]);
     const [parentMembership, setParentMembership] = useState<{ location_id: string } | null>(null);
+
+    // Photo upload state
+    const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+    const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
+    const [uploadingImage, setUploadingImage] = useState(false);
+
+    // Waiver acceptance state
+    const [bestPracticeAccepted, setBestPracticeAccepted] = useState(false);
+    const [waiverAccepted, setWaiverAccepted] = useState(false);
+    const [showBestPractice, setShowBestPractice] = useState(false);
+    const [showWaiver, setShowWaiver] = useState(false);
 
     const [formData, setFormData] = useState({
         firstName: '',
@@ -108,7 +165,7 @@ export default function AddChildPage() {
         setLoading(true);
         setError('');
 
-        // Validate
+        // Validate basic fields
         if (!formData.firstName || !formData.lastName || !formData.dateOfBirth) {
             setError('Please fill in all required fields');
             setLoading(false);
@@ -121,11 +178,51 @@ export default function AddChildPage() {
             return;
         }
 
+        // Validate profile picture
+        if (!profileImageFile) {
+            setError('Please upload a profile picture for your child');
+            setLoading(false);
+            return;
+        }
+
+        // Validate waiver acceptance
+        if (!bestPracticeAccepted || !waiverAccepted) {
+            setError('Please accept both the Best Practice guidelines and the Liability Waiver');
+            setLoading(false);
+            return;
+        }
+
         try {
+            // Upload profile image first
+            setUploadingImage(true);
+            const fileExt = profileImageFile.name.split('.').pop();
+            const fileName = `child_${Date.now()}.${fileExt}`;
+            const filePath = `profile-images/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, profileImageFile);
+
+            if (uploadError) {
+                console.error('Image upload error:', uploadError);
+                throw new Error('Failed to upload profile picture. Please try again.');
+            }
+
+            // Get public URL
+            const { data: urlData } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+
+            const profileImageUrl = urlData.publicUrl;
+            setUploadingImage(false);
+
             const response = await fetch('/api/parent/add-child', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
+                body: JSON.stringify({
+                    ...formData,
+                    profileImageUrl,
+                }),
             });
 
             const data = await response.json();
@@ -146,6 +243,7 @@ export default function AddChildPage() {
         } catch (err) {
             console.error('Error adding child:', err);
             setError(err instanceof Error ? err.message : 'Failed to add child');
+            setUploadingImage(false);
         } finally {
             setLoading(false);
         }
@@ -480,6 +578,90 @@ export default function AddChildPage() {
                             </div>
                         </div>
 
+                        {/* Profile Picture Upload */}
+                        <div className="form-group" style={{ marginBottom: 'var(--space-6)' }}>
+                            <label className="form-label">Profile Picture*</label>
+                            <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-3)' }}>
+                                Upload a clear photo of the child for identification
+                            </p>
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    gap: 'var(--space-3)',
+                                    padding: 'var(--space-6)',
+                                    border: profileImagePreview ? '2px solid var(--color-gold)' : '2px dashed var(--border-light)',
+                                    borderRadius: 'var(--radius-lg)',
+                                    background: profileImagePreview ? 'rgba(197, 164, 86, 0.1)' : 'var(--bg-secondary)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                }}
+                                onClick={() => document.getElementById('child-profile-image-input')?.click()}
+                            >
+                                {profileImagePreview ? (
+                                    <>
+                                        <div style={{
+                                            width: 100,
+                                            height: 100,
+                                            borderRadius: '50%',
+                                            overflow: 'hidden',
+                                            border: '3px solid var(--color-gold)',
+                                        }}>
+                                            <img
+                                                src={profileImagePreview}
+                                                alt="Preview"
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            />
+                                        </div>
+                                        <span style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
+                                            Click to change photo
+                                        </span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div style={{
+                                            width: 80,
+                                            height: 80,
+                                            borderRadius: '50%',
+                                            background: 'var(--bg-primary)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            border: '2px solid var(--border-light)',
+                                        }}>
+                                            <Camera size={32} color="var(--text-tertiary)" />
+                                        </div>
+                                        <span style={{ fontWeight: '500' }}>Upload Profile Picture</span>
+                                        <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)' }}>
+                                            Click to select an image (max 5MB)
+                                        </span>
+                                    </>
+                                )}
+                            </div>
+                            <input
+                                id="child-profile-image-input"
+                                type="file"
+                                accept="image/*"
+                                style={{ display: 'none' }}
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    if (!file.type.startsWith('image/')) {
+                                        setError('Please select an image file');
+                                        return;
+                                    }
+                                    if (file.size > 5 * 1024 * 1024) {
+                                        setError('Image must be less than 5MB');
+                                        return;
+                                    }
+                                    setProfileImageFile(file);
+                                    setProfileImagePreview(URL.createObjectURL(file));
+                                    setError('');
+                                }}
+                            />
+                        </div>
+
                         {/* Medical Info */}
                         <div className="form-group" style={{ marginBottom: 'var(--space-6)' }}>
                             <label className="form-label">Medical Information (optional)</label>
@@ -492,16 +674,112 @@ export default function AddChildPage() {
                             />
                         </div>
 
+                        {/* Best Practice Acceptance */}
+                        <div style={{
+                            background: 'var(--bg-secondary)',
+                            borderRadius: 'var(--radius-lg)',
+                            padding: 'var(--space-4)',
+                            marginBottom: 'var(--space-4)',
+                            border: bestPracticeAccepted ? '2px solid var(--color-green)' : '2px solid var(--border-light)',
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
+                                <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                                    <Heart size={18} color="var(--color-gold)" />
+                                    Best Practice & Etiquette
+                                </h4>
+                                <button
+                                    type="button"
+                                    className="btn btn-ghost btn-sm"
+                                    onClick={() => setShowBestPractice(!showBestPractice)}
+                                >
+                                    {showBestPractice ? 'Hide' : 'Read'}
+                                </button>
+                            </div>
+
+                            {showBestPractice && (
+                                <div style={{
+                                    maxHeight: '200px',
+                                    overflowY: 'auto',
+                                    background: 'var(--bg-primary)',
+                                    padding: 'var(--space-4)',
+                                    borderRadius: 'var(--radius-md)',
+                                    marginBottom: 'var(--space-3)',
+                                    fontSize: 'var(--text-sm)',
+                                    whiteSpace: 'pre-wrap',
+                                }}>
+                                    {BEST_PRACTICE_TEXT}
+                                </div>
+                            )}
+
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', cursor: 'pointer' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={bestPracticeAccepted}
+                                    onChange={(e) => setBestPracticeAccepted(e.target.checked)}
+                                    style={{ width: '18px', height: '18px' }}
+                                />
+                                <span>I have read and agree to follow the Best Practice guidelines</span>
+                            </label>
+                        </div>
+
+                        {/* Waiver Acceptance */}
+                        <div style={{
+                            background: 'var(--bg-secondary)',
+                            borderRadius: 'var(--radius-lg)',
+                            padding: 'var(--space-4)',
+                            marginBottom: 'var(--space-6)',
+                            border: waiverAccepted ? '2px solid var(--color-green)' : '2px solid var(--border-light)',
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
+                                <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                                    <Shield size={18} color="var(--color-red)" />
+                                    Disclaimer & Liability Waiver
+                                </h4>
+                                <button
+                                    type="button"
+                                    className="btn btn-ghost btn-sm"
+                                    onClick={() => setShowWaiver(!showWaiver)}
+                                >
+                                    {showWaiver ? 'Hide' : 'Read'}
+                                </button>
+                            </div>
+
+                            {showWaiver && (
+                                <div style={{
+                                    maxHeight: '200px',
+                                    overflowY: 'auto',
+                                    background: 'var(--bg-primary)',
+                                    padding: 'var(--space-4)',
+                                    borderRadius: 'var(--radius-md)',
+                                    marginBottom: 'var(--space-3)',
+                                    fontSize: 'var(--text-sm)',
+                                    whiteSpace: 'pre-wrap',
+                                }}>
+                                    {WAIVER_TEXT}
+                                </div>
+                            )}
+
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', cursor: 'pointer' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={waiverAccepted}
+                                    onChange={(e) => setWaiverAccepted(e.target.checked)}
+                                    style={{ width: '18px', height: '18px' }}
+                                />
+                                <span>I accept the Disclaimer and Waiver of Liability</span>
+                            </label>
+                        </div>
+
                         <button
                             type="submit"
                             className="btn btn-primary"
                             style={{ width: '100%' }}
-                            disabled={loading}
+                            disabled={loading || uploadingImage}
                         >
-                            {loading ? (
+                            {loading || uploadingImage ? (
                                 <>
                                     <Loader2 size={18} className="spinner" />
-                                    Adding Child...
+                                    {uploadingImage ? 'Uploading Photo...' : 'Adding Child...'}
                                 </>
                             ) : (
                                 <>

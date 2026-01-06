@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { User, Mail, Phone, MapPin, Calendar, AlertCircle, Save, Shield, Heart, Award } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import AvatarUpload from '@/components/AvatarUpload';
+import { useDashboard } from '@/components/dashboard/DashboardProvider';
 
 interface Profile {
     id: string;
@@ -43,24 +44,21 @@ export default function ProfilePage() {
     const [formData, setFormData] = useState<Partial<Profile>>({});
 
     const supabase = getSupabaseClient();
+    const { selectedProfileId } = useDashboard();
 
     useEffect(() => {
         fetchProfile();
-    }, []);
+    }, [selectedProfileId]);
 
     const fetchProfile = async () => {
+        setLoading(true);
+        setError('');
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                setError('Not authenticated');
-                setLoading(false);
-                return;
-            }
-
+            // Fetch profile based on selectedProfileId (user_id)
             const { data, error: fetchError } = await supabase
                 .from('profiles')
                 .select('*')
-                .eq('user_id', user.id)
+                .eq('user_id', selectedProfileId)
                 .single();
 
             if (fetchError) throw fetchError;
