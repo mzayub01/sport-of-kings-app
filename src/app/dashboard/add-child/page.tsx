@@ -119,6 +119,14 @@ export default function AddChildPage() {
                 return;
             }
 
+            // Get parent's profile to find their ID
+            const { data: parentProfile } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('is_child', false)
+                .single();
+
             // Get parent's membership to find their location
             const { data: membership } = await supabase
                 .from('memberships')
@@ -143,8 +151,33 @@ export default function AddChildPage() {
                 .eq('is_active', true);
             setMembershipTypes(types || []);
 
-            // Pre-select parent's location if they have one
-            if (membership?.location_id) {
+            // If parent has a profile, fetch an existing child to get guardian details
+            if (parentProfile?.id) {
+                const { data: existingChild } = await supabase
+                    .from('profiles')
+                    .select('phone, address, city, postcode, emergency_contact_name, emergency_contact_phone')
+                    .eq('parent_guardian_id', parentProfile.id)
+                    .eq('is_child', true)
+                    .limit(1)
+                    .single();
+
+                // Pre-fill guardian details from existing child
+                if (existingChild) {
+                    setFormData(prev => ({
+                        ...prev,
+                        phone: existingChild.phone || '',
+                        address: existingChild.address || '',
+                        city: existingChild.city || '',
+                        postcode: existingChild.postcode || '',
+                        emergencyName: existingChild.emergency_contact_name || '',
+                        emergencyPhone: existingChild.emergency_contact_phone || '',
+                        locationId: membership?.location_id || '',
+                    }));
+                } else if (membership?.location_id) {
+                    // No existing child, just pre-select parent's location
+                    setFormData(prev => ({ ...prev, locationId: membership.location_id }));
+                }
+            } else if (membership?.location_id) {
                 setFormData(prev => ({ ...prev, locationId: membership.location_id }));
             }
 
