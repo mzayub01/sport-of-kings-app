@@ -36,17 +36,29 @@ export default function ChildSwitcher({
 }: ChildSwitcherProps) {
     const [isOpen, setIsOpen] = useState(false);
 
-    // Don't show switcher if parent has no children
-    if (children.length === 0) {
+    // Filter out the parent profile from children to avoid duplicates
+    // This happens when a child registers first and has parent_guardian_id pointing to themselves
+    const filteredChildren = children.filter(c => c.id !== parentProfile.id);
+
+    // Don't show switcher if there are no other profiles to switch to
+    if (filteredChildren.length === 0 && !hasParentMembership) {
         return null;
     }
 
     const allProfiles = [
-        ...(hasParentMembership ? [{ ...parentProfile, isParent: true }] : []),
-        ...children.map(c => ({ ...c, isParent: false })),
+        // Only show parent if they have membership (adult member managing children)
+        // OR if there are children to switch between (guardian managing children)
+        ...(hasParentMembership || filteredChildren.length > 0 ? [{ ...parentProfile, isParent: true }] : []),
+        ...filteredChildren.map(c => ({ ...c, isParent: false })),
     ];
 
     const selectedProfile = allProfiles.find(p => p.user_id === selectedProfileId) || allProfiles[0];
+
+    // Helper to get profile label
+    const getProfileLabel = (isParent: boolean) => {
+        if (!isParent) return 'Child';
+        return hasParentMembership ? 'Myself' : 'Guardian';
+    };
 
     return (
         <div style={{ position: 'relative' }}>
@@ -77,7 +89,7 @@ export default function ChildSwitcher({
                             {selectedProfile?.first_name} {selectedProfile?.last_name}
                         </p>
                         <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
-                            {(selectedProfile as { isParent?: boolean })?.isParent ? 'Myself' : 'Child'}
+                            {getProfileLabel((selectedProfile as { isParent?: boolean })?.isParent ?? false)}
                         </p>
                     </div>
                 </div>
@@ -163,7 +175,7 @@ export default function ChildSwitcher({
                                             {profile.first_name} {profile.last_name}
                                         </p>
                                         <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
-                                            {(profile as { isParent?: boolean }).isParent ? 'Myself' : 'Child'}
+                                            {getProfileLabel((profile as { isParent?: boolean }).isParent ?? false)}
                                         </p>
                                     </div>
                                 </button>
