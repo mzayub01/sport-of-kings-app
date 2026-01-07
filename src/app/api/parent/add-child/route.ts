@@ -142,14 +142,20 @@ export async function POST(request: NextRequest) {
                     await supabaseAdmin.from('memberships').update({ user_id: childAuth.user.id }).eq('user_id', user.id);
 
                     // 4. Convert Original Profile to Guardian
+                    // Restore Guardian Details from Auth Metadata (saved during registration)
+                    const guardianFirstName = user.user_metadata?.first_name || currentChildProfile.first_name; // Fallback to current if missing
+                    const guardianLastName = user.user_metadata?.last_name || currentChildProfile.last_name;
+
                     await supabaseAdmin
                         .from('profiles')
                         .update({
                             is_child: false,
+                            first_name: guardianFirstName,
+                            last_name: guardianLastName,
                             belt_rank: 'white',
                             stripes: 0,
                             parent_guardian_id: null,
-                            // Retain name/contact info for Guardian
+                            // Retain contact info (phone/address) as they likely belong to guardian
                         })
                         .eq('id', currentChildProfile.id);
 
