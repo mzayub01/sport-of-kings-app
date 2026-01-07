@@ -47,17 +47,86 @@ export async function POST(request: NextRequest) {
             { auth: { autoRefreshToken: false, persistSession: false } }
         );
 
-        // Get parent's profile ID (FK references profiles.id, not user_id)
-        const { data: parentProfile, error: parentError } = await supabaseAdmin
+        // Get or create the guardian profile
+        // Strategy: 
+        // 1. First try to find a parent profile (is_child=false) for this user
+        // 2. If not found, this user might only have a child profile - find the guardian via parent_guardian_id
+        // 3. If still no guardian exists, create one from the child's guardian details
+
+        let guardianProfileId: string | null = null;
+
+        // Step 1: Try to find a parent (non-child) profile for this user
+        const { data: parentProfile } = await supabaseAdmin
             .from('profiles')
             .select('id')
             .eq('user_id', user.id)
+            .eq('is_child', false)
             .single();
 
-        if (parentError || !parentProfile) {
-            console.error('Parent profile not found:', parentError);
+        if (parentProfile) {
+            guardianProfileId = parentProfile.id;
+        } else {
+            // Step 2: User might only have a child profile - find their guardian
+            const { data: childProfile } = await supabaseAdmin
+                .from('profiles')
+                .select('id, parent_guardian_id, phone, address, city, postcode, emergency_contact_name, emergency_contact_phone')
+                .eq('user_id', user.id)
+                .eq('is_child', true)
+                .single();
+
+            if (childProfile?.parent_guardian_id) {
+                // Guardian already exists - use it
+                guardianProfileId = childProfile.parent_guardian_id;
+            } else if (childProfile) {
+                // Step 3: No guardian exists - create a guardian profile
+                // The guardian details are stored on the child profile, so create a guardian from those
+                const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(user.id);
+                const guardianEmail = authUser?.user?.email || `guardian-${Date.now()}@guardian.sport-of-kings.local`;
+                const guardianName = authUser?.user?.user_metadata?.first_name || 'Guardian';
+                const guardianLastName = authUser?.user?.user_metadata?.last_name || '';
+
+                // Create guardian profile
+                const { data: newGuardian, error: guardianError } = await supabaseAdmin
+                    .from('profiles')
+                    .insert({
+                        user_id: user.id,
+                        first_name: guardianName,
+                        last_name: guardianLastName,
+                        email: guardianEmail,
+                        phone: childProfile.phone || phone || '',
+                        address: childProfile.address || address || '',
+                        city: childProfile.city || city || '',
+                        postcode: childProfile.postcode || postcode || '',
+                        emergency_contact_name: childProfile.emergency_contact_name || emergencyName || '',
+                        emergency_contact_phone: childProfile.emergency_contact_phone || emergencyPhone || '',
+                        is_child: false,
+                        role: 'member',
+                    })
+                    .select('id')
+                    .single();
+
+                if (guardianError || !newGuardian) {
+                    console.error('Failed to create guardian profile:', guardianError);
+                    return NextResponse.json(
+                        { error: 'Failed to create guardian profile', details: guardianError?.message },
+                        { status: 500 }
+                    );
+                }
+
+                guardianProfileId = newGuardian.id;
+
+                // Update existing child profile to point to new guardian
+                await supabaseAdmin
+                    .from('profiles')
+                    .update({ parent_guardian_id: guardianProfileId })
+                    .eq('id', childProfile.id);
+            }
+        }
+
+        if (!guardianProfileId) {
+            console.error('Could not find or create guardian profile');
             return NextResponse.json(
-                { error: 'Parent profile not found' },
+                { error: 'Guardian profile not found' },
                 { status: 400 }
             );
         }
@@ -105,7 +174,7 @@ export async function POST(request: NextRequest) {
                 emergency_contact_phone: emergencyPhone || '',
                 medical_info: medicalInfo || null,
                 is_child: true,
-                parent_guardian_id: parentProfile.id, // Use parent's profile.id, not user.id
+                parent_guardian_id: guardianProfileId, // Link to guardian profile
                 role: 'member',
                 belt_rank: beltRank || 'white',
                 stripes: typeof stripes === 'number' ? stripes : 0,
