@@ -35,6 +35,7 @@ export default function AdminMembershipTypesPage() {
     const [membershipTypes, setMembershipTypes] = useState<MembershipType[]>([]);
     const [locations, setLocations] = useState<Location[]>([]);
     const [configs, setConfigs] = useState<LocationMembershipConfig[]>([]);
+    const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editItem, setEditItem] = useState<MembershipType | null>(null);
@@ -90,6 +91,21 @@ export default function AdminMembershipTypesPage() {
             .select('*');
 
         setConfigs(configsData || []);
+
+        // Fetch member counts for each membership type
+        const { data: membershipsData } = await supabase
+            .from('memberships')
+            .select('location_id, membership_type_id')
+            .in('status', ['active', 'pending']);
+
+        // Count members per location + membership_type combo
+        const counts: Record<string, number> = {};
+        (membershipsData || []).forEach((m: { location_id: string; membership_type_id: string }) => {
+            const key = `${m.location_id}_${m.membership_type_id}`;
+            counts[key] = (counts[key] || 0) + 1;
+        });
+        setMemberCounts(counts);
+
         setLoading(false);
     };
 
@@ -387,6 +403,28 @@ export default function AdminMembershipTypesPage() {
                                                 <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)' }}>
                                                     (blank = unlimited)
                                                 </span>
+                                                {/* Show current count and remaining */}
+                                                {(() => {
+                                                    const config = getConfig(type.id, type.location_id);
+                                                    const countKey = `${type.location_id}_${type.id}`;
+                                                    const currentCount = memberCounts[countKey] || 0;
+                                                    const capacity = config?.capacity;
+
+                                                    if (capacity === null || capacity === undefined) {
+                                                        return <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)', marginLeft: 'var(--space-2)' }}>({currentCount} registered)</span>;
+                                                    }
+                                                    const remaining = Math.max(0, capacity - currentCount);
+                                                    return (
+                                                        <span style={{
+                                                            color: remaining > 0 ? 'var(--color-green)' : 'var(--color-red)',
+                                                            fontSize: 'var(--text-xs)',
+                                                            marginLeft: 'var(--space-2)',
+                                                            fontWeight: '500'
+                                                        }}>
+                                                            ({currentCount}/{capacity} • {remaining} left)
+                                                        </span>
+                                                    );
+                                                })()}
                                             </div>
 
                                             <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)', paddingTop: 'var(--space-3)', borderTop: '1px solid var(--border-light)' }}>
