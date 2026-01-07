@@ -93,6 +93,7 @@ export async function POST(request: NextRequest) {
                         first_name: guardianName,
                         last_name: guardianLastName,
                         email: guardianEmail,
+                        date_of_birth: '1970-01-01', // Placeholder for guardian - actual DOB not collected
                         phone: childProfile.phone || phone || '',
                         address: childProfile.address || address || '',
                         city: childProfile.city || city || '',
