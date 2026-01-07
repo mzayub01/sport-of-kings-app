@@ -20,14 +20,14 @@ export default async function EventsPage() {
     if (user) {
         const { data: profile } = await supabase
             .from('profiles')
-            .select('full_name')
-            .eq('id', user.id)
+            .select('first_name, last_name')
+            .eq('user_id', user.id)
             .single();
 
         userProfile = {
             id: user.id,
             email: user.email!,
-            full_name: profile?.full_name
+            full_name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : undefined
         };
     }
 
