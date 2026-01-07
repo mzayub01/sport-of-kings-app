@@ -50,15 +50,15 @@ export async function POST(request: NextRequest) {
         // Get or create the guardian profile
         // Strategy: 
         // 1. First try to find a parent profile (is_child=false) for this user
-        // 2. If not found, this user might only have a child profile - find the guardian via parent_guardian_id
-        // 3. If still no guardian exists, create one from the child's guardian details
+        // 2. If not found, check if the current user is a "Child" profile
+        // 3. If so, perform MIGRATION: Convert this user to Guardian, move child data to new profile
 
         let guardianProfileId: string | null = null;
 
         // Step 1: Try to find a parent (non-child) profile for this user
         const { data: parentProfile } = await supabaseAdmin
             .from('profiles')
-            .select('id')
+            .select('id, is_child')
             .eq('user_id', user.id)
             .eq('is_child', false)
             .single();
@@ -66,28 +66,95 @@ export async function POST(request: NextRequest) {
         if (parentProfile) {
             guardianProfileId = parentProfile.id;
         } else {
-            // Step 2: User might only have a child profile - find their guardian
-            const { data: childProfile } = await supabaseAdmin
+            // Step 2: User might currently be a "Child" profile (Legacy/Child-Only Registration)
+            const { data: currentChildProfile } = await supabaseAdmin
                 .from('profiles')
-                .select('id, parent_guardian_id, phone, address, city, postcode, emergency_contact_name, emergency_contact_phone')
+                .select('*')
                 .eq('user_id', user.id)
                 .eq('is_child', true)
                 .single();
 
-            if (childProfile?.parent_guardian_id) {
-                // Guardian/primary child already exists - use it
-                guardianProfileId = childProfile.parent_guardian_id;
-            } else if (childProfile) {
-                // Step 3: No shared parent reference exists
-                // Use this child's profile as the "primary" that stores guardian contact info
-                // All siblings will point to this profile via parent_guardian_id
-                guardianProfileId = childProfile.id;
+            if (currentChildProfile) {
+                // Check if linked to another guardian
+                if (currentChildProfile.parent_guardian_id && currentChildProfile.parent_guardian_id !== currentChildProfile.id) {
+                    guardianProfileId = currentChildProfile.parent_guardian_id;
+                } else {
+                    // *** MIGRATION SCENARIO ***
+                    console.log('Initiating Guardian Migration for user:', user.id);
 
-                // Update this child to reference itself as the primary (optional, for consistency)
-                await supabaseAdmin
-                    .from('profiles')
-                    .update({ parent_guardian_id: childProfile.id })
-                    .eq('id', childProfile.id);
+                    // 1. Create Phantom Auth User for First Child
+                    const childEmail = `child-${Date.now()}-${Math.random().toString(36).substring(7)}@child.sport-of-kings.local`;
+                    const childPassword = crypto.randomUUID();
+
+                    const { data: childAuth, error: authError } = await supabaseAdmin.auth.admin.createUser({
+                        email: childEmail,
+                        password: childPassword,
+                        email_confirm: true,
+                        user_metadata: {
+                            first_name: currentChildProfile.first_name,
+                            last_name: currentChildProfile.last_name,
+                            is_child: true,
+                            migrated_from: user.id
+                        },
+                    });
+
+                    if (authError || !childAuth.user) {
+                        throw new Error('Failed to create auth for migrated child: ' + authError?.message);
+                    }
+
+                    // 2. Create the New First Child Profile (Copy data)
+                    const { data: newChildProfile, error: profileError } = await supabaseAdmin
+                        .from('profiles')
+                        .insert({
+                            user_id: childAuth.user.id,
+                            first_name: currentChildProfile.first_name,
+                            last_name: currentChildProfile.last_name,
+                            email: childEmail,
+                            date_of_birth: currentChildProfile.date_of_birth,
+                            gender: currentChildProfile.gender,
+                            phone: currentChildProfile.phone,
+                            address: currentChildProfile.address,
+                            city: currentChildProfile.city,
+                            postcode: currentChildProfile.postcode,
+                            emergency_contact_name: currentChildProfile.emergency_contact_name,
+                            emergency_contact_phone: currentChildProfile.emergency_contact_phone,
+                            medical_info: currentChildProfile.medical_info,
+                            is_child: true,
+                            role: 'member',
+                            belt_rank: currentChildProfile.belt_rank,
+                            stripes: currentChildProfile.stripes,
+                            profile_image_url: currentChildProfile.profile_image_url,
+                            parent_guardian_id: currentChildProfile.id, // Link to old ID (future Guardian)
+                            best_practice_accepted: currentChildProfile.best_practice_accepted,
+                            waiver_accepted: currentChildProfile.waiver_accepted
+                        })
+                        .select()
+                        .single();
+
+                    if (profileError) {
+                        await supabaseAdmin.auth.admin.deleteUser(childAuth.user.id);
+                        throw new Error('Failed to create migrated child profile: ' + profileError.message);
+                    }
+
+                    // 3. Move Linked Data
+                    await supabaseAdmin.from('attendance_records').update({ student_id: newChildProfile.id }).eq('student_id', currentChildProfile.id);
+                    await supabaseAdmin.from('class_bookings').update({ student_id: newChildProfile.id }).eq('student_id', currentChildProfile.id);
+                    await supabaseAdmin.from('memberships').update({ user_id: childAuth.user.id }).eq('user_id', user.id);
+
+                    // 4. Convert Original Profile to Guardian
+                    await supabaseAdmin
+                        .from('profiles')
+                        .update({
+                            is_child: false,
+                            belt_rank: 'white',
+                            stripes: 0,
+                            parent_guardian_id: null,
+                            // Retain name/contact info for Guardian
+                        })
+                        .eq('id', currentChildProfile.id);
+
+                    guardianProfileId = currentChildProfile.id;
+                }
             }
         }
 

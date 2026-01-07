@@ -91,14 +91,18 @@ export default function DashboardSidebar({ role, userRole, userName = 'Member', 
         router.refresh();
     };
 
+    const { hasParentMembership } = useDashboard();
+
     const memberLinks = [
         { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { href: '/dashboard/classes', label: 'Classes', icon: Calendar },
+        ...(hasParentMembership ? [
+            { href: '/dashboard/classes', label: 'Classes', icon: Calendar },
+            { href: '/dashboard/attendance', label: 'Attendance', icon: CheckCircle },
+            { href: '/dashboard/progress', label: 'Belt Progress', icon: Award },
+            { href: '/dashboard/videos', label: 'Video Library', icon: Video },
+            { href: '/dashboard/naseeha', label: 'Naseeha', icon: BookOpen },
+        ] : []),
         { href: '/dashboard/events', label: 'Events', icon: PartyPopper },
-        { href: '/dashboard/attendance', label: 'Attendance', icon: CheckCircle },
-        { href: '/dashboard/progress', label: 'Belt Progress', icon: Award },
-        { href: '/dashboard/videos', label: 'Video Library', icon: Video },
-        { href: '/dashboard/naseeha', label: 'Naseeha', icon: BookOpen },
         { href: '/dashboard/announcements', label: 'Announcements', icon: Bell },
         { href: '/dashboard/membership', label: 'Membership', icon: CreditCard },
         { href: '/dashboard/payments', label: 'Payment History', icon: Receipt },

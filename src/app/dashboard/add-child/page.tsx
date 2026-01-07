@@ -119,12 +119,11 @@ export default function AddChildPage() {
                 return;
             }
 
-            // Get parent's profile to find their ID
-            const { data: parentProfile } = await supabase
+            // Get current user's profile ID and status
+            const { data: userProfile } = await supabase
                 .from('profiles')
-                .select('id')
+                .select('id, is_child, phone, address, city, postcode, emergency_contact_name, emergency_contact_phone')
                 .eq('user_id', user.id)
-                .eq('is_child', false)
                 .single();
 
             // Get parent's membership to find their location
@@ -151,17 +150,17 @@ export default function AddChildPage() {
                 .eq('is_active', true);
             setMembershipTypes(types || []);
 
-            // If parent has a profile, fetch an existing child to get guardian details
-            if (parentProfile?.id) {
+            // Determine source of guardian details to pre-fill
+            if (userProfile?.is_child === false) {
+                // Case 1: Active user is a Guardian -> Check for existing children to inherit from
                 const { data: existingChild } = await supabase
                     .from('profiles')
                     .select('phone, address, city, postcode, emergency_contact_name, emergency_contact_phone')
-                    .eq('parent_guardian_id', parentProfile.id)
+                    .eq('parent_guardian_id', userProfile.id)
                     .eq('is_child', true)
                     .limit(1)
                     .single();
 
-                // Pre-fill guardian details from existing child
                 if (existingChild) {
                     setFormData(prev => ({
                         ...prev,
@@ -174,9 +173,21 @@ export default function AddChildPage() {
                         locationId: membership?.location_id || '',
                     }));
                 } else if (membership?.location_id) {
-                    // No existing child, just pre-select parent's location
                     setFormData(prev => ({ ...prev, locationId: membership.location_id }));
                 }
+            } else if (userProfile?.is_child === true) {
+                // Case 2: Active user is a Child (Child-as-Guardian scenario)
+                // Use THEIR details to pre-fill (since they are the 'primary' contact currently)
+                setFormData(prev => ({
+                    ...prev,
+                    phone: userProfile.phone || '',
+                    address: userProfile.address || '',
+                    city: userProfile.city || '',
+                    postcode: userProfile.postcode || '',
+                    emergencyName: userProfile.emergency_contact_name || '',
+                    emergencyPhone: userProfile.emergency_contact_phone || '',
+                    locationId: membership?.location_id || '',
+                }));
             } else if (membership?.location_id) {
                 setFormData(prev => ({ ...prev, locationId: membership.location_id }));
             }
