@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
-        const results = [];
+        const results: Array<{ original_user: string; new_child_id?: string; status?: string; error?: string }> = [];
 
         for (const candidate of candidates || []) {
             // Check if anyone points to this candidate as guardian (and is NOT the candidate themselves)
