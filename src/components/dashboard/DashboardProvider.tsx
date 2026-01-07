@@ -33,8 +33,17 @@ const DashboardContext = createContext<DashboardContextType | null>(null);
 
 export function useDashboard() {
     const context = useContext(DashboardContext);
+    // Return default values if used outside DashboardProvider (e.g., admin/instructor layouts)
     if (!context) {
-        throw new Error('useDashboard must be used within a DashboardProvider');
+        return {
+            parentProfile: null,
+            children: [],
+            selectedProfileId: '',
+            setSelectedProfileId: () => { },
+            hasParentMembership: true, // Default to true for non-member contexts
+            isLoading: false,
+            refreshChildren: async () => { },
+        };
     }
     return context;
 }
