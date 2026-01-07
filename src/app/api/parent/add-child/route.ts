@@ -75,51 +75,18 @@ export async function POST(request: NextRequest) {
                 .single();
 
             if (childProfile?.parent_guardian_id) {
-                // Guardian already exists - use it
+                // Guardian/primary child already exists - use it
                 guardianProfileId = childProfile.parent_guardian_id;
             } else if (childProfile) {
-                // Step 3: No guardian exists - create a guardian profile
-                // The guardian details are stored on the child profile, so create a guardian from those
-                const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(user.id);
-                const guardianEmail = authUser?.user?.email || `guardian-${Date.now()}@guardian.sport-of-kings.local`;
-                const guardianName = authUser?.user?.user_metadata?.first_name || 'Guardian';
-                const guardianLastName = authUser?.user?.user_metadata?.last_name || '';
+                // Step 3: No shared parent reference exists
+                // Use this child's profile as the "primary" that stores guardian contact info
+                // All siblings will point to this profile via parent_guardian_id
+                guardianProfileId = childProfile.id;
 
-                // Create guardian profile
-                const { data: newGuardian, error: guardianError } = await supabaseAdmin
-                    .from('profiles')
-                    .insert({
-                        user_id: user.id,
-                        first_name: guardianName,
-                        last_name: guardianLastName,
-                        email: guardianEmail,
-                        date_of_birth: '1970-01-01', // Placeholder for guardian - actual DOB not collected
-                        phone: childProfile.phone || phone || '',
-                        address: childProfile.address || address || '',
-                        city: childProfile.city || city || '',
-                        postcode: childProfile.postcode || postcode || '',
-                        emergency_contact_name: childProfile.emergency_contact_name || emergencyName || '',
-                        emergency_contact_phone: childProfile.emergency_contact_phone || emergencyPhone || '',
-                        is_child: false,
-                        role: 'member',
-                    })
-                    .select('id')
-                    .single();
-
-                if (guardianError || !newGuardian) {
-                    console.error('Failed to create guardian profile:', guardianError);
-                    return NextResponse.json(
-                        { error: 'Failed to create guardian profile', details: guardianError?.message },
-                        { status: 500 }
-                    );
-                }
-
-                guardianProfileId = newGuardian.id;
-
-                // Update existing child profile to point to new guardian
+                // Update this child to reference itself as the primary (optional, for consistency)
                 await supabaseAdmin
                     .from('profiles')
-                    .update({ parent_guardian_id: guardianProfileId })
+                    .update({ parent_guardian_id: childProfile.id })
                     .eq('id', childProfile.id);
             }
         }
