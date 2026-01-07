@@ -45,9 +45,9 @@ export const metadata: Metadata = {
     locale: "en_GB",
   },
   icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon.ico',
-    apple: '/icons/icon-192.png',
+    icon: '/icon.png',
+    shortcut: '/icon.png',
+    apple: '/apple-icon.png',
   },
 };
 
