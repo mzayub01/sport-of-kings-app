@@ -91,15 +91,16 @@ export default function MemberEventsPage() {
                 .select('event_id, status')
                 .eq('user_id', user.id);
 
-            // Count RSVPs for each event
+            // Count total attendees for each event (using total_attendees sum)
             const eventsWithCounts = await Promise.all((eventsData || []).map(async (event: Event & { id: string }) => {
-                const { count } = await supabase
+                const { data: rsvpData } = await supabase
                     .from('event_rsvps')
-                    .select('*', { count: 'exact', head: true })
+                    .select('total_attendees')
                     .eq('event_id', event.id)
                     .in('status', ['confirmed', 'pending']);
 
-                return { ...event, current_rsvps: count || 0 };
+                const totalAttendees = (rsvpData || []).reduce((sum, r) => sum + (r.total_attendees || 1), 0);
+                return { ...event, current_rsvps: totalAttendees };
             }));
 
             setEvents(eventsWithCounts);

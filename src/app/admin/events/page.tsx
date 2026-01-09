@@ -346,7 +346,7 @@ export default function AdminEventsPage() {
                             ) : (
                                 <div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-                                        <span>Total Registered: {attendees.length}</span>
+                                        <span>Total People: {attendees.reduce((sum, a) => sum + (a.total_attendees || 1), 0)}</span>
                                         <span>Capacity: {currentEvent?.max_capacity}</span>
                                     </div>
                                     <div className="table-container">
@@ -354,6 +354,7 @@ export default function AdminEventsPage() {
                                             <thead>
                                                 <tr>
                                                     <th>Name</th>
+                                                    <th>Additional</th>
                                                     <th>Email</th>
                                                     <th>Phone</th>
                                                     <th>Payment</th>
@@ -364,7 +365,20 @@ export default function AdminEventsPage() {
                                             <tbody>
                                                 {attendees.map((attendee) => (
                                                     <tr key={attendee.id}>
-                                                        <td style={{ fontWeight: '500' }}>{attendee.full_name}</td>
+                                                        <td style={{ fontWeight: '500' }}>
+                                                            {attendee.full_name}
+                                                            {(attendee.total_attendees || 1) > 1 && (
+                                                                <span className="badge badge-gold" style={{ marginLeft: 'var(--space-2)', fontSize: 'var(--text-xs)' }}>
+                                                                    +{(attendee.total_attendees || 1) - 1}
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', maxWidth: '150px' }}>
+                                                            {attendee.additional_attendees && attendee.additional_attendees.length > 0
+                                                                ? attendee.additional_attendees.join(', ')
+                                                                : '-'
+                                                            }
+                                                        </td>
                                                         <td style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{attendee.email}</td>
                                                         <td style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{attendee.phone || '-'}</td>
                                                         <td>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Calendar, Clock, MapPin, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, CheckCircle, AlertCircle, Loader2, Plus, X, Users } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 
@@ -36,6 +36,7 @@ export default function EventRegistration({ event, user }: EventRegistrationProp
         email: user?.email || '',
         phone: '',
     });
+    const [additionalAttendees, setAdditionalAttendees] = useState<string[]>([]);
 
     const isPastDeadline = event.rsvp_deadline && new Date(event.rsvp_deadline) < new Date();
     const eventDate = new Date(event.start_date).toLocaleDateString('en-GB', {
@@ -51,14 +52,17 @@ export default function EventRegistration({ event, user }: EventRegistrationProp
         setLoading(true);
 
         try {
-            // Check capacity
-            const { count } = await supabase
+            // Check capacity using total_attendees sum
+            const { data: rsvpData } = await supabase
                 .from('event_rsvps')
-                .select('*', { count: 'exact', head: true })
+                .select('total_attendees')
                 .eq('event_id', event.id);
 
-            if (count !== null && count >= event.max_capacity) {
-                throw new Error('Event is full');
+            const currentTotal = (rsvpData || []).reduce((sum, r) => sum + (r.total_attendees || 1), 0);
+            const newTotal = 1 + additionalAttendees.length;
+
+            if (currentTotal + newTotal > event.max_capacity) {
+                throw new Error(`Event is full. Only ${event.max_capacity - currentTotal} spots remaining.`);
             }
 
             // Check if already RSVP'd (by email or user_id)
@@ -90,11 +94,13 @@ export default function EventRegistration({ event, user }: EventRegistrationProp
                     body: JSON.stringify({
                         eventId: event.id,
                         eventTitle: event.title,
-                        price: event.price, // Already in pence
+                        price: event.price * (1 + additionalAttendees.length), // Multiply by total attendees
                         userEmail: user?.email || formData.email,
                         userName: user?.full_name || formData.full_name,
                         userPhone: formData.phone,
                         userId: user?.id || null,
+                        additionalAttendees: additionalAttendees,
+                        totalAttendees: 1 + additionalAttendees.length,
                     }),
                 });
 
@@ -123,6 +129,8 @@ export default function EventRegistration({ event, user }: EventRegistrationProp
                     email: user?.email || formData.email,
                     phone: formData.phone || null,
                     status: 'confirmed',
+                    additional_attendees: additionalAttendees,
+                    total_attendees: 1 + additionalAttendees.length,
                 }, { onConflict: 'event_id,email' });
 
             if (insertError) throw insertError;
@@ -169,7 +177,7 @@ export default function EventRegistration({ event, user }: EventRegistrationProp
                 </div>
                 <h3 style={{ marginBottom: 'var(--space-2)' }}>Registration Confirmed!</h3>
                 <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)' }}>
-                    You are confirmed for <strong>{event.title}</strong> on {eventDate}.
+                    {1 + additionalAttendees.length} {1 + additionalAttendees.length === 1 ? 'person is' : 'people are'} confirmed for <strong>{event.title}</strong> on {eventDate}.
                 </p>
                 <button
                     className="btn btn-outline"
@@ -285,6 +293,68 @@ export default function EventRegistration({ event, user }: EventRegistrationProp
                             required
                             placeholder="Enter your phone number"
                         />
+                    </div>
+
+                    {/* Additional Attendees Section */}
+                    <div style={{
+                        padding: 'var(--space-4)',
+                        background: 'var(--bg-secondary)',
+                        borderRadius: 'var(--radius-lg)',
+                        border: '1px dashed var(--border-light)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                                <Users size={18} color="var(--color-gold)" />
+                                <span style={{ fontWeight: '600', fontSize: 'var(--text-sm)' }}>Additional Attendees</span>
+                            </div>
+                            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
+                                Registering family members?
+                            </span>
+                        </div>
+
+                        {additionalAttendees.map((attendee, index) => (
+                            <div key={index} style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    value={attendee}
+                                    onChange={(e) => {
+                                        const updated = [...additionalAttendees];
+                                        updated[index] = e.target.value;
+                                        setAdditionalAttendees(updated);
+                                    }}
+                                    placeholder={`Attendee ${index + 2} name`}
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    className="btn btn-ghost btn-icon"
+                                    onClick={() => setAdditionalAttendees(additionalAttendees.filter((_, i) => i !== index))}
+                                    style={{ color: 'var(--color-red)' }}
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+                        ))}
+
+                        <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => setAdditionalAttendees([...additionalAttendees, ''])}
+                            style={{ marginTop: additionalAttendees.length > 0 ? 'var(--space-2)' : 0 }}
+                        >
+                            <Plus size={16} />
+                            Add Family Member
+                        </button>
+
+                        {additionalAttendees.length > 0 && (
+                            <div style={{ marginTop: 'var(--space-3)', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                                Total attendees: <strong>{1 + additionalAttendees.length}</strong>
+                                {event.price > 0 && (
+                                    <span> • Total: <strong>£{((event.price * (1 + additionalAttendees.length)) / 100).toFixed(2)}</strong></span>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     <button
