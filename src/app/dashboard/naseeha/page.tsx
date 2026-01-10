@@ -116,6 +116,9 @@ export default async function DashboardNaseehaPage() {
                                             color: 'var(--text-secondary)',
                                             lineHeight: '1.8',
                                             whiteSpace: 'pre-wrap',
+                                            maxHeight: '50vh',
+                                            overflowY: 'auto',
+                                            WebkitOverflowScrolling: 'touch',
                                         }}>
                                             {naseeha.content}
                                         </div>
