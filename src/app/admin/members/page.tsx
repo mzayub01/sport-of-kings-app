@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, User, Mail, Phone, Award, Shield, Edit, ChevronDown, AlertCircle, CheckCircle, XCircle, Calendar, MapPin, Filter, ClipboardList, Plus, Loader2, Eye, EyeOff, X, Info, ChevronUp, Trash2 } from 'lucide-react';
+import { Search, User, Mail, Phone, Award, Shield, Edit, ChevronDown, AlertCircle, CheckCircle, XCircle, Calendar, MapPin, Filter, ClipboardList, Plus, Loader2, Eye, EyeOff, X, Info, ChevronUp, Trash2, Download } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import type { Location, MembershipType } from '@/lib/types';
 import MemberAttendanceModal from '@/components/admin/MemberAttendanceModal';
@@ -304,6 +304,61 @@ export default function AdminMembersPage() {
         }
     };
 
+    const downloadCSV = () => {
+        const headers = [
+            'First Name',
+            'Last Name',
+            'Email',
+            'Phone',
+            'Role',
+            'Belt Rank',
+            'Stripes',
+            'Gender',
+            'Date of Birth',
+            'City',
+            'Postcode',
+            'Is Child',
+            'Guardian Email',
+            'Emergency Contact',
+            'Emergency Phone',
+            'Joined Date',
+            'Locations',
+            'Membership Types'
+        ];
+
+        const rows = filteredMembers.map(m => [
+            m.first_name || '',
+            m.last_name || '',
+            m.email || '',
+            m.phone || '',
+            m.role || 'member',
+            m.belt_rank || 'white',
+            m.stripes || 0,
+            m.gender || '',
+            m.date_of_birth || '',
+            m.city || '',
+            m.postcode || '',
+            m.is_child ? 'Yes' : 'No',
+            m.guardian_email || '',
+            m.emergency_contact_name || '',
+            m.emergency_contact_phone || '',
+            new Date(m.created_at).toLocaleDateString('en-GB'),
+            m.memberships?.map((mem: any) => mem.location?.name).filter(Boolean).join('; ') || '',
+            m.memberships?.map((mem: any) => mem.membership_type?.name).filter(Boolean).join('; ') || ''
+        ]);
+
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `members_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+    };
+
     const handleCreateUser = async (e: React.FormEvent) => {
         e.preventDefault();
         setCreateLoading(true);
@@ -350,14 +405,25 @@ export default function AdminMembersPage() {
                         Manage all {members.length} registered members
                     </p>
                 </div>
-                <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="btn btn-primary"
-                    style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
-                >
-                    <Plus size={18} />
-                    Create User
-                </button>
+                <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                    <button
+                        onClick={downloadCSV}
+                        className="btn btn-outline"
+                        style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
+                        title="Download CSV"
+                    >
+                        <Download size={18} />
+                        Export CSV
+                    </button>
+                    <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="btn btn-primary"
+                        style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
+                    >
+                        <Plus size={18} />
+                        Create User
+                    </button>
+                </div>
             </div>
 
             {error && (
