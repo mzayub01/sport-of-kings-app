@@ -7,6 +7,7 @@ import {
     ChevronLeft, Check, Loader2, Camera, Shield
 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { useDashboard } from '@/components/dashboard/DashboardProvider';
 
 // Best Practice and Etiquette text
 const BEST_PRACTICE_TEXT = `Best Practice and Etiquette
@@ -69,6 +70,7 @@ interface MembershipType {
 export default function AddChildPage() {
     const router = useRouter();
     const supabase = getSupabaseClient();
+    const { refreshChildren } = useDashboard();
 
     const [loading, setLoading] = useState(false);
     const [pageLoading, setPageLoading] = useState(true);
@@ -303,7 +305,8 @@ export default function AddChildPage() {
                 } else {
                     // Stripe not configured - show pending notice
                     setSuccess(true);
-                    setTimeout(() => {
+                    setTimeout(async () => {
+                        await refreshChildren();
                         router.push('/dashboard?registered=true&pending=true');
                         router.refresh();
                     }, 2000);
@@ -313,7 +316,8 @@ export default function AddChildPage() {
 
             // Free membership or Cheadle Masjid - show success
             setSuccess(true);
-            setTimeout(() => {
+            setTimeout(async () => {
+                await refreshChildren();
                 if (data.isCheadleMasjid) {
                     router.push('/dashboard?cheadle=true');
                 } else {
