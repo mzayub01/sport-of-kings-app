@@ -42,7 +42,7 @@ export default async function DashboardNaseehaPage() {
     });
 
     return (
-        <div>
+        <div style={{ paddingBottom: '120px', overflowY: 'auto' }}>
             <div className="dashboard-header">
                 <h1 className="dashboard-title">Naseeha</h1>
                 <p className="dashboard-subtitle">
