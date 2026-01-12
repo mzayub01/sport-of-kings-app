@@ -13,7 +13,8 @@ import {
     AlertTriangle,
     MapPin,
     Users,
-    Loader2
+    Loader2,
+    Download
 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import Avatar from '@/components/Avatar';
@@ -207,6 +208,49 @@ export default function ClassRosterPage() {
         }, 3000);
     };
 
+    const downloadCSV = () => {
+        if (!selectedClassInfo || roster.length === 0) return;
+
+        // Define CSV headers
+        const headers = ['First Name', 'Last Name', 'Email', 'Belt Rank', 'Child', 'Checked In', 'Check-in Time'];
+
+        // Format the date for filename
+        const formattedDate = selectedDate.replace(/-/g, '');
+        const className = selectedClassInfo.name.replace(/[^a-zA-Z0-9]/g, '_');
+        const locationName = (selectedClassInfo.location as { name: string })?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'Unknown';
+
+        // Create CSV rows
+        const rows = roster.map(member => [
+            member.first_name,
+            member.last_name,
+            member.email,
+            member.belt_rank.charAt(0).toUpperCase() + member.belt_rank.slice(1),
+            member.is_child ? 'Yes' : 'No',
+            member.checked_in ? 'Yes' : 'No',
+            member.check_in_time ? new Date(member.check_in_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : ''
+        ]);
+
+        // Combine headers and rows
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+
+        // Create and download the file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${className}_${locationName}_${formattedDate}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        setSuccess('CSV downloaded successfully!');
+        setTimeout(() => setSuccess(''), 3000);
+    };
+
     const filteredRoster = roster.filter(m => {
         const query = searchQuery.toLowerCase();
         return (
@@ -360,11 +404,21 @@ export default function ClassRosterPage() {
                 </div>
             ) : selectedClass ? (
                 <div className="card">
-                    <div className="card-header">
+                    <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                             <Users size={20} />
                             Class Roster ({filteredRoster.length} members)
                         </h3>
+                        {roster.length > 0 && (
+                            <button
+                                onClick={downloadCSV}
+                                className="btn btn-ghost btn-sm"
+                                style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
+                            >
+                                <Download size={16} />
+                                Download CSV
+                            </button>
+                        )}
                     </div>
                     <div className="card-body" style={{ padding: 0 }}>
                         {rosterLoading ? (
