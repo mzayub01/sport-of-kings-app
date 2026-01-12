@@ -123,10 +123,11 @@ export async function POST(request: NextRequest) {
                         throw new Error('Failed to create auth for migrated child: ' + authError?.message);
                     }
 
-                    // 2. Create the New First Child Profile (Copy data)
+                    // 2. Create/Update the New First Child Profile (Copy data)
+                    // Use upsert because the auth user creation trigger auto-creates a profile
                     const { data: newChildProfile, error: profileError } = await supabaseAdmin
                         .from('profiles')
-                        .insert({
+                        .upsert({
                             user_id: childAuth.user.id,
                             first_name: currentChildProfile.first_name,
                             last_name: currentChildProfile.last_name,
@@ -142,13 +143,13 @@ export async function POST(request: NextRequest) {
                             medical_info: currentChildProfile.medical_info,
                             is_child: true,
                             role: 'member',
-                            belt_rank: currentChildProfile.belt_rank,
-                            stripes: currentChildProfile.stripes,
+                            belt_rank: currentChildProfile.belt_rank || 'white',
+                            stripes: currentChildProfile.stripes || 0,
                             profile_image_url: currentChildProfile.profile_image_url,
                             parent_guardian_id: currentChildProfile.id, // Link to old ID (future Guardian)
                             best_practice_accepted: currentChildProfile.best_practice_accepted,
                             waiver_accepted: currentChildProfile.waiver_accepted
-                        })
+                        }, { onConflict: 'user_id' })
                         .select()
                         .single();
 
