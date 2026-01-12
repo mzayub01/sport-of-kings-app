@@ -40,10 +40,31 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Validate and sanitize gender - only allow 'male' or 'female'
+        const validGender = gender === 'male' || gender === 'female' ? gender : null;
+
+        // Validate belt_rank - adults + kids belt ranks
+        const validBeltRanks = [
+            'white', 'blue', 'purple', 'brown', 'black',
+            'grey', 'grey-white', 'grey-black',
+            'yellow', 'yellow-white', 'yellow-black',
+            'orange', 'orange-white', 'orange-black',
+            'green', 'green-white', 'green-black'
+        ];
+        const validBeltRank = validBeltRanks.includes(beltRank) ? beltRank : 'white';
+
         // Use service role client for creating users/profiles
+        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+            console.error('Missing Supabase environment variables');
+            return NextResponse.json(
+                { error: 'Server configuration error', details: 'Missing Supabase credentials' },
+                { status: 500 }
+            );
+        }
+
         const supabaseAdmin = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY,
             { auth: { autoRefreshToken: false, persistSession: false } }
         );
 
@@ -206,7 +227,7 @@ export async function POST(request: NextRequest) {
                 last_name: lastName,
                 email: childEmail,
                 date_of_birth: dateOfBirth,
-                gender: gender || null,
+                gender: validGender,
                 phone: phone || '',
                 address: address || '',
                 city: city || '',
@@ -217,7 +238,7 @@ export async function POST(request: NextRequest) {
                 is_child: true,
                 parent_guardian_id: guardianProfileId, // Link to guardian profile
                 role: 'member',
-                belt_rank: beltRank || 'white',
+                belt_rank: validBeltRank,
                 stripes: typeof stripes === 'number' ? stripes : 0,
                 profile_image_url: profileImageUrl || null,
                 best_practice_accepted: true,
@@ -306,8 +327,9 @@ export async function POST(request: NextRequest) {
 
     } catch (error) {
         console.error('Add child error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         return NextResponse.json(
-            { error: 'Internal server error' },
+            { error: 'Failed to add child', details: errorMessage },
             { status: 500 }
         );
     }
