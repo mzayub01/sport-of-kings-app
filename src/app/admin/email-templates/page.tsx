@@ -27,6 +27,7 @@ const TEMPLATE_ICONS: Record<string, string> = {
     event_confirmation: '🎫',
     membership_activated: '✅',
     payment_failed: '⚠️',
+    announcement_notification: '📢',
 };
 
 export default function AdminEmailTemplatesPage() {
@@ -117,6 +118,9 @@ export default function AdminEmailTemplatesPage() {
             '{{amountDue}}': '£30.00',
             '{{attemptCount}}': '1',
             '{{nextAttemptDate}}': '12th January 2026',
+            // Announcement template placeholders
+            '{{announcementTitle}}': 'Important Class Update',
+            '{{announcementMessage}}': 'This is a sample announcement message that will be sent to members.',
         };
 
         const replacePlaceholders = (text: string) => {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Bell, Edit, Trash2, Calendar, MapPin, Users, AlertCircle, CheckCircle } from 'lucide-react';
+import { Plus, Bell, Edit, Trash2, Calendar, MapPin, Users, AlertCircle, CheckCircle, Mail, Loader2 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 
 interface Location {
@@ -31,6 +31,7 @@ export default function AdminAnnouncementsPage() {
     const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [sendingEmail, setSendingEmail] = useState(false);
 
     const [formData, setFormData] = useState({
         title: '',
@@ -38,6 +39,7 @@ export default function AdminAnnouncementsPage() {
         location_id: '',
         target_audience: 'all',
         expires_at: '',
+        sendEmailNotifications: false,
     });
 
     const supabase = getSupabaseClient();
@@ -78,6 +80,7 @@ export default function AdminAnnouncementsPage() {
                 location_id: announcement.location_id || '',
                 target_audience: announcement.target_audience || 'all',
                 expires_at: announcement.expires_at ? announcement.expires_at.split('T')[0] : '',
+                sendEmailNotifications: false, // Don't send emails when editing
             });
         } else {
             setEditingAnnouncement(null);
@@ -87,6 +90,7 @@ export default function AdminAnnouncementsPage() {
                 location_id: '',
                 target_audience: 'all',
                 expires_at: '',
+                sendEmailNotifications: false,
             });
         }
         setShowModal(true);
@@ -120,12 +124,46 @@ export default function AdminAnnouncementsPage() {
                     .from('announcements')
                     .insert(payload);
                 if (error) throw error;
-                setSuccess('Announcement created successfully!');
+
+                // Send email notifications if checkbox was checked
+                if (formData.sendEmailNotifications) {
+                    setSendingEmail(true);
+                    try {
+                        const emailResponse = await fetch('/api/email/announcement', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                announcementTitle: formData.title,
+                                announcementMessage: formData.message,
+                                locationId: formData.location_id || null,
+                                targetAudience: formData.target_audience,
+                            }),
+                        });
+
+                        const emailData = await emailResponse.json();
+
+                        if (emailResponse.ok && emailData.sent > 0) {
+                            setSuccess(`Announcement created! ${emailData.sent} email(s) sent successfully.`);
+                        } else if (emailData.sent === 0) {
+                            setSuccess('Announcement created! No matching recipients for email.');
+                        } else {
+                            setSuccess(`Announcement created! Email sending partially failed: ${emailData.sent} sent, ${emailData.failed} failed.`);
+                        }
+                    } catch (emailErr) {
+                        console.error('Email sending error:', emailErr);
+                        setSuccess('Announcement created! But email notifications failed to send.');
+                    } finally {
+                        setSendingEmail(false);
+                    }
+                } else {
+                    setSuccess('Announcement created successfully!');
+                }
             }
             setShowModal(false);
             fetchData();
-        } catch (err: any) {
-            setError(err.message || 'Failed to save announcement');
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to save announcement';
+            setError(errorMessage);
         }
     };
 
@@ -366,14 +404,48 @@ export default function AdminAnnouncementsPage() {
                                         onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
                                     />
                                 </div>
+
+                                {/* Email Notifications - Only show for new announcements */}
+                                {!editingAnnouncement && (
+                                    <div
+                                        className="form-group"
+                                        style={{
+                                            background: 'var(--bg-secondary)',
+                                            borderRadius: 'var(--radius-md)',
+                                            padding: 'var(--space-4)',
+                                            marginTop: 'var(--space-4)',
+                                        }}
+                                    >
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', cursor: 'pointer' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.sendEmailNotifications}
+                                                onChange={(e) => setFormData({ ...formData, sendEmailNotifications: e.target.checked })}
+                                                style={{ width: '18px', height: '18px', accentColor: 'var(--color-gold)' }}
+                                            />
+                                            <Mail size={18} color="var(--color-gold)" />
+                                            <span style={{ fontWeight: 500 }}>Notify members via email</span>
+                                        </label>
+                                        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginTop: 'var(--space-2)', marginLeft: '42px' }}>
+                                            Send an email notification to all members matching the target audience and location.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="modal-footer">
-                                <button type="button" onClick={() => setShowModal(false)} className="btn btn-ghost">
+                                <button type="button" onClick={() => setShowModal(false)} className="btn btn-ghost" disabled={sendingEmail}>
                                     Cancel
                                 </button>
-                                <button type="submit" className="btn btn-primary">
-                                    {editingAnnouncement ? 'Save Changes' : 'Create Announcement'}
+                                <button type="submit" className="btn btn-primary" disabled={sendingEmail}>
+                                    {sendingEmail ? (
+                                        <>
+                                            <Loader2 size={18} className="animate-spin" />
+                                            Sending emails...
+                                        </>
+                                    ) : (
+                                        editingAnnouncement ? 'Save Changes' : 'Create Announcement'
+                                    )}
                                 </button>
                             </div>
                         </form>
