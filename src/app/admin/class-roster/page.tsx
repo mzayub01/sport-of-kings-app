@@ -93,6 +93,21 @@ export default function ClassRosterPage() {
             return;
         }
 
+        // First, fetch the allowed membership types for this class from the junction table
+        const { data: classMembershipTypes, error: cmtError } = await supabase
+            .from('class_membership_types')
+            .select('membership_type_id')
+            .eq('class_id', selectedClass);
+
+        if (cmtError) {
+            console.error('Error fetching class membership types:', cmtError);
+        }
+
+        // Get array of allowed membership type IDs
+        const allowedMembershipTypeIds = (classMembershipTypes || []).map(
+            (cmt: { membership_type_id: string }) => cmt.membership_type_id
+        );
+
         // Build memberships query - filter by location and status
         let membershipsQuery = supabase
             .from('memberships')
@@ -100,10 +115,15 @@ export default function ClassRosterPage() {
             .eq('location_id', (classInfo.location as { id: string }).id)
             .eq('status', 'active');
 
-        // If class has a specific membership type, only show members with that type
-        if (classInfo.membership_type_id) {
+        // If class has specific membership types in the junction table, filter by those
+        // Otherwise, fall back to the legacy single membership_type_id field
+        if (allowedMembershipTypeIds.length > 0) {
+            membershipsQuery = membershipsQuery.in('membership_type_id', allowedMembershipTypeIds);
+        } else if (classInfo.membership_type_id) {
+            // Legacy fallback: use single membership_type_id if no junction entries exist
             membershipsQuery = membershipsQuery.eq('membership_type_id', classInfo.membership_type_id);
         }
+        // If neither exists, show all members at the location (no membership type filter)
 
         const { data: memberships, error: membershipError } = await membershipsQuery;
 
