@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Calendar, MapPin, Clock, Users, Edit, Trash2, CheckCircle, AlertCircle, Filter } from 'lucide-react';
+import { Plus, Calendar, MapPin, Clock, Users, Edit, Trash2, CheckCircle, AlertCircle, Filter, Download } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import type { Event, Location } from '@/lib/types';
 
@@ -177,6 +177,52 @@ export default function AdminEventsPage() {
         if (!confirm('Are you sure you want to delete this event?')) return;
         await supabase.from('events').delete().eq('id', eventId);
         fetchData();
+    };
+
+    const downloadAttendeesExcel = () => {
+        if (!currentEvent || attendees.length === 0) return;
+
+        // Prepare CSV headers
+        const headers = ['Name', 'Additional Attendees', 'Total People', 'Email', 'Phone', 'Payment Status', 'Registration Date', 'Status'];
+
+        // Prepare CSV rows
+        const rows = attendees.map(attendee => [
+            attendee.full_name || '',
+            attendee.additional_attendees?.join('; ') || '',
+            attendee.total_attendees || 1,
+            attendee.email || '',
+            attendee.phone || '',
+            attendee.payment_status === 'paid' ? 'Paid' : (attendee.stripe_payment_id ? 'Pending' : 'N/A'),
+            new Date(attendee.created_at).toLocaleDateString('en-GB'),
+            attendee.status || ''
+        ]);
+
+        // Create CSV content
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell =>
+                typeof cell === 'string' && (cell.includes(',') || cell.includes('"') || cell.includes('\n'))
+                    ? `"${cell.replace(/"/g, '""')}"`
+                    : cell
+            ).join(','))
+        ].join('\n');
+
+        // Add BOM for Excel to recognize UTF-8
+        const bom = '\uFEFF';
+        const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+
+        // Create filename from event title and date
+        const eventDate = new Date(currentEvent.start_date).toLocaleDateString('en-GB').replace(/\//g, '-');
+        const filename = `${currentEvent.title.replace(/[^a-zA-Z0-9]/g, '_')}_Attendees_${eventDate}.csv`;
+
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     };
 
     return (
@@ -405,6 +451,14 @@ export default function AdminEventsPage() {
                             )}
                         </div>
                         <div className="modal-footer">
+                            <button
+                                className="btn btn-outline"
+                                onClick={downloadAttendeesExcel}
+                                disabled={attendees.length === 0}
+                            >
+                                <Download size={16} />
+                                Download Excel
+                            </button>
                             <button className="btn btn-primary" onClick={() => setShowAttendeesModal(false)}>Close</button>
                         </div>
                     </div>
