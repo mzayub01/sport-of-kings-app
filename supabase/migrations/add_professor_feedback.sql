@@ -18,9 +18,16 @@ CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON professor_feedback(created
 -- RLS Policies
 ALTER TABLE professor_feedback ENABLE ROW LEVEL SECURITY;
 
--- Members can read their own feedback
+-- Members can read their own feedback OR feedback for their children
 CREATE POLICY "Members can read own feedback" ON professor_feedback
-    FOR SELECT USING (user_id = auth.uid());
+    FOR SELECT USING (
+        user_id = auth.uid() 
+        OR EXISTS (
+            SELECT 1 FROM profiles 
+            WHERE profiles.user_id = professor_feedback.user_id 
+            AND profiles.guardian_user_id = auth.uid()
+        )
+    );
 
 -- Professors and admins can insert feedback
 CREATE POLICY "Professors can insert feedback" ON professor_feedback
