@@ -161,7 +161,7 @@ function RegisterPageContent() {
         try {
             const [locRes, typesRes, configsRes] = await Promise.all([
                 supabase.from('locations').select('id, name, settings').eq('id', locationId).single(),
-                supabase.from('membership_types').select('*').eq('location_id', locationId).eq('is_active', true),
+                supabase.from('membership_types').select('*').eq('location_id', locationId).eq('is_active', true).or('is_multisite.is.null,is_multisite.eq.false'),
                 supabase.from('location_membership_configs').select('*').eq('location_id', locationId),
             ]);
 
