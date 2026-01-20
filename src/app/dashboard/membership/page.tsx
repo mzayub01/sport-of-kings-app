@@ -44,7 +44,7 @@ interface LocationWithTiers {
 }
 
 // Complete Payment Flow Component for users without membership
-function CompletePaymentFlow({ profile }: { profile: Profile | null }) {
+function CompletePaymentFlow({ profile, userId }: { profile: Profile | null; userId: string }) {
     const [locations, setLocations] = useState<LocationWithTiers[]>([]);
     const [selectedLocation, setSelectedLocation] = useState<string>('');
     const [selectedTier, setSelectedTier] = useState<string>('');
@@ -122,6 +122,10 @@ function CompletePaymentFlow({ profile }: { profile: Profile | null }) {
                     locationId: selectedLocation,
                     membershipTypeId: selectedTier,
                     priceId: selectedTierData.stripe_price_id,
+                    userId: userId,
+                    userEmail: profile?.email,
+                    membershipTypeName: selectedTierData.name,
+                    price: selectedTierData.price,
                 }),
             });
 
@@ -407,7 +411,7 @@ export default function MembershipPage() {
             </div>
 
             {memberships.length === 0 ? (
-                <CompletePaymentFlow profile={profile} />
+                <CompletePaymentFlow profile={profile} userId={selectedProfileId} />
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
                     {memberships.map((membership) => {
