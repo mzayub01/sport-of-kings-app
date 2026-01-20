@@ -19,13 +19,16 @@ CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON professor_feedback(created
 ALTER TABLE professor_feedback ENABLE ROW LEVEL SECURITY;
 
 -- Members can read their own feedback OR feedback for their children
+-- parent_guardian_id is a FK to profiles.id, so we need to join through profiles
 CREATE POLICY "Members can read own feedback" ON professor_feedback
     FOR SELECT USING (
         user_id = auth.uid() 
         OR EXISTS (
-            SELECT 1 FROM profiles 
-            WHERE profiles.user_id = professor_feedback.user_id 
-            AND profiles.guardian_user_id = auth.uid()
+            -- Get the child's profile, check if their parent_guardian_id matches the logged-in user's profile ID
+            SELECT 1 FROM profiles child_profile
+            JOIN profiles parent_profile ON child_profile.parent_guardian_id = parent_profile.id
+            WHERE child_profile.user_id = professor_feedback.user_id 
+            AND parent_profile.user_id = auth.uid()
         )
     );
 
