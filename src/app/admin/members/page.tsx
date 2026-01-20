@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, User, Mail, Phone, Award, Shield, Edit, ChevronDown, AlertCircle, CheckCircle, XCircle, Calendar, MapPin, Filter, ClipboardList, Plus, Loader2, Eye, EyeOff, X, Info, ChevronUp, Trash2, Download } from 'lucide-react';
+import { Search, User, Mail, Phone, Award, Shield, Edit, ChevronDown, AlertCircle, CheckCircle, XCircle, Calendar, MapPin, Filter, ClipboardList, Plus, Loader2, Eye, EyeOff, X, Info, ChevronUp, Trash2, Download, Send } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import type { Location, MembershipType } from '@/lib/types';
 import MemberAttendanceModal from '@/components/admin/MemberAttendanceModal';
@@ -53,6 +53,7 @@ export default function AdminMembersPage() {
     const [beltFilter, setBeltFilter] = useState('all');
     const [locationFilter, setLocationFilter] = useState('all');
     const [membershipTypeFilter, setMembershipTypeFilter] = useState('all');
+    const [membershipStatusFilter, setMembershipStatusFilter] = useState('all');
 
     const [showModal, setShowModal] = useState(false);
     const [editingMember, setEditingMember] = useState<Member | null>(null);
@@ -86,6 +87,9 @@ export default function AdminMembersPage() {
     const [deletingMember, setDeletingMember] = useState<Member | null>(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
 
+    // Payment reminder state
+    const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
+
     const supabase = getSupabaseClient();
 
     useEffect(() => {
@@ -94,15 +98,16 @@ export default function AdminMembersPage() {
 
     useEffect(() => {
         filterMembers();
-    }, [members, search, roleFilter, beltFilter, locationFilter, membershipTypeFilter]);
+    }, [members, search, roleFilter, beltFilter, locationFilter, membershipTypeFilter, membershipStatusFilter]);
 
     const fetchData = async () => {
         try {
-            const [profilesRes, membershipsRes, locationsRes, typesRes] = await Promise.all([
+            const [profilesRes, membershipsRes, locationsRes, typesRes, waitlistRes] = await Promise.all([
                 supabase.from('profiles').select('*').order('created_at', { ascending: false }),
                 supabase.from('memberships').select('*, location:locations(name), membership_type:membership_types(name)'),
                 supabase.from('locations').select('*').eq('is_active', true).order('name'),
                 supabase.from('membership_types').select('*').eq('is_active', true).order('name'),
+                supabase.from('waitlist').select('user_id'),
             ]);
 
             if (profilesRes.error) throw profilesRes.error;
@@ -110,19 +115,22 @@ export default function AdminMembersPage() {
             const profiles = profilesRes.data || [];
             const memberships = membershipsRes.data || [];
 
+            const waitlistUserIds = new Set((waitlistRes.data || []).map((w: { user_id: string }) => w.user_id));
+
             // Create a map of profile IDs to emails for guardian lookup
             const profileIdToEmail: Record<string, string> = {};
             profiles.forEach((p: any) => {
                 profileIdToEmail[p.id] = p.email;
             });
 
-            // Attach memberships and guardian email to profiles
+            // Attach memberships, guardian email, and waitlist status to profiles
             const membersWithData = profiles.map((profile: any) => ({
                 ...profile,
                 memberships: memberships.filter((m: { user_id: string }) => m.user_id === profile.user_id),
                 guardian_email: profile.is_child && profile.parent_guardian_id
                     ? profileIdToEmail[profile.parent_guardian_id]
                     : undefined,
+                isOnWaitlist: waitlistUserIds.has(profile.user_id),
             }));
 
             setMembers(membersWithData);
@@ -177,6 +185,22 @@ export default function AdminMembersPage() {
                     mem.membership_type_id === membershipTypeFilter &&
                     (mem.status === 'active' || mem.status === 'pending')
                 )
+            );
+        }
+
+        // Membership Status filter
+        if (membershipStatusFilter === 'no-active') {
+            filtered = filtered.filter(m =>
+                !m.memberships?.some((mem: any) => mem.status === 'active')
+            );
+        } else if (membershipStatusFilter === 'has-active') {
+            filtered = filtered.filter(m =>
+                m.memberships?.some((mem: any) => mem.status === 'active')
+            );
+        } else if (membershipStatusFilter === 'waitlist-only') {
+            filtered = filtered.filter(m =>
+                (m as any).isOnWaitlist &&
+                !m.memberships?.some((mem: any) => mem.status === 'active')
             );
         }
 
@@ -302,6 +326,42 @@ export default function AdminMembersPage() {
             case 'professor': return 'badge-blue';
             default: return 'badge-gray';
         }
+    };
+
+    const sendPaymentReminder = async (member: Member) => {
+        setSendingReminderId(member.id);
+        setError('');
+        setSuccess('');
+
+        try {
+            const response = await fetch('/api/admin/send-payment-reminder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: member.user_id,
+                    email: member.email,
+                    firstName: member.first_name,
+                    locationName: member.memberships?.[0]?.location?.name || 'your preferred location',
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setSuccess(`Payment reminder sent to ${member.first_name} ${member.last_name}`);
+            } else {
+                setError(data.error || 'Failed to send payment reminder');
+            }
+        } catch (err: any) {
+            setError(err.message || 'Failed to send payment reminder');
+        } finally {
+            setSendingReminderId(null);
+        }
+    };
+
+    // Check if member has active membership
+    const hasActiveMembership = (member: Member) => {
+        return member.memberships?.some((m: any) => m.status === 'active');
     };
 
     const downloadCSV = () => {
@@ -513,6 +573,20 @@ export default function AdminMembersPage() {
                             ))}
                         </select>
                     </div>
+
+                    <div className="form-group" style={{ minWidth: '150px', marginBottom: 0 }}>
+                        <label className="form-label">Status</label>
+                        <select
+                            className="form-input"
+                            value={membershipStatusFilter}
+                            onChange={(e) => setMembershipStatusFilter(e.target.value)}
+                        >
+                            <option value="all">All Members</option>
+                            <option value="has-active">Has Active Membership</option>
+                            <option value="no-active">No Active Membership</option>
+                            <option value="waitlist-only">Waitlist Only (No Active)</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -580,6 +654,21 @@ export default function AdminMembersPage() {
                                             {member.is_child && (
                                                 <span className="badge badge-gold">Child</span>
                                             )}
+                                            {/* Location badges */}
+                                            {member.memberships?.map((m: any) => m.location?.name).filter(Boolean).map((locName: string, idx: number) => (
+                                                <span
+                                                    key={idx}
+                                                    className="badge"
+                                                    style={{
+                                                        background: 'rgba(212, 175, 55, 0.15)',
+                                                        color: 'var(--color-gold)',
+                                                        border: '1px solid var(--color-gold)',
+                                                    }}
+                                                >
+                                                    <MapPin size={10} style={{ marginRight: '3px' }} />
+                                                    {locName}
+                                                </span>
+                                            ))}
                                         </div>
                                     </div>
 
@@ -621,6 +710,23 @@ export default function AdminMembersPage() {
                                     >
                                         <Edit size={18} />
                                     </button>
+
+                                    {/* Send Payment Reminder Button - only show if no active membership */}
+                                    {!hasActiveMembership(member) && (
+                                        <button
+                                            onClick={() => sendPaymentReminder(member)}
+                                            disabled={sendingReminderId === member.id}
+                                            className="btn btn-ghost btn-sm"
+                                            style={{ color: 'var(--color-gold)' }}
+                                            title="Send Payment Reminder Email"
+                                        >
+                                            {sendingReminderId === member.id ? (
+                                                <Loader2 size={18} className="animate-spin" />
+                                            ) : (
+                                                <Send size={18} />
+                                            )}
+                                        </button>
+                                    )}
 
                                     {/* Delete Button */}
                                     <button

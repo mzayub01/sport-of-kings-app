@@ -28,6 +28,7 @@ interface Membership {
     };
     membership_type?: {
         name: string;
+        is_multisite?: boolean;
     };
 }
 
@@ -54,6 +55,7 @@ export default function AdminMembershipsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterLocation, setFilterLocation] = useState('all');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [filterMultisite, setFilterMultisite] = useState('all');
     const [showModal, setShowModal] = useState(false);
     const [editingMembership, setEditingMembership] = useState<Membership | null>(null);
     const [error, setError] = useState('');
@@ -76,7 +78,7 @@ export default function AdminMembershipsPage() {
             const [membershipsRes, locationsRes, membersRes] = await Promise.all([
                 supabase
                     .from('memberships')
-                    .select('*, stripe_subscription_id, profile:profiles(id, first_name, last_name, email, is_child, parent_guardian_id, stripe_customer_id), location:locations(name), membership_type:membership_types(name)')
+                    .select('*, stripe_subscription_id, profile:profiles(id, first_name, last_name, email, is_child, parent_guardian_id, stripe_customer_id), location:locations(name), membership_type:membership_types(name, is_multisite)')
                     .order('created_at', { ascending: false }),
                 supabase
                     .from('locations')
@@ -126,7 +128,10 @@ export default function AdminMembershipsPage() {
             m.profile?.email?.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesLocation = filterLocation === 'all' || m.location_id === filterLocation;
         const matchesStatus = filterStatus === 'all' || m.status === filterStatus;
-        return matchesSearch && matchesLocation && matchesStatus;
+        const matchesMultisite = filterMultisite === 'all' ||
+            (filterMultisite === 'multisite' && m.membership_type?.is_multisite) ||
+            (filterMultisite === 'primary' && !m.membership_type?.is_multisite);
+        return matchesSearch && matchesLocation && matchesStatus && matchesMultisite;
     });
 
     const openModal = (membership?: Membership) => {
@@ -340,6 +345,16 @@ export default function AdminMembershipsPage() {
                     {STATUS_OPTIONS.map(status => (
                         <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</option>
                     ))}
+                </select>
+                <select
+                    className="form-input"
+                    value={filterMultisite}
+                    onChange={(e) => setFilterMultisite(e.target.value)}
+                    style={{ width: 'auto', minWidth: '130px' }}
+                >
+                    <option value="all">All Memberships</option>
+                    <option value="primary">Primary Only</option>
+                    <option value="multisite">Multisite Only</option>
                 </select>
             </div>
 

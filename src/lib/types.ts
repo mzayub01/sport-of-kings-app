@@ -79,7 +79,10 @@ export interface Location {
   city: string;
   postcode: string;
   description?: string;
+  max_capacity?: number;
+  current_members?: number;
   is_active: boolean;
+  allow_multisite?: boolean;
   contact_email?: string;
   contact_phone?: string;
   settings?: LocationSettings;
@@ -103,6 +106,7 @@ export interface MembershipType {
   age_min?: number;
   age_max?: number;
   is_active: boolean;
+  is_multisite?: boolean;
   stripe_price_id?: string;
   created_at: string;
   updated_at: string;

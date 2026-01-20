@@ -19,6 +19,7 @@ interface MembershipType {
     age_min: number | null;
     age_max: number | null;
     is_active: boolean;
+    is_multisite: boolean;
     stripe_price_id: string | null;
     location?: Location;
 }
@@ -42,6 +43,7 @@ export default function AdminMembershipTypesPage() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [filterLocation, setFilterLocation] = useState<string>('all');
+    const [filterMultisite, setFilterMultisite] = useState<string>('all');
 
     const supabase = getSupabaseClient();
 
@@ -54,6 +56,7 @@ export default function AdminMembershipTypesPage() {
         age_min: '',
         age_max: '',
         stripe_price_id: '',
+        is_multisite: false,
     });
 
     useEffect(() => {
@@ -153,6 +156,7 @@ export default function AdminMembershipTypesPage() {
                 age_min: item.age_min?.toString() || '',
                 age_max: item.age_max?.toString() || '',
                 stripe_price_id: item.stripe_price_id || '',
+                is_multisite: item.is_multisite || false,
             });
         } else {
             setEditItem(null);
@@ -165,6 +169,7 @@ export default function AdminMembershipTypesPage() {
                 age_min: '',
                 age_max: '',
                 stripe_price_id: '',
+                is_multisite: false,
             });
         }
         setShowModal(true);
@@ -190,6 +195,7 @@ export default function AdminMembershipTypesPage() {
             age_min: formData.age_min ? parseInt(formData.age_min) : null,
             age_max: formData.age_max ? parseInt(formData.age_max) : null,
             stripe_price_id: formData.stripe_price_id || null,
+            is_multisite: formData.is_multisite,
         };
 
         try {
@@ -248,9 +254,16 @@ export default function AdminMembershipTypesPage() {
         return `£${price}/month`;
     };
 
-    const filteredTypes = filterLocation === 'all'
+    let filteredTypes = filterLocation === 'all'
         ? membershipTypes
         : membershipTypes.filter(t => t.location_id === filterLocation);
+
+    // Apply multisite filter
+    if (filterMultisite === 'multisite') {
+        filteredTypes = filteredTypes.filter(t => t.is_multisite);
+    } else if (filterMultisite === 'primary') {
+        filteredTypes = filteredTypes.filter(t => !t.is_multisite);
+    }
 
     // Group by location
     const groupedByLocation = filteredTypes.reduce((acc, type) => {
@@ -278,6 +291,16 @@ export default function AdminMembershipTypesPage() {
                         {locations.map(loc => (
                             <option key={loc.id} value={loc.id}>{loc.name}</option>
                         ))}
+                    </select>
+                    <select
+                        className="form-input"
+                        value={filterMultisite}
+                        onChange={(e) => setFilterMultisite(e.target.value)}
+                        style={{ minWidth: '140px' }}
+                    >
+                        <option value="all">All Types</option>
+                        <option value="primary">Primary Only</option>
+                        <option value="multisite">Multisite Only</option>
                     </select>
                     <button className="btn btn-primary" onClick={() => openModal()}>
                         <Plus size={18} />
@@ -340,9 +363,16 @@ export default function AdminMembershipTypesPage() {
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-3)' }}>
                                                 <div>
                                                     <h3 style={{ margin: 0, fontSize: 'var(--text-base)' }}>{type.name}</h3>
-                                                    <span className={`badge ${type.is_active ? 'badge-green' : 'badge-gray'}`} style={{ marginTop: 'var(--space-1)' }}>
-                                                        {type.is_active ? 'Active' : 'Inactive'}
-                                                    </span>
+                                                    <div style={{ display: 'flex', gap: 'var(--space-1)', marginTop: 'var(--space-1)', flexWrap: 'wrap' }}>
+                                                        <span className={`badge ${type.is_active ? 'badge-green' : 'badge-gray'}`}>
+                                                            {type.is_active ? 'Active' : 'Inactive'}
+                                                        </span>
+                                                        {type.is_multisite && (
+                                                            <span className="badge" style={{ background: 'var(--color-purple)', color: 'white' }}>
+                                                                Multisite
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <span style={{
                                                     background: type.price === 0 ? 'var(--color-green)' : 'var(--color-gold-gradient)',
@@ -568,7 +598,25 @@ export default function AdminMembershipTypesPage() {
                                         onChange={(e) => setFormData({ ...formData, stripe_price_id: e.target.value })}
                                         placeholder="price_1234..."
                                     />
-                                    <p className="form-hint">Link to a Stripe Price for better tracking (optional)</p>
+                                    <p className="form-hint">Link to a Stripe Price for payment processing{formData.is_multisite ? ' (required for multisite tiers)' : ' (optional)'}</p>
+                                </div>
+
+                                {/* Multisite Toggle */}
+                                <div className="form-group" style={{ marginTop: 'var(--space-4)', padding: 'var(--space-4)', background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.1), rgba(79, 70, 229, 0.1))', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(147, 51, 234, 0.2)' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', cursor: 'pointer' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.is_multisite}
+                                            onChange={(e) => setFormData({ ...formData, is_multisite: e.target.checked })}
+                                            style={{ width: '18px', height: '18px', accentColor: 'var(--color-purple)' }}
+                                        />
+                                        <div>
+                                            <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>Multisite Add-on Tier</span>
+                                            <p className="form-hint" style={{ margin: '4px 0 0 0' }}>
+                                                Enable for tiers that can be purchased as secondary memberships at additional locations
+                                            </p>
+                                        </div>
+                                    </label>
                                 </div>
                             </div>
                             <div className="modal-footer">

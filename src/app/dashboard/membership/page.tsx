@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CreditCard, Calendar, MapPin, CheckCircle, AlertCircle, Clock, ExternalLink } from 'lucide-react';
+import { CreditCard, Calendar, MapPin, CheckCircle, AlertCircle, Clock, ExternalLink, Plus, Loader2 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useDashboard } from '@/components/dashboard/DashboardProvider';
 
@@ -29,6 +29,262 @@ interface Profile {
     last_name: string;
     email: string;
     stripe_customer_id: string | null;
+}
+
+interface LocationWithTiers {
+    id: string;
+    name: string;
+    tiers: {
+        id: string;
+        name: string;
+        price: number;
+        description: string | null;
+        stripe_price_id: string | null;
+    }[];
+}
+
+// Complete Payment Flow Component for users without membership
+function CompletePaymentFlow({ profile }: { profile: Profile | null }) {
+    const [locations, setLocations] = useState<LocationWithTiers[]>([]);
+    const [selectedLocation, setSelectedLocation] = useState<string>('');
+    const [selectedTier, setSelectedTier] = useState<string>('');
+    const [loading, setLoading] = useState(true);
+    const [checkoutLoading, setCheckoutLoading] = useState(false);
+    const [error, setError] = useState('');
+    const supabase = getSupabaseClient();
+
+    useEffect(() => {
+        fetchLocationsAndTiers();
+    }, []);
+
+    const fetchLocationsAndTiers = async () => {
+        try {
+            // Fetch active locations
+            const { data: locationsData } = await supabase
+                .from('locations')
+                .select('id, name')
+                .eq('is_active', true)
+                .order('name');
+
+            // Fetch membership types (non-multisite tiers)
+            const { data: tiersData } = await supabase
+                .from('membership_types')
+                .select('id, name, price, description, stripe_price_id, location_id')
+                .eq('is_active', true)
+                .or('is_multisite.is.null,is_multisite.eq.false');
+
+            if (locationsData && tiersData) {
+                // Group tiers by location
+                const locationsWithTiers = locationsData.map((loc: { id: string; name: string }) => ({
+                    ...loc,
+                    tiers: tiersData.filter((t: any) => t.location_id === loc.id || !t.location_id),
+                }));
+                setLocations(locationsWithTiers);
+
+                // Auto-select first location if only one
+                if (locationsWithTiers.length === 1) {
+                    setSelectedLocation(locationsWithTiers[0].id);
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching locations:', err);
+            setError('Failed to load membership options');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCheckout = async () => {
+        if (!selectedLocation || !selectedTier || !profile) {
+            setError('Please select a location and membership tier');
+            return;
+        }
+
+        setCheckoutLoading(true);
+        setError('');
+
+        try {
+            const selectedTierData = locations
+                .find(l => l.id === selectedLocation)?.tiers
+                .find(t => t.id === selectedTier);
+
+            if (!selectedTierData?.stripe_price_id) {
+                setError('This membership tier is not configured for online payment. Please contact support.');
+                setCheckoutLoading(false);
+                return;
+            }
+
+            // Call checkout API
+            const response = await fetch('/api/stripe/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    locationId: selectedLocation,
+                    membershipTypeId: selectedTier,
+                    priceId: selectedTierData.stripe_price_id,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                setError(data.error || 'Failed to create checkout session');
+            }
+        } catch (err: any) {
+            setError(err.message || 'Checkout failed');
+        } finally {
+            setCheckoutLoading(false);
+        }
+    };
+
+    const selectedLocationData = locations.find(l => l.id === selectedLocation);
+    const selectedTierData = selectedLocationData?.tiers.find(t => t.id === selectedTier);
+
+    if (loading) {
+        return (
+            <div className="glass-card" style={{ textAlign: 'center', padding: 'var(--space-12)' }}>
+                <Loader2 size={32} className="animate-spin" style={{ margin: '0 auto' }} />
+                <p style={{ color: 'var(--text-secondary)', marginTop: 'var(--space-4)' }}>Loading membership options...</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="card" style={{ border: '2px solid var(--color-gold)' }}>
+            <div className="card-body">
+                <div style={{ textAlign: 'center', marginBottom: 'var(--space-6)' }}>
+                    <div style={{
+                        width: '64px',
+                        height: '64px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'var(--color-gold-gradient)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto var(--space-4)',
+                    }}>
+                        <CreditCard size={32} color="var(--color-black)" />
+                    </div>
+                    <h2 style={{ marginBottom: 'var(--space-2)' }}>Complete Your Membership</h2>
+                    <p style={{ color: 'var(--text-secondary)' }}>
+                        Select your preferred location and membership tier to complete payment.
+                    </p>
+                </div>
+
+                {error && (
+                    <div className="alert alert-error" style={{ marginBottom: 'var(--space-4)' }}>
+                        <AlertCircle size={16} /> {error}
+                    </div>
+                )}
+
+                {/* Location Selection */}
+                <div className="form-group">
+                    <label className="form-label">
+                        <MapPin size={16} style={{ marginRight: 'var(--space-1)' }} />
+                        Select Location
+                    </label>
+                    <select
+                        className="form-input"
+                        value={selectedLocation}
+                        onChange={(e) => {
+                            setSelectedLocation(e.target.value);
+                            setSelectedTier(''); // Reset tier when location changes
+                        }}
+                    >
+                        <option value="">Choose a location...</option>
+                        {locations.map(loc => (
+                            <option key={loc.id} value={loc.id}>{loc.name}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Tier Selection */}
+                {selectedLocation && selectedLocationData && (
+                    <div className="form-group">
+                        <label className="form-label">
+                            <CreditCard size={16} style={{ marginRight: 'var(--space-1)' }} />
+                            Select Membership Tier
+                        </label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                            {selectedLocationData.tiers.length === 0 ? (
+                                <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
+                                    No membership tiers available for this location.
+                                </p>
+                            ) : (
+                                selectedLocationData.tiers.map(tier => (
+                                    <label
+                                        key={tier.id}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            padding: 'var(--space-3)',
+                                            borderRadius: 'var(--radius-lg)',
+                                            border: selectedTier === tier.id ? '2px solid var(--color-gold)' : '1px solid var(--border-default)',
+                                            background: selectedTier === tier.id ? 'rgba(212, 175, 55, 0.1)' : 'var(--bg-secondary)',
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="tier"
+                                            value={tier.id}
+                                            checked={selectedTier === tier.id}
+                                            onChange={(e) => setSelectedTier(e.target.value)}
+                                            style={{ marginRight: 'var(--space-3)' }}
+                                        />
+                                        <div style={{ flex: 1 }}>
+                                            <span style={{ fontWeight: '600' }}>{tier.name}</span>
+                                            {tier.description && (
+                                                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>
+                                                    {tier.description}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <span style={{
+                                            background: tier.price === 0 ? 'var(--color-green)' : 'var(--color-gold-gradient)',
+                                            color: tier.price === 0 ? 'white' : 'var(--color-black)',
+                                            padding: 'var(--space-1) var(--space-3)',
+                                            borderRadius: 'var(--radius-full)',
+                                            fontWeight: '700',
+                                            fontSize: 'var(--text-sm)',
+                                        }}>
+                                            {tier.price === 0 ? 'FREE' : `£${tier.price}/mo`}
+                                        </span>
+                                    </label>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Checkout Button */}
+                <button
+                    onClick={handleCheckout}
+                    disabled={!selectedLocation || !selectedTier || checkoutLoading}
+                    className="btn btn-primary"
+                    style={{ width: '100%', marginTop: 'var(--space-4)' }}
+                >
+                    {checkoutLoading ? (
+                        <>
+                            <Loader2 size={18} className="animate-spin" style={{ marginRight: 'var(--space-2)' }} />
+                            Processing...
+                        </>
+                    ) : (
+                        <>
+                            <CreditCard size={18} style={{ marginRight: 'var(--space-2)' }} />
+                            {selectedTierData ? `Pay £${selectedTierData.price}/month` : 'Complete Payment'}
+                        </>
+                    )}
+                </button>
+
+                <p style={{ textAlign: 'center', fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', marginTop: 'var(--space-4)', marginBottom: 0 }}>
+                    Secure payment powered by Stripe
+                </p>
+            </div>
+        </div>
+    );
 }
 
 export default function MembershipPage() {
@@ -151,16 +407,7 @@ export default function MembershipPage() {
             </div>
 
             {memberships.length === 0 ? (
-                <div className="glass-card" style={{ textAlign: 'center', padding: 'var(--space-12)' }}>
-                    <CreditCard size={48} color="var(--text-tertiary)" style={{ margin: '0 auto var(--space-4)' }} />
-                    <h3 style={{ marginBottom: 'var(--space-2)' }}>No Active Membership</h3>
-                    <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)' }}>
-                        You don&apos;t have any memberships yet.
-                    </p>
-                    <a href="/register" className="btn btn-primary">
-                        Join Now
-                    </a>
-                </div>
+                <CompletePaymentFlow profile={profile} />
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
                     {memberships.map((membership) => {
@@ -282,6 +529,35 @@ export default function MembershipPage() {
                             </div>
                         );
                     })}
+                </div>
+            )}
+
+            {/* Add Multisite Membership Button */}
+            {memberships.some(m => m.status === 'active') && memberships.length < 3 && (
+                <div className="card" style={{ marginTop: 'var(--space-6)' }}>
+                    <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
+                        <div style={{
+                            width: '48px',
+                            height: '48px',
+                            borderRadius: 'var(--radius-lg)',
+                            background: 'var(--color-gold-gradient)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}>
+                            <Plus size={24} color="var(--color-black)" />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <h3 style={{ margin: 0 }}>Add multisite membership</h3>
+                            <p style={{ margin: '4px 0 0 0', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                                Train at additional locations with discounted multisite pricing
+                            </p>
+                        </div>
+                        <a href="/dashboard/membership/add-site" className="btn btn-primary">
+                            <Plus size={18} />
+                            Add Location
+                        </a>
+                    </div>
                 </div>
             )}
 

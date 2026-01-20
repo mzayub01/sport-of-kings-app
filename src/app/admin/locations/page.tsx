@@ -23,6 +23,7 @@ export default function AdminLocationsPage() {
         description: '',
         contact_email: '',
         contact_phone: '',
+        allow_multisite: true,
     });
 
     useEffect(() => {
@@ -54,6 +55,7 @@ export default function AdminLocationsPage() {
                 description: location.description || '',
                 contact_email: location.contact_email || '',
                 contact_phone: location.contact_phone || '',
+                allow_multisite: location.allow_multisite !== false,
             });
         } else {
             setEditLocation(null);
@@ -65,6 +67,7 @@ export default function AdminLocationsPage() {
                 description: '',
                 contact_email: '',
                 contact_phone: '',
+                allow_multisite: true,
             });
         }
         setShowModal(true);
@@ -93,6 +96,7 @@ export default function AdminLocationsPage() {
                         description: formData.description || null,
                         contact_email: formData.contact_email || null,
                         contact_phone: formData.contact_phone || null,
+                        allow_multisite: formData.allow_multisite,
                     })
                     .eq('id', editLocation.id);
 
@@ -109,6 +113,7 @@ export default function AdminLocationsPage() {
                         description: formData.description || null,
                         contact_email: formData.contact_email || null,
                         contact_phone: formData.contact_phone || null,
+                        allow_multisite: formData.allow_multisite,
                     });
 
                 if (error) throw error;
@@ -185,6 +190,11 @@ export default function AdminLocationsPage() {
                                         <span className={`badge ${location.is_active ? 'badge-green' : 'badge-gray'}`}>
                                             {location.is_active ? 'Active' : 'Inactive'}
                                         </span>
+                                        {location.allow_multisite && (
+                                            <span className="badge badge-gold" style={{ marginLeft: 'var(--space-1)' }}>
+                                                Multisite
+                                            </span>
+                                        )}
                                     </div>
                                     <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                                         <button className="btn btn-ghost btn-icon" onClick={() => openModal(location)}>
@@ -313,6 +323,23 @@ export default function AdminLocationsPage() {
                                             onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
                                         />
                                     </div>
+                                </div>
+
+                                {/* Multisite Toggle */}
+                                <div className="form-group" style={{ marginTop: 'var(--space-4)', padding: 'var(--space-3)', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)' }}>
+                                    <label className="form-checkbox">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.allow_multisite}
+                                            onChange={(e) => setFormData({ ...formData, allow_multisite: e.target.checked })}
+                                        />
+                                        <div>
+                                            <span style={{ fontWeight: '500' }}>Allow Multisite Membership</span>
+                                            <p style={{ margin: '4px 0 0 0', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                                                Members with existing memberships can add this location at a discounted rate
+                                            </p>
+                                        </div>
+                                    </label>
                                 </div>
                             </div>
                             <div className="modal-footer">

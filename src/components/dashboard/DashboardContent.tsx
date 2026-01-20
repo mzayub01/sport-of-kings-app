@@ -142,6 +142,45 @@ export default function DashboardContent() {
                 </p>
             </div>
 
+            {/* Payment Incomplete Banner */}
+            {!membership && (
+                <div className="card" style={{
+                    marginBottom: 'var(--space-6)',
+                    background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(212, 175, 55, 0.1))',
+                    border: '2px solid var(--color-gold)',
+                }}>
+                    <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
+                        <div style={{
+                            width: '56px',
+                            height: '56px',
+                            borderRadius: 'var(--radius-full)',
+                            background: 'var(--color-gold-gradient)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                        }}>
+                            <CreditCard size={28} color="var(--color-black)" />
+                        </div>
+                        <div style={{ flex: 1, minWidth: '200px' }}>
+                            <h3 style={{ margin: '0 0 var(--space-1) 0', color: 'var(--color-gold)' }}>
+                                Complete Your Membership
+                            </h3>
+                            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
+                                Your account is set up but payment wasn't completed. Complete your payment to access classes and start training.
+                            </p>
+                        </div>
+                        <Link
+                            href="/dashboard/membership"
+                            className="btn btn-primary"
+                            style={{ flexShrink: 0 }}
+                        >
+                            Complete Payment
+                        </Link>
+                    </div>
+                </div>
+            )}
+
             {/* Stats Grid */}
             <div className="stats-grid">
                 <div className="stat-card glass-card">
