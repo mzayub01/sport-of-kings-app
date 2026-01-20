@@ -97,7 +97,6 @@ export default function AddMultisitePage() {
                     userId: selectedProfileId,
                     locationId: selectedLocation.id,
                     tierId: selectedTier.id,
-                    userEmail,
                 }),
             });
 
