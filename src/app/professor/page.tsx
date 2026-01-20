@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Award, Users, MapPin, Search, Loader2, ChevronRight, Star, Calendar } from 'lucide-react';
+import { Award, Users, MapPin, Search, Loader2, ChevronRight, Star, Calendar, Home, MessageSquare } from 'lucide-react';
+import Link from 'next/link';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import BJJBelt from '@/components/BJJBelt';
 import GradingModal from '@/components/grading/GradingModal';
+import FeedbackModal from '@/components/grading/FeedbackModal';
 import Avatar from '@/components/Avatar';
 
 interface ClassOption {
@@ -45,6 +47,8 @@ export default function ProfessorGradingPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [gradingMember, setGradingMember] = useState<MemberForGrading | null>(null);
     const [showGradingModal, setShowGradingModal] = useState(false);
+    const [feedbackMember, setFeedbackMember] = useState<MemberForGrading | null>(null);
+    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
     const supabase = getSupabaseClient();
 
@@ -253,9 +257,15 @@ export default function ProfessorGradingPage() {
 
     return (
         <div>
-            <div className="dashboard-header">
-                <h1 className="dashboard-title">Grading Dashboard</h1>
-                <p className="dashboard-subtitle">Promote members to new belt ranks</p>
+            <div className="dashboard-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
+                <div>
+                    <h1 className="dashboard-title">Grading Dashboard</h1>
+                    <p className="dashboard-subtitle">Promote members to new belt ranks</p>
+                </div>
+                <Link href="/dashboard" className="btn btn-ghost" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    <Home size={18} />
+                    Member Dashboard
+                </Link>
             </div>
 
             {/* Filters */}
@@ -404,16 +414,32 @@ export default function ProfessorGradingPage() {
                                     </div>
                                 </div>
 
-                                {/* Grade Button */}
-                                <button
-                                    onClick={() => handleGradeClick(member)}
-                                    className="btn btn-primary btn-sm"
-                                    style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}
-                                >
-                                    <Star size={16} />
-                                    Grade
-                                    <ChevronRight size={14} />
-                                </button>
+                                {/* Action Buttons */}
+                                <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                                    {/* Feedback Button */}
+                                    <button
+                                        onClick={() => {
+                                            setFeedbackMember(member);
+                                            setShowFeedbackModal(true);
+                                        }}
+                                        className="btn btn-ghost btn-sm"
+                                        style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}
+                                        title="Send Feedback"
+                                    >
+                                        <MessageSquare size={16} />
+                                    </button>
+
+                                    {/* Grade Button */}
+                                    <button
+                                        onClick={() => handleGradeClick(member)}
+                                        className="btn btn-primary btn-sm"
+                                        style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}
+                                    >
+                                        <Star size={16} />
+                                        Grade
+                                        <ChevronRight size={14} />
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -430,6 +456,21 @@ export default function ProfessorGradingPage() {
                         setGradingMember(null);
                     }}
                     onSuccess={handleGradingComplete}
+                />
+            )}
+
+            {/* Feedback Modal */}
+            {showFeedbackModal && feedbackMember && (
+                <FeedbackModal
+                    member={feedbackMember}
+                    onClose={() => {
+                        setShowFeedbackModal(false);
+                        setFeedbackMember(null);
+                    }}
+                    onSuccess={() => {
+                        setShowFeedbackModal(false);
+                        setFeedbackMember(null);
+                    }}
                 />
             )}
         </div>

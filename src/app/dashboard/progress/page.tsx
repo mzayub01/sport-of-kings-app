@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Award, Star, Trophy, Target, Calendar, Loader2 } from 'lucide-react';
+import { Award, Star, Trophy, Target, Calendar, Loader2, MessageSquare } from 'lucide-react';
 import BJJBelt from '@/components/BJJBelt';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useDashboard } from '@/components/dashboard/DashboardProvider';
@@ -53,12 +53,20 @@ interface PromotionRecord {
     promoted_by_profile?: { first_name: string; last_name: string } | null;
 }
 
+interface FeedbackRecord {
+    id: string;
+    feedback: string;
+    created_at: string;
+    professor?: { first_name: string; last_name: string } | null;
+}
+
 export default function MemberProgressPage() {
     const supabase = getSupabaseClient();
     const { selectedProfileId } = useDashboard();
 
     const [profile, setProfile] = useState<ProfileData | null>(null);
     const [promotions, setPromotions] = useState<PromotionRecord[]>([]);
+    const [feedback, setFeedback] = useState<FeedbackRecord[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -85,6 +93,15 @@ export default function MemberProgressPage() {
                 .order('promotion_date', { ascending: false });
 
             setPromotions(promotionsData || []);
+
+            // Get professor feedback
+            const { data: feedbackData } = await supabase
+                .from('professor_feedback')
+                .select('id, feedback, created_at, professor:profiles!professor_feedback_professor_id_fkey(first_name, last_name)')
+                .eq('user_id', selectedProfileId)
+                .order('created_at', { ascending: false });
+
+            setFeedback(feedbackData || []);
         } catch (err) {
             console.error('Error fetching progress data:', err);
         } finally {
@@ -328,6 +345,59 @@ export default function MemberProgressPage() {
                         ))}
                     </div>
                 </div>
+            )}
+
+            {/* Professor Feedback */}
+            {feedback.length > 0 && (
+                <>
+                    <h3 style={{
+                        fontSize: 'var(--text-lg)',
+                        marginTop: 'var(--space-8)',
+                        marginBottom: 'var(--space-4)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--space-2)',
+                    }}>
+                        <MessageSquare size={20} color="var(--color-gold)" />
+                        Feedback from Professors
+                    </h3>
+
+                    <div className="card">
+                        <div className="card-body" style={{ padding: 0 }}>
+                            {feedback.map((item, index) => (
+                                <div
+                                    key={item.id}
+                                    style={{
+                                        padding: 'var(--space-4)',
+                                        borderBottom: index < feedback.length - 1 ? '1px solid var(--border-light)' : 'none',
+                                    }}
+                                >
+                                    <p style={{
+                                        margin: 0,
+                                        marginBottom: 'var(--space-2)',
+                                        lineHeight: 1.6,
+                                    }}>
+                                        &ldquo;{item.feedback}&rdquo;
+                                    </p>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                                        {item.professor && (
+                                            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                                                — {item.professor.first_name} {item.professor.last_name}
+                                            </span>
+                                        )}
+                                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
+                                            {new Date(item.created_at).toLocaleDateString('en-GB', {
+                                                day: 'numeric',
+                                                month: 'short',
+                                                year: 'numeric',
+                                            })}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </>
             )}
         </div>
     );
