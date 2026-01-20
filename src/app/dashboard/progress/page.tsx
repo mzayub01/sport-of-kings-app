@@ -50,6 +50,7 @@ interface PromotionRecord {
     new_stripes: number;
     comments: string | null;
     promotion_date: string;
+    promoted_by?: string;
     promoted_by_profile?: { first_name: string; last_name: string } | null;
 }
 
@@ -57,6 +58,7 @@ interface FeedbackRecord {
     id: string;
     feedback: string;
     created_at: string;
+    professor_id?: string;
     professor?: { first_name: string; last_name: string } | null;
 }
 
@@ -85,23 +87,63 @@ export default function MemberProgressPage() {
 
             setProfile(profileData);
 
-            // Get promotion history
+            // Get promotion history (simple query without FK join)
             const { data: promotionsData } = await supabase
                 .from('promotions')
-                .select('*, promoted_by_profile:profiles!promotions_promoted_by_fkey(first_name, last_name)')
+                .select('*')
                 .eq('user_id', selectedProfileId)
                 .order('promotion_date', { ascending: false });
 
-            setPromotions(promotionsData || []);
+            // Fetch promoter names for promotions
+            if (promotionsData && promotionsData.length > 0) {
+                const promoterIds = [...new Set(promotionsData.map(p => p.promoted_by).filter(Boolean))];
+                if (promoterIds.length > 0) {
+                    const { data: promotersData } = await supabase
+                        .from('profiles')
+                        .select('user_id, first_name, last_name')
+                        .in('user_id', promoterIds);
 
-            // Get professor feedback
-            const { data: feedbackData } = await supabase
+                    const promoterMap = new Map(promotersData?.map(p => [p.user_id, p]) || []);
+
+                    const promotionsWithPromoters = promotionsData.map(p => ({
+                        ...p,
+                        promoted_by_profile: promoterMap.get(p.promoted_by) || null
+                    }));
+                    setPromotions(promotionsWithPromoters);
+                } else {
+                    setPromotions(promotionsData);
+                }
+            } else {
+                setPromotions([]);
+            }
+
+            // Get professor feedback (simple query without FK join)
+            const { data: feedbackData, error: feedbackError } = await supabase
                 .from('professor_feedback')
-                .select('id, feedback, created_at, professor:profiles!professor_feedback_professor_id_fkey(first_name, last_name)')
+                .select('id, feedback, created_at, professor_id')
                 .eq('user_id', selectedProfileId)
                 .order('created_at', { ascending: false });
 
-            setFeedback(feedbackData || []);
+            console.log('Feedback query result:', { feedbackData, feedbackError, selectedProfileId });
+
+            // Fetch professor names for feedback
+            if (feedbackData && feedbackData.length > 0) {
+                const professorIds = [...new Set(feedbackData.map(f => f.professor_id))];
+                const { data: professorsData } = await supabase
+                    .from('profiles')
+                    .select('user_id, first_name, last_name')
+                    .in('user_id', professorIds);
+
+                const professorMap = new Map(professorsData?.map(p => [p.user_id, p]) || []);
+
+                const feedbackWithProfessors = feedbackData.map(f => ({
+                    ...f,
+                    professor: professorMap.get(f.professor_id) || null
+                }));
+                setFeedback(feedbackWithProfessors);
+            } else {
+                setFeedback([]);
+            }
         } catch (err) {
             console.error('Error fetching progress data:', err);
         } finally {
