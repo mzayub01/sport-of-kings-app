@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { sendEmail } from '@/lib/email';
 import { renderEmailFromDatabase } from '@/lib/email-templates-db';
 
@@ -12,14 +12,15 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'userId and email are required' }, { status: 400 });
         }
 
-        const supabase = await createAdminClient();
-
-        // Verify the requester is an admin
+        // Use session-aware client to get the logged-in user
+        const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
+
         if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        // Check if user is admin
         const { data: adminProfile } = await supabase
             .from('profiles')
             .select('role')
