@@ -43,7 +43,7 @@ export default function AddMultisitePage() {
     const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
     const [selectedTier, setSelectedTier] = useState<MultisiteTier | null>(null);
     const [checkoutLoading, setCheckoutLoading] = useState(false);
-    const { selectedProfileId, userEmail } = useDashboard();
+    const { selectedProfileId } = useDashboard();
 
     useEffect(() => {
         if (selectedProfileId) {
