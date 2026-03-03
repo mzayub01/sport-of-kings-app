@@ -328,6 +328,7 @@ export default function MemberEventsPage() {
                                             WebkitLineClamp: 3,
                                             WebkitBoxOrient: 'vertical',
                                             overflow: 'hidden',
+                                            whiteSpace: 'pre-line',
                                         }}>
                                             {event.description}
                                         </p>

@@ -280,7 +280,7 @@ export default function AdminEventsPage() {
                                     </div>
                                 </div>
                                 <h3 style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-lg)' }}>{event.title}</h3>
-                                {event.description && <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-3)' }}>{event.description.substring(0, 100)}{event.description.length > 100 ? '...' : ''}</p>}
+                                {event.description && <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-3)', whiteSpace: 'pre-line' }}>{event.description.substring(0, 100)}{event.description.length > 100 ? '...' : ''}</p>}
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}><Calendar size={14} />{new Date(event.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                                     {event.start_time && <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}><Clock size={14} />{event.start_time} - {event.end_time || 'TBD'}</div>}

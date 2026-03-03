@@ -203,7 +203,7 @@ export default function EventRegistration({ event, user }: EventRegistrationProp
                     Upcoming Event
                 </div>
                 <h3 style={{ marginBottom: 'var(--space-4)', fontSize: 'var(--text-2xl)' }}>{event.title}</h3>
-                <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)', lineHeight: '1.6' }}>
+                <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)', lineHeight: '1.6', whiteSpace: 'pre-line' }}>
                     {event.description}
                 </p>
 
