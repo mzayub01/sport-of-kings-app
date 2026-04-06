@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "@/styles/globals.css";
 import PublicBottomNav from "@/components/PublicBottomNav";
+import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -67,6 +68,7 @@ export default function RootLayout({
       <body style={{ fontFamily: 'var(--font-sans)' }}>
         {children}
         <PublicBottomNav />
+        <Analytics />
       </body>
     </html>
   );
