@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { createClient as createServerClient } from '@/lib/supabase/server';
+import { createServerClient } from '@supabase/ssr';
 import { sendEmail } from '@/lib/email';
 
 /**
@@ -109,8 +109,26 @@ function renderCustomEmailHtml(options: {
 
 export async function POST(request: NextRequest) {
     try {
-        // Verify the requester is an admin
-        const supabase = await createServerClient();
+        // Verify the requester is an admin using request cookies directly
+        // (more reliable than next/headers cookies() in Vercel production)
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseKey) {
+            return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+        }
+
+        const supabase = createServerClient(supabaseUrl, supabaseKey, {
+            cookies: {
+                getAll() {
+                    return request.cookies.getAll();
+                },
+                setAll() {
+                    // No-op: we don't need to set cookies in this API route
+                },
+            },
+        });
+
         const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) {
