@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Calendar, MapPin, Clock, Users, Edit, Trash2, CheckCircle, AlertCircle, Filter, Download } from 'lucide-react';
+import { Plus, Calendar, MapPin, Clock, Users, Edit, Trash2, CheckCircle, AlertCircle, Filter, Download, Mail, Send, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import type { Event, Location } from '@/lib/types';
 
@@ -47,6 +47,16 @@ export default function AdminEventsPage() {
     const [currentEvent, setCurrentEvent] = useState<Event | null>(null);
     const [attendeesLoading, setAttendeesLoading] = useState(false);
 
+    // Email modal state
+    const [showEmailModal, setShowEmailModal] = useState(false);
+    const [emailEvent, setEmailEvent] = useState<Event | null>(null);
+    const [emailAttendeeCount, setEmailAttendeeCount] = useState(0);
+    const [emailSubject, setEmailSubject] = useState('');
+    const [emailMessage, setEmailMessage] = useState('');
+    const [emailSending, setEmailSending] = useState(false);
+    const [emailPreview, setEmailPreview] = useState(false);
+    const [emailLoadingCount, setEmailLoadingCount] = useState(false);
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -86,6 +96,75 @@ export default function AdminEventsPage() {
 
         setAttendees(data || []);
         setAttendeesLoading(false);
+    };
+
+    const openEmailModal = async (event: Event) => {
+        setEmailEvent(event);
+        setEmailSubject(event.title);
+        setEmailMessage('');
+        setEmailPreview(false);
+        setEmailSending(false);
+        setEmailLoadingCount(true);
+        setShowEmailModal(true);
+
+        // Fetch attendee count
+        const { data, error: fetchError } = await supabase
+            .from('event_rsvps')
+            .select('id, email')
+            .eq('event_id', event.id);
+
+        if (!fetchError && data) {
+            // Deduplicate by email
+            const uniqueEmails = new Set(data.map((r: { email: string }) => r.email).filter(Boolean));
+            setEmailAttendeeCount(uniqueEmails.size);
+        } else {
+            setEmailAttendeeCount(0);
+        }
+        setEmailLoadingCount(false);
+    };
+
+    const sendEventEmail = async () => {
+        if (!emailEvent || !emailSubject.trim() || !emailMessage.trim()) {
+            setError('Please fill in both subject and message');
+            return;
+        }
+
+        setEmailSending(true);
+        setError('');
+        setSuccess('');
+
+        try {
+            const res = await fetch('/api/email/event-attendees', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    eventId: emailEvent.id,
+                    subject: emailSubject,
+                    message: emailMessage,
+                }),
+            });
+
+            const result = await res.json();
+
+            if (!res.ok) {
+                throw new Error(result.error || 'Failed to send emails');
+            }
+
+            setShowEmailModal(false);
+
+            if (result.sent > 0) {
+                setSuccess(`✅ Email sent to ${result.sent} attendee${result.sent !== 1 ? 's' : ''}${result.failed > 0 ? ` (${result.failed} failed)` : ''}`);
+            } else if (result.total === 0) {
+                setSuccess('No attendees found for this event');
+            } else {
+                setError(`Failed to send emails. ${result.failed} error${result.failed !== 1 ? 's' : ''}.`);
+            }
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to send emails';
+            setError(errorMessage);
+        } finally {
+            setEmailSending(false);
+        }
     };
 
     const openModal = (event?: Event) => {
@@ -296,13 +375,23 @@ export default function AdminEventsPage() {
                                         <span style={{ fontWeight: '600', display: 'block' }}>Price</span>
                                         <span style={{ fontWeight: '700', color: 'var(--color-gold)' }}>{event.price === 0 ? 'Free' : `£${((event.price || 0) / 100).toFixed(2)}`}</span>
                                     </div>
-                                    <button
-                                        className="btn btn-outline btn-sm"
-                                        onClick={() => viewAttendees(event)}
-                                    >
-                                        <Users size={14} />
-                                        Attendees
-                                    </button>
+                                    <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                                        <button
+                                            className="btn btn-outline btn-sm"
+                                            onClick={() => openEmailModal(event)}
+                                            title="Email attendees"
+                                        >
+                                            <Mail size={14} />
+                                            Email
+                                        </button>
+                                        <button
+                                            className="btn btn-outline btn-sm"
+                                            onClick={() => viewAttendees(event)}
+                                        >
+                                            <Users size={14} />
+                                            Attendees
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -460,6 +549,123 @@ export default function AdminEventsPage() {
                                 Download Excel
                             </button>
                             <button className="btn btn-primary" onClick={() => setShowAttendeesModal(false)}>Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Email Compose Modal */}
+            {showEmailModal && (
+                <div className="modal-overlay" onClick={() => !emailSending && setShowEmailModal(false)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <div className="modal-header">
+                            <h2 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                                <Mail size={20} />
+                                Email Attendees
+                            </h2>
+                            <button className="btn btn-ghost btn-icon" onClick={() => !emailSending && setShowEmailModal(false)}>×</button>
+                        </div>
+                        <div className="modal-body">
+                            {error && <div className="alert alert-error" style={{ marginBottom: 'var(--space-4)' }}><AlertCircle size={18} />{error}</div>}
+
+                            {/* Event context */}
+                            <div style={{ padding: 'var(--space-4)', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', marginBottom: 'var(--space-6)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div>
+                                        <p style={{ fontWeight: '600', margin: '0 0 var(--space-1)' }}>{emailEvent?.title}</p>
+                                        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: 0 }}>
+                                            {emailEvent?.start_date && new Date(emailEvent.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                        </p>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                        {emailLoadingCount ? (
+                                            <div className="spinner" style={{ width: '20px', height: '20px' }} />
+                                        ) : (
+                                            <>
+                                                <span style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', color: 'var(--color-gold)' }}>{emailAttendeeCount}</span>
+                                                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', margin: 0 }}>recipient{emailAttendeeCount !== 1 ? 's' : ''}</p>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {!emailPreview ? (
+                                /* Compose View */
+                                <>
+                                    <div className="form-group">
+                                        <label className="form-label">Subject *</label>
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            value={emailSubject}
+                                            onChange={(e) => setEmailSubject(e.target.value)}
+                                            placeholder="Email subject line"
+                                            disabled={emailSending}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Message *</label>
+                                        <textarea
+                                            className="form-input"
+                                            rows={8}
+                                            value={emailMessage}
+                                            onChange={(e) => setEmailMessage(e.target.value)}
+                                            placeholder="Write your message here...&#10;&#10;Each attendee will receive a personalised greeting with their name."
+                                            disabled={emailSending}
+                                            style={{ resize: 'vertical', minHeight: '180px' }}
+                                        />
+                                        <p className="form-hint">Line breaks will be preserved. Each attendee receives an individually addressed email.</p>
+                                    </div>
+                                </>
+                            ) : (
+                                /* Preview View */
+                                <div style={{ border: '1px solid var(--border-primary)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+                                    <div style={{ padding: 'var(--space-3) var(--space-4)', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-primary)', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                                        Preview — this is how the email will appear to recipients
+                                    </div>
+                                    <div style={{ padding: 'var(--space-6)', background: '#f8f9fa' }}>
+                                        <div style={{ maxWidth: '480px', margin: '0 auto', background: '#ffffff', borderRadius: '12px', padding: 'var(--space-8)', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+                                            {/* Logo placeholder */}
+                                            <div style={{ textAlign: 'center', marginBottom: 'var(--space-6)' }}>
+                                                <div style={{ display: 'inline-block', background: 'linear-gradient(135deg, #c5a456, #a68935)', color: '#000', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', padding: '5px 14px', borderRadius: '20px' }}>
+                                                    {emailEvent?.title}
+                                                </div>
+                                            </div>
+                                            <h2 style={{ textAlign: 'center', fontSize: '20px', fontWeight: 700, margin: '0 0 20px', color: '#1a1a1a' }}>{emailSubject || '(No subject)'}</h2>
+                                            <p style={{ fontSize: '15px', lineHeight: 1.6, color: '#4a4a4a', margin: '0 0 12px' }}>Assalamu Alaikum <strong>Attendee</strong>,</p>
+                                            <p style={{ fontSize: '15px', lineHeight: 1.6, color: '#4a4a4a', margin: '0 0 20px', whiteSpace: 'pre-line' }}>{emailMessage || '(No message)'}</p>
+                                            <p style={{ fontSize: '15px', lineHeight: 1.6, color: '#4a4a4a', margin: 0 }}>JazakAllahu Khayran,<br /><strong>The Sport of Kings Team</strong></p>
+                                        </div>
+                                        <div style={{ textAlign: 'center', marginTop: 'var(--space-4)' }}>
+                                            <p style={{ fontSize: '13px', color: '#888' }}>Sport of Kings - Seerat Un Nabi</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <button
+                                className="btn btn-ghost"
+                                onClick={() => setEmailPreview(!emailPreview)}
+                                disabled={emailSending}
+                            >
+                                {emailPreview ? <><EyeOff size={16} /> Edit</> : <><Eye size={16} /> Preview</>}
+                            </button>
+                            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                                <button className="btn btn-ghost" onClick={() => setShowEmailModal(false)} disabled={emailSending}>Cancel</button>
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={sendEventEmail}
+                                    disabled={emailSending || !emailSubject.trim() || !emailMessage.trim() || emailAttendeeCount === 0}
+                                >
+                                    {emailSending ? (
+                                        <><Loader2 size={16} className="spinner" /> Sending...</>
+                                    ) : (
+                                        <><Send size={16} /> Send to {emailAttendeeCount} attendee{emailAttendeeCount !== 1 ? 's' : ''}</>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
