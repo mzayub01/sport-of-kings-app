@@ -485,6 +485,10 @@ export default async function HomePage() {
                 <Calendar size={20} />
                 View Classes
               </Link>
+              <Link href="/donate" className="btn btn-outline btn-lg" style={{ borderColor: 'var(--color-gold)', color: 'var(--color-gold)' }}>
+                <Heart size={20} />
+                Support Us
+              </Link>
             </div>
           </div>
         </section>

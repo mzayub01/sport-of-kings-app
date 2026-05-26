@@ -66,6 +66,7 @@ export default function Footer() {
                         <li><Link href="/about">About Us</Link></li>
                         <li><Link href="/classes">BJJ Classes</Link></li>
                         <li><Link href="/events">Events</Link></li>
+                        <li><Link href="/donate">Donate</Link></li>
                         <li><Link href="/faq">FAQ</Link></li>
                         <li><Link href="/register">Register</Link></li>
                     </ul>
