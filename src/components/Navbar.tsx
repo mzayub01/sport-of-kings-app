@@ -55,7 +55,7 @@ export default function Navbar({ user }: NavbarProps) {
         { href: '/classes', label: 'BJJ Classes', icon: Award },
         { href: '/events', label: 'Events', icon: Calendar },
         { href: '/faq', label: 'FAQ', icon: HelpCircle },
-        { href: '/donate', label: 'Donate', icon: Heart },
+        { href: '/donate', label: 'Donate', icon: Heart, highlight: true },
     ];
 
     const isActive = (href: string) => {
@@ -91,7 +91,9 @@ export default function Navbar({ user }: NavbarProps) {
                                 key={link.href}
                                 href={link.href}
                                 className={`navbar-link ${isActive(link.href) ? 'active' : ''}`}
+                                style={link.highlight ? { color: 'var(--color-gold)', fontWeight: '600' } : undefined}
                             >
+                                {link.highlight && <Heart size={16} style={{ marginRight: '4px' }} />}
                                 {link.label}
                             </Link>
                         ))}
@@ -169,8 +171,9 @@ export default function Navbar({ user }: NavbarProps) {
                                 href={link.href}
                                 className={`mobile-menu-link ${isActive(link.href) ? 'active' : ''}`}
                                 onClick={() => setIsMenuOpen(false)}
+                                style={link.highlight ? { color: 'var(--color-gold)' } : undefined}
                             >
-                                <Icon size={22} />
+                                <Icon size={22} color={link.highlight ? 'var(--color-gold)' : undefined} />
                                 <span>{link.label}</span>
                                 <ChevronRight size={18} style={{ marginLeft: 'auto', opacity: 0.4 }} />
                             </Link>
