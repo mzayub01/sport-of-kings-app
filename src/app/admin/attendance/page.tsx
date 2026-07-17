@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, Search, Calendar, Clock, User, UserPlus, AlertCircle } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { toLocalDateString } from '@/lib/dates';
 import type { Class, Profile, Attendance } from '@/lib/types';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -13,7 +14,7 @@ export default function AdminAttendancePage() {
     const [attendance, setAttendance] = useState<Attendance[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedClass, setSelectedClass] = useState<string>('');
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [selectedDate, setSelectedDate] = useState(toLocalDateString(new Date()));
     const [searchQuery, setSearchQuery] = useState('');
     const [success, setSuccess] = useState('');
     const [error, setError] = useState('');

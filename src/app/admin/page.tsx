@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createAdminClient } from '@/lib/supabase/server';
+import { ukDateString } from '@/lib/dates';
 import {
     Users,
     MapPin,
@@ -39,7 +40,7 @@ export default async function AdminDashboard() {
         supabase.from('classes').select('*', { count: 'exact', head: true }).eq('is_active', true),
         supabase.from('waitlist').select('*', { count: 'exact', head: true }),
         supabase.from('attendance').select('*', { count: 'exact', head: true })
-            .gte('class_date', new Date().toISOString().split('T')[0]),
+            .gte('class_date', ukDateString()),
         supabase.from('memberships')
             .select('id, user_id, profile:profiles(id, first_name, last_name, belt_rank), location:locations(name), membership_type:membership_types(name)')
             .eq('status', 'active')

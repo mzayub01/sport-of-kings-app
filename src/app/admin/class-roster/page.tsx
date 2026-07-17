@@ -17,6 +17,7 @@ import {
     Download
 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { toLocalDateString } from '@/lib/dates';
 import Avatar from '@/components/Avatar';
 
 interface ClassInfo {
@@ -47,7 +48,7 @@ const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'F
 export default function ClassRosterPage() {
     const [classes, setClasses] = useState<ClassInfo[]>([]);
     const [selectedClass, setSelectedClass] = useState<string>('');
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [selectedDate, setSelectedDate] = useState(toLocalDateString(new Date()));
     const [roster, setRoster] = useState<MemberStatus[]>([]);
     const [loading, setLoading] = useState(true);
     const [rosterLoading, setRosterLoading] = useState(false);

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { ukDateString } from '@/lib/dates';
 import Link from 'next/link';
 import { Calendar, Users, CheckCircle, BookOpen, ChevronRight, Clock, Award } from 'lucide-react';
 
@@ -47,7 +48,7 @@ export default async function InstructorDashboard() {
     // Get today's day of week (0 = Sunday)
     const today = new Date().getDay();
     const todayClasses = classes?.filter((c: DashboardClass) => c.day_of_week === today) || [];
-    const todayDate = new Date().toISOString().split('T')[0];
+    const todayDate = ukDateString();
 
     // Get today's attendance for instructor's classes
     const classIds = classes?.map((c: DashboardClass) => c.id) || [];
@@ -64,7 +65,7 @@ export default async function InstructorDashboard() {
         .from('attendance')
         .select('*', { count: 'exact', head: true })
         .in('class_id', classIds)
-        .gte('class_date', weekStart.toISOString().split('T')[0]);
+        .gte('class_date', ukDateString(weekStart));
 
     // Get unique students from recent attendance
     const { data: recentStudents } = await supabase

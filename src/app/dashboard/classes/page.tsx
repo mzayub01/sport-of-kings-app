@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, User, CheckCircle, AlertCircle, Loader2, History, XCircle, TrendingUp, Lock } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useDashboard } from '@/components/dashboard/DashboardProvider';
+import { toLocalDateString } from '@/lib/dates';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -62,7 +63,7 @@ export default function MemberClassesPage() {
 
     const supabase = getSupabaseClient();
     const { selectedProfileId } = useDashboard();
-    const todayDate = new Date().toISOString().split('T')[0];
+    const todayDate = toLocalDateString(new Date());
 
     useEffect(() => {
         // Reset state when profile changes
@@ -148,7 +149,7 @@ export default function MemberClassesPage() {
                 const date = new Date(today);
                 date.setDate(date.getDate() + i);
                 const dayOfWeek = date.getDay();
-                const dateString = date.toISOString().split('T')[0];
+                const dateString = toLocalDateString(date);
 
                 accessibleClasses.forEach((cls: ClassRecord) => {
                     if (cls.day_of_week === dayOfWeek) {
@@ -188,7 +189,7 @@ export default function MemberClassesPage() {
                 }
 
                 const dayOfWeek = date.getDay();
-                const dateString = date.toISOString().split('T')[0];
+                const dateString = toLocalDateString(date);
 
                 accessibleClasses.forEach((cls: ClassRecord) => {
                     if (cls.day_of_week === dayOfWeek) {

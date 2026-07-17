@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, Clock, MapPin, Loader2, Calendar, Zap, Lock } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { toLocalDateString } from '@/lib/dates';
 
 interface TodayClass {
     id: string;
@@ -64,7 +65,7 @@ export default function TodayClassCard({ selectedUserId }: TodayClassCardProps) 
             const today = new Date();
             const currentDayOfWeek = today.getDay();
             const currentTime = today.toTimeString().slice(0, 5);
-            const todayDate = today.toISOString().split('T')[0];
+            const todayDate = toLocalDateString(today);
 
             // Fetch today's classes for this location, including tier associations
             const { data: classes } = await supabase
