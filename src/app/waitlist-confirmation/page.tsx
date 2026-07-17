@@ -159,8 +159,8 @@ export default function WaitlistConfirmationPage() {
                     fontSize: 'var(--text-sm)',
                 }}>
                     Questions? Contact us at{' '}
-                    <a href="mailto:info@sportofkings.uk" style={{ color: 'var(--color-gold)' }}>
-                        info@sportofkings.uk
+                    <a href="mailto:sportofkings786@gmail.com" style={{ color: 'var(--color-gold)' }}>
+                        sportofkings786@gmail.com
                     </a>
                 </p>
             </div>

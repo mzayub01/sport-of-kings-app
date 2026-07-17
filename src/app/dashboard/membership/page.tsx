@@ -605,7 +605,7 @@ export default function MembershipPage() {
                             Contact us if you have any questions about payments, cancellations, or upgrades.
                         </p>
                     </div>
-                    <a href="mailto:support@sportofkings.co.uk" className="btn btn-ghost">
+                    <a href="mailto:sportofkings786@gmail.com" className="btn btn-ghost">
                         Contact Support
                     </a>
                 </div>

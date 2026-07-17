@@ -148,7 +148,7 @@ export default async function PrivacyPage() {
                                     <li><strong>Right to Withdraw Consent:</strong> Where processing is based on consent</li>
                                 </ul>
                                 <p>
-                                    To exercise any of these rights, please contact us at <a href="mailto:info@sportofkings.co.uk" style={{ color: 'var(--color-gold)' }}>info@sportofkings.co.uk</a>.
+                                    To exercise any of these rights, please contact us at <a href="mailto:sportofkings786@gmail.com" style={{ color: 'var(--color-gold)' }}>sportofkings786@gmail.com</a>.
                                 </p>
 
                                 <h2 style={{ color: 'var(--text-primary)' }}>9. Children&apos;s Privacy</h2>
@@ -178,7 +178,7 @@ export default async function PrivacyPage() {
                                 }}>
                                     <p style={{ margin: 0 }}>
                                         <strong>Sport of Kings (Seerat Un Nabi)</strong><br />
-                                        Email: <a href="mailto:info@sportofkings.co.uk" style={{ color: 'var(--color-gold)' }}>info@sportofkings.co.uk</a><br />
+                                        Email: <a href="mailto:sportofkings786@gmail.com" style={{ color: 'var(--color-gold)' }}>sportofkings786@gmail.com</a><br />
                                         Manchester, United Kingdom
                                     </p>
                                 </div>

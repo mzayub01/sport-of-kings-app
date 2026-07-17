@@ -200,7 +200,7 @@ export default function FAQPage() {
                 },
                 {
                     question: 'How do I make changes to my membership?',
-                    answer: 'For any changes to your membership — including upgrades, downgrades, pausing, or cancellations — please contact us directly at info@sportofkings.co.uk. Our team will be happy to assist you and discuss the best options for your situation.'
+                    answer: 'For any changes to your membership — including upgrades, downgrades, pausing, or cancellations — please contact us directly at sportofkings786@gmail.com. Our team will be happy to assist you and discuss the best options for your situation.'
                 },
             ]
         },
@@ -362,7 +362,7 @@ export default function FAQPage() {
                 },
                 {
                     question: 'Who do I contact for support?',
-                    answer: 'For any questions or support needs, email us at info@sportofkings.co.uk. For urgent matters during class times, speak directly to your instructor. We aim to respond to all enquiries within 24-48 hours.'
+                    answer: 'For any questions or support needs, email us at sportofkings786@gmail.com. For urgent matters during class times, speak directly to your instructor. We aim to respond to all enquiries within 24-48 hours.'
                 },
             ]
         },
@@ -485,7 +485,7 @@ export default function FAQPage() {
                             flexWrap: 'wrap',
                         }}>
                             <a
-                                href="mailto:info@sportofkings.co.uk"
+                                href="mailto:sportofkings786@gmail.com"
                                 className="btn btn-primary btn-lg"
                             >
                                 Email Us

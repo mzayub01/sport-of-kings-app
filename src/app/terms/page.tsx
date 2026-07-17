@@ -81,7 +81,7 @@ export default async function TermsPage() {
 
                                 <h3 style={{ color: 'var(--text-primary)', fontSize: 'var(--text-lg)' }}>2.3 Membership Changes</h3>
                                 <p>
-                                    For any changes to your membership — including upgrades, downgrades, pausing, or cancellations — please contact us at <a href="mailto:info@sportofkings.co.uk" style={{ color: 'var(--color-gold)' }}>info@sportofkings.co.uk</a>. We aim to process requests within 48 hours.
+                                    For any changes to your membership — including upgrades, downgrades, pausing, or cancellations — please contact us at <a href="mailto:sportofkings786@gmail.com" style={{ color: 'var(--color-gold)' }}>sportofkings786@gmail.com</a>. We aim to process requests within 48 hours.
                                 </p>
 
                                 <h2 style={{ color: 'var(--text-primary)' }}>3. Code of Conduct</h2>
@@ -200,7 +200,7 @@ export default async function TermsPage() {
                                 }}>
                                     <p style={{ margin: 0 }}>
                                         <strong>Sport of Kings (Seerat Un Nabi)</strong><br />
-                                        Email: <a href="mailto:info@sportofkings.co.uk" style={{ color: 'var(--color-gold)' }}>info@sportofkings.co.uk</a><br />
+                                        Email: <a href="mailto:sportofkings786@gmail.com" style={{ color: 'var(--color-gold)' }}>sportofkings786@gmail.com</a><br />
                                         Manchester, United Kingdom
                                     </p>
                                 </div>

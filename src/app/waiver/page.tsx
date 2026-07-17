@@ -206,7 +206,7 @@ export default async function WaiverPage() {
                                 }}>
                                     <p style={{ margin: 0 }}>
                                         <strong>Sport of Kings (Seerat Un Nabi)</strong><br />
-                                        Email: <a href="mailto:info@sportofkings.co.uk" style={{ color: 'var(--color-gold)' }}>info@sportofkings.co.uk</a><br />
+                                        Email: <a href="mailto:sportofkings786@gmail.com" style={{ color: 'var(--color-gold)' }}>sportofkings786@gmail.com</a><br />
                                         Manchester, United Kingdom
                                     </p>
                                 </div>

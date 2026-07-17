@@ -94,7 +94,7 @@ export default function Footer() {
                         </li>
                         <li style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                             <Mail size={16} />
-                            <a href="mailto:info@sportofkings.co.uk">info@sportofkings.co.uk</a>
+                            <a href="mailto:sportofkings786@gmail.com">sportofkings786@gmail.com</a>
                         </li>
                     </ul>
                 </div>
