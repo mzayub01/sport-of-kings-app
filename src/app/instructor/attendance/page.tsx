@@ -3,12 +3,15 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, Calendar, Clock, Search, UserPlus, AlertCircle, Users } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { toLocalDateString } from '@/lib/dates';
 
 interface Class {
     id: string;
     name: string;
     start_time: string;
     day_of_week: number;
+    location_id: string;
+    membership_type_id?: string | null;
     location?: {
         name: string;
     };
@@ -36,7 +39,7 @@ const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 
 export default function InstructorAttendancePage() {
     const [classes, setClasses] = useState<Class[]>([]);
     const [selectedClass, setSelectedClass] = useState<string>('');
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [selectedDate, setSelectedDate] = useState(toLocalDateString(new Date()));
     const [members, setMembers] = useState<Member[]>([]);
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -55,6 +58,12 @@ export default function InstructorAttendancePage() {
             fetchAttendance();
         }
     }, [selectedClass, selectedDate]);
+
+    useEffect(() => {
+        if (selectedClass && classes.length > 0) {
+            fetchMembersForClass();
+        }
+    }, [selectedClass, classes]);
 
     const fetchInstructorClasses = async () => {
         try {
@@ -90,17 +99,51 @@ export default function InstructorAttendancePage() {
                 setSelectedClass(classesData[0].id);
             }
 
-            // Fetch all members for the attendance list
-            const { data: membersData } = await supabase
-                .from('profiles')
-                .select('id, user_id, first_name, last_name, belt_rank')
-                .order('first_name');
-
-            setMembers(membersData || []);
         } catch (err) {
             console.error('Error:', err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Load only members eligible for the selected class: active membership at the
+    // class's location, restricted to the class's membership tiers if it has any
+    const fetchMembersForClass = async () => {
+        const cls = classes.find(c => c.id === selectedClass);
+        if (!cls) return;
+
+        try {
+            const { data: classTiers } = await supabase
+                .from('class_membership_types')
+                .select('membership_type_id')
+                .eq('class_id', selectedClass);
+
+            const tierIds = (classTiers || []).map(
+                (t: { membership_type_id: string }) => t.membership_type_id
+            );
+
+            let query = supabase
+                .from('memberships')
+                .select('user_id, profile:profiles(id, user_id, first_name, last_name, belt_rank)')
+                .eq('location_id', cls.location_id)
+                .eq('status', 'active');
+
+            if (tierIds.length > 0) {
+                query = query.in('membership_type_id', tierIds);
+            } else if (cls.membership_type_id) {
+                query = query.eq('membership_type_id', cls.membership_type_id);
+            }
+
+            const { data: memberships } = await query;
+
+            const eligibleMembers = (memberships || [])
+                .map((m: { profile: unknown }) => m.profile as Member | null)
+                .filter((p): p is Member => !!p)
+                .sort((a, b) => a.first_name.localeCompare(b.first_name));
+
+            setMembers(eligibleMembers);
+        } catch (err) {
+            console.error('Error fetching class members:', err);
         }
     };
 
