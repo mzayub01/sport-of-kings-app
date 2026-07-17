@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { ukDateString, ukDayOfWeek, ukMinutesOfDay, timeToMinutes } from '@/lib/dates';
+
+// Check-in opens this many minutes before the class starts
+const CHECK_IN_OPENS_BEFORE_MINS = 60;
 
 export async function POST(request: NextRequest) {
     try {
@@ -45,8 +49,35 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        // Validate the class actually runs today and check-in is within the
+        // allowed window (the UI enforces this too, but never trust the client)
+        const { data: classInfo } = await supabase
+            .from('classes')
+            .select('id, day_of_week, start_time, end_time, is_active')
+            .eq('id', classId)
+            .maybeSingle();
+
+        if (!classInfo || !classInfo.is_active) {
+            return NextResponse.json({ error: 'Class not found' }, { status: 404 });
+        }
+
+        if (classInfo.day_of_week !== ukDayOfWeek()) {
+            return NextResponse.json({ error: 'This class does not run today' }, { status: 400 });
+        }
+
+        const nowMins = ukMinutesOfDay();
+        const startMins = timeToMinutes(classInfo.start_time);
+        const endMins = timeToMinutes(classInfo.end_time);
+
+        if (nowMins < startMins - CHECK_IN_OPENS_BEFORE_MINS) {
+            return NextResponse.json({ error: 'Check-in opens 1 hour before class' }, { status: 400 });
+        }
+        if (nowMins > endMins) {
+            return NextResponse.json({ error: 'This class has already ended' }, { status: 400 });
+        }
+
         // Check if already checked in today for this class AND this profile
-        const today = new Date().toISOString().split('T')[0];
+        const today = ukDateString();
         const { data: existing } = await supabase
             .from('attendance')
             .select('id')
