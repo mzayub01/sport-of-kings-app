@@ -64,7 +64,52 @@ export async function updateSession(request: NextRequest) {
     );
 
     // Refresh session if expired
-    await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const path = request.nextUrl.pathname;
+    const isProtected =
+        path.startsWith('/dashboard') ||
+        path.startsWith('/admin') ||
+        path.startsWith('/instructor') ||
+        path.startsWith('/professor');
+
+    if (!isProtected) {
+        return response;
+    }
+
+    // Preserve any refreshed auth cookies when redirecting
+    const redirectTo = (pathname: string) => {
+        const url = request.nextUrl.clone();
+        url.pathname = pathname;
+        url.search = '';
+        const redirect = NextResponse.redirect(url);
+        response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+        return redirect;
+    };
+
+    // All protected areas require a signed-in user
+    if (!user) {
+        return redirectTo('/login');
+    }
+
+    // Role-gated areas: check the user's role (layouts also verify, this is defence-in-depth)
+    if (path.startsWith('/admin') || path.startsWith('/instructor') || path.startsWith('/professor')) {
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        const role = profile?.role;
+        const allowed =
+            role === 'admin' ||
+            (path.startsWith('/instructor') && role === 'instructor') ||
+            (path.startsWith('/professor') && role === 'professor');
+
+        if (!allowed) {
+            return redirectTo('/dashboard');
+        }
+    }
 
     return response;
 }
