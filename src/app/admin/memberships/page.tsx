@@ -45,7 +45,7 @@ interface Member {
     email: string;
 }
 
-const STATUS_OPTIONS = ['active', 'inactive', 'pending', 'cancelled'];
+const STATUS_OPTIONS = ['active', 'inactive', 'pending', 'cancelled', 'payment_failed'];
 
 export default function AdminMembershipsPage() {
     const [memberships, setMemberships] = useState<Membership[]>([]);
@@ -420,12 +420,13 @@ export default function AdminMembershipsPage() {
                                                 padding: 'var(--space-1) var(--space-2)',
                                                 fontSize: 'var(--text-sm)',
                                                 background: membership.status === 'active' ? 'rgba(34, 197, 94, 0.1)' :
-                                                    membership.status === 'pending' ? 'rgba(234, 179, 8, 0.1)' : 'var(--bg-secondary)',
+                                                    membership.status === 'pending' ? 'rgba(234, 179, 8, 0.1)' :
+                                                        membership.status === 'payment_failed' ? 'rgba(239, 68, 68, 0.1)' : 'var(--bg-secondary)',
                                             }}
                                         >
                                             {STATUS_OPTIONS.map(status => (
                                                 <option key={status} value={status}>
-                                                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                                                    {status === 'payment_failed' ? 'Payment Failed' : status.charAt(0).toUpperCase() + status.slice(1)}
                                                 </option>
                                             ))}
                                         </select>

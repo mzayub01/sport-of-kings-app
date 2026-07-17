@@ -97,19 +97,19 @@ export async function POST(request: NextRequest) {
             try {
                 const { data: eventData } = await supabase
                     .from('events')
-                    .select('title, event_date, location, price')
+                    .select('title, start_date, start_time, price, location:locations(name)')
                     .eq('id', eventId)
                     .single();
 
                 if (eventData && userEmail) {
-                    const eventDate = new Date(eventData.event_date);
+                    const eventDate = new Date(eventData.start_date);
                     const html = renderEventConfirmationEmail({
                         firstName: userName?.split(' ')[0] || 'Guest',
                         eventTitle: eventData.title,
                         eventDate: eventDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
-                        eventTime: eventDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-                        eventLocation: eventData.location || 'TBC',
-                        amountPaid: eventData.price ? `£${eventData.price}` : 'Free',
+                        eventTime: eventData.start_time ? eventData.start_time.slice(0, 5) : 'TBC',
+                        eventLocation: (eventData.location as { name: string } | null)?.name || 'TBC',
+                        amountPaid: eventData.price ? `£${(eventData.price / 100).toFixed(2)}` : 'Free',
                     });
 
                     await sendEmail({
@@ -287,7 +287,7 @@ export async function POST(request: NextRequest) {
         }
     }
 
-    // Handle subscription past due (entering dunning)
+    // Handle subscription status changes (dunning and recovery)
     if (event.type === 'customer.subscription.updated') {
         const subscription = event.data.object as Stripe.Subscription;
 
@@ -301,6 +301,16 @@ export async function POST(request: NextRequest) {
                 .from('memberships')
                 .update({ status: 'pending' })
                 .eq('stripe_subscription_id', subscription.id);
+        } else if (subscription.status === 'active') {
+            // Payment recovered (or resumed) - reinstate the membership so it
+            // doesn't stay stuck in pending/payment_failed after dunning succeeds
+            const supabase = await createAdminClient();
+
+            await supabase
+                .from('memberships')
+                .update({ status: 'active' })
+                .eq('stripe_subscription_id', subscription.id)
+                .in('status', ['pending', 'payment_failed']);
         }
     }
 
