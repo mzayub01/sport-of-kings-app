@@ -30,7 +30,8 @@ import {
     PoundSterling,
     Receipt,
     Tag,
-    Mail
+    Mail,
+    BarChart3
 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -135,6 +136,7 @@ export default function DashboardSidebar({ role, userRole, userName = 'Member', 
         { href: '/professor', label: 'Grading', icon: Award },
         { href: '/admin/professor-access', label: 'Professor Access', icon: Users },
         { href: '/admin/instructors', label: 'Instructors', icon: Award },
+        { href: '/admin/attendance-overview', label: 'Attendance Overview', icon: BarChart3 },
         { href: '/admin/attendance', label: 'Attendance', icon: CheckCircle },
         { href: '/admin/videos', label: 'Videos', icon: Video },
         { href: '/admin/events', label: 'Events', icon: PartyPopper },

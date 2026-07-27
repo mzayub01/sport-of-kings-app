@@ -59,14 +59,20 @@ export default function ClassRosterPage() {
     const supabase = getSupabaseClient();
 
     useEffect(() => {
+        // Support deep links from the Attendance Overview (?classId=&date=)
+        const params = new URLSearchParams(window.location.search);
+        const classId = params.get('classId');
+        const date = params.get('date');
+        if (classId) setSelectedClass(classId);
+        if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) setSelectedDate(date);
         fetchClasses();
     }, []);
 
     useEffect(() => {
-        if (selectedClass && selectedDate) {
+        if (selectedClass && selectedDate && classes.length > 0) {
             fetchRoster();
         }
-    }, [selectedClass, selectedDate]);
+    }, [selectedClass, selectedDate, classes]);
 
     const fetchClasses = async () => {
         const { data, error } = await supabase

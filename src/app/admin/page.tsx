@@ -31,6 +31,7 @@ export default async function AdminDashboard() {
         { count: totalClasses },
         { count: waitlistCount },
         { count: todayAttendance },
+        { count: newMembersThisMonth },
         { data: recentMembers },
         activeMembershipsResult,
     ] = await Promise.all([
@@ -40,7 +41,9 @@ export default async function AdminDashboard() {
         supabase.from('classes').select('*', { count: 'exact', head: true }).eq('is_active', true),
         supabase.from('waitlist').select('*', { count: 'exact', head: true }),
         supabase.from('attendance').select('*', { count: 'exact', head: true })
-            .gte('class_date', ukDateString()),
+            .eq('class_date', ukDateString()),
+        supabase.from('profiles').select('*', { count: 'exact', head: true })
+            .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
         supabase.from('memberships')
             .select('id, user_id, profile:profiles(id, first_name, last_name, belt_rank), location:locations(name), membership_type:membership_types(name)')
             .eq('status', 'active')
@@ -69,7 +72,7 @@ export default async function AdminDashboard() {
             value: totalMembers || 0,
             icon: Users,
             color: 'var(--color-gold)',
-            change: '+12% this month',
+            change: newMembersThisMonth ? `+${newMembersThisMonth} this month` : '',
             positive: true,
         },
         {
@@ -268,22 +271,25 @@ export default async function AdminDashboard() {
                     </div>
                     <div className="card-body">
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                            <div style={{
+                            <Link href="/admin/attendance-overview" style={{
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
                                 padding: 'var(--space-4)',
                                 background: 'var(--bg-secondary)',
                                 borderRadius: 'var(--radius-lg)',
+                                color: 'inherit',
+                                textDecoration: 'none',
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                                     <CheckCircle size={24} color="var(--color-green)" />
                                     <span>Attendance Today</span>
                                 </div>
-                                <span style={{ fontWeight: '700', fontSize: 'var(--text-xl)' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontWeight: '700', fontSize: 'var(--text-xl)' }}>
                                     {todayAttendance || 0}
+                                    <ChevronRight size={18} color="var(--text-tertiary)" />
                                 </span>
-                            </div>
+                            </Link>
 
                             <div style={{
                                 display: 'flex',
