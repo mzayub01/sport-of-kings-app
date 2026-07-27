@@ -1,20 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 
-export default function LoginPage() {
+function LoginForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const searchParams = useSearchParams();
     const supabase = getSupabaseClient();
+
+    // Only allow same-site relative redirects (e.g. /checkin/abc from a QR scan)
+    const rawRedirect = searchParams.get('redirect') || '';
+    const redirectTo = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')
+        ? rawRedirect
+        : null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -35,6 +42,12 @@ export default function LoginPage() {
             // Get user role and redirect accordingly
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
+                if (redirectTo) {
+                    router.push(redirectTo);
+                    router.refresh();
+                    return;
+                }
+
                 const { data: profile } = await supabase
                     .from('profiles')
                     .select('role')
@@ -236,5 +249,13 @@ export default function LoginPage() {
                 </p>
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense>
+            <LoginForm />
+        </Suspense>
     );
 }

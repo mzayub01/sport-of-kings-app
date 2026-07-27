@@ -71,25 +71,27 @@ export async function updateSession(request: NextRequest) {
         path.startsWith('/dashboard') ||
         path.startsWith('/admin') ||
         path.startsWith('/instructor') ||
-        path.startsWith('/professor');
+        path.startsWith('/professor') ||
+        path.startsWith('/checkin');
 
     if (!isProtected) {
         return response;
     }
 
     // Preserve any refreshed auth cookies when redirecting
-    const redirectTo = (pathname: string) => {
+    const redirectTo = (pathname: string, search: string = '') => {
         const url = request.nextUrl.clone();
         url.pathname = pathname;
-        url.search = '';
+        url.search = search;
         const redirect = NextResponse.redirect(url);
         response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
         return redirect;
     };
 
-    // All protected areas require a signed-in user
+    // All protected areas require a signed-in user; send them back to where
+    // they were headed after login (e.g. a QR-scanned /checkin link)
     if (!user) {
-        return redirectTo('/login');
+        return redirectTo('/login', `?redirect=${encodeURIComponent(path)}`);
     }
 
     // Role-gated areas: check the user's role (layouts also verify, this is defence-in-depth)

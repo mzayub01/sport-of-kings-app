@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, MapPin, Users, Settings, Edit, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, MapPin, Users, Settings, Edit, Trash2, CheckCircle, AlertCircle, QrCode } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import type { Location } from '@/lib/types';
 
@@ -197,6 +198,14 @@ export default function AdminLocationsPage() {
                                         )}
                                     </div>
                                     <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                                        <Link
+                                            href={`/admin/locations/${location.id}/qr`}
+                                            className="btn btn-ghost btn-icon"
+                                            title="Check-in QR poster"
+                                            aria-label={`Check-in QR poster for ${location.name}`}
+                                        >
+                                            <QrCode size={18} />
+                                        </Link>
                                         <button className="btn btn-ghost btn-icon" onClick={() => openModal(location)}>
                                             <Edit size={18} />
                                         </button>

@@ -1667,3 +1667,17 @@ body:has(.dashboard-sidebar-overlay.open) .bottom-nav {
   pointer-events: none;
   transition: opacity 0.2s ease;
 }
+/* ===== Print (QR posters etc.) ===== */
+@media print {
+  .sidebar,
+  .bottom-nav,
+  .dashboard-mobile-header,
+  .no-print {
+    display: none !important;
+  }
+
+  .dashboard-main {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
