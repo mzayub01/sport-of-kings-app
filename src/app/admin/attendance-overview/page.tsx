@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, Fragment } from 'react';
 import Link from 'next/link';
 import {
     ChevronLeft,
@@ -20,13 +20,18 @@ import {
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toLocalDateString } from '@/lib/dates';
 
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const HISTORY_WEEKS = 8; // sparkline + trend window
+// Each location trains on a single day of the week, so the grid shows one
+// column per SESSION (the last N occurrences of each class), not per weekday
+const SESSION_COLS = 6;
+const TREND_SESSIONS = 4; // latest session compared against the average of this many prior ones
 // "Regular" = attended ≥ REGULAR_MIN_SESSIONS in the 6 weeks before the last
 // fortnight; "drifted" = nothing in the last DRIFT_DAYS days
 const REGULAR_MIN_SESSIONS = 4;
 const DRIFT_DAYS = 14;
-const ATTENTION_THRESHOLD = 0.8; // flag classes below 80% of their 4-week average
+const ATTENTION_THRESHOLD = 0.8; // flag classes below 80% of their average
+
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY_ABBREV = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 interface LocationRow {
     id: string;
@@ -74,6 +79,10 @@ function addDays(date: Date, days: number): Date {
     return d;
 }
 
+function shortDate(dateStr: string): string {
+    return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
 export default function AttendanceOverviewPage() {
     const supabase = getSupabaseClient();
 
@@ -82,7 +91,8 @@ export default function AttendanceOverviewPage() {
     const [attendance, setAttendance] = useState<AttendanceRow[]>([]);
     const [drifted, setDrifted] = useState<DriftedMember[]>([]);
     const [selectedLocation, setSelectedLocation] = useState<string>('all');
-    const [weekStart, setWeekStart] = useState<Date>(() => mondayOf(new Date()));
+    // Monday of the newest week shown (rightmost column)
+    const [windowMonday, setWindowMonday] = useState<Date>(() => mondayOf(new Date()));
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [exportFrom, setExportFrom] = useState(() =>
@@ -91,9 +101,11 @@ export default function AttendanceOverviewPage() {
     const [exporting, setExporting] = useState(false);
 
     const todayStr = toLocalDateString(new Date());
-    const weekDates = useMemo(
-        () => Array.from({ length: 7 }, (_, i) => toLocalDateString(addDays(weekStart, i))),
-        [weekStart]
+
+    // Mondays of the visible weeks, oldest → newest
+    const weekMondays = useMemo(
+        () => Array.from({ length: SESSION_COLS }, (_, i) => addDays(windowMonday, -7 * (SESSION_COLS - 1 - i))),
+        [windowMonday]
     );
 
     // ---------- data loading ----------
@@ -114,11 +126,14 @@ export default function AttendanceOverviewPage() {
                 setLocations(locs || []);
                 setClasses(cls || []);
 
-                // One attendance fetch covers the grid, trends, sparkline history
-                // and the drifted-regulars window
-                const from = toLocalDateString(addDays(weekStart, -7 * HISTORY_WEEKS));
+                // One attendance fetch covers the session columns, the trend
+                // baseline before them, and the drifted-regulars window
+                const oldestColumn = weekMondays[0];
+                const trendFrom = addDays(oldestColumn, -7 * TREND_SESSIONS);
+                const regularsFrom = addDays(new Date(), -(DRIFT_DAYS + 42));
+                const from = toLocalDateString(trendFrom < regularsFrom ? trendFrom : regularsFrom);
                 const to = toLocalDateString(
-                    addDays(weekStart, 6) > new Date() ? addDays(weekStart, 6) : new Date()
+                    addDays(windowMonday, 6) > new Date() ? addDays(windowMonday, 6) : new Date()
                 );
                 const { data: att, error: attError } = await supabase
                     .from('attendance')
@@ -140,7 +155,7 @@ export default function AttendanceOverviewPage() {
             }
         };
         load();
-    }, [weekStart, supabase]);
+    }, [windowMonday, weekMondays, supabase]);
 
     // ---------- derived data ----------
 
@@ -154,7 +169,11 @@ export default function AttendanceOverviewPage() {
         [locations]
     );
 
-    // count per class per date
+    // Which day(s) a location trains on, from its classes
+    const locationDays = useCallback((locId: string): number[] => {
+        return [...new Set(classes.filter(c => c.location_id === locId).map(c => c.day_of_week))];
+    }, [classes]);
+
     const countByClassDate = useMemo(() => {
         const map = new Map<string, number>();
         attendance.forEach(a => {
@@ -164,64 +183,91 @@ export default function AttendanceOverviewPage() {
         return map;
     }, [attendance]);
 
-    interface ClassWeekStats {
-        cls: ClassRow;
-        cells: { date: string; count: number | null; isPast: boolean; runs: boolean }[];
-        weekTotal: number;
-        avg4: number | null;       // average of the prior 4 completed sessions
-        trendPct: number | null;   // this week's completed sessions vs avg4
-        spark: number[];           // weekly counts, oldest → newest
+    interface SessionCell {
+        date: string;
+        count: number | null; // null = session hasn't happened yet
+        isPast: boolean;
     }
 
-    const grid: ClassWeekStats[] = useMemo(() => {
-        return visibleClasses.map(cls => {
-            const sessionCol = (cls.day_of_week + 6) % 7; // Mon-first column index
+    interface ClassStats {
+        cls: ClassRow;
+        sessions: SessionCell[]; // one per visible week, oldest → newest
+        latest: number | null;   // most recent completed session's count
+        avg: number | null;      // average of the TREND_SESSIONS sessions before it
+        trendPct: number | null;
+    }
 
-            const cells = weekDates.map((date, col) => {
-                const runs = col === sessionCol;
+    const classStats: ClassStats[] = useMemo(() => {
+        return visibleClasses.map(cls => {
+            const dayOffset = (cls.day_of_week + 6) % 7; // days after Monday
+
+            const sessions: SessionCell[] = weekMondays.map(monday => {
+                const date = toLocalDateString(addDays(monday, dayOffset));
                 const isPast = date <= todayStr;
-                const count = runs && isPast ? (countByClassDate.get(`${cls.id}|${date}`) || 0) : null;
-                return { date, count, isPast, runs };
+                return {
+                    date,
+                    isPast,
+                    count: isPast ? (countByClassDate.get(`${cls.id}|${date}`) || 0) : null,
+                };
             });
 
-            const completedThisWeek = cells.filter(c => c.runs && c.isPast && c.count !== null);
-            const weekTotal = completedThisWeek.reduce((s, c) => s + (c.count || 0), 0);
+            const completed = sessions.filter(s => s.isPast);
+            const latestSession = completed[completed.length - 1] || null;
+            const latest = latestSession ? latestSession.count : null;
 
-            // prior 4 sessions of this class (same weekday, previous weeks)
-            const priorCounts: number[] = [];
-            for (let w = 1; w <= 4; w++) {
-                const date = toLocalDateString(addDays(weekStart, sessionCol - 7 * w));
-                if (date <= todayStr) {
+            // average of the sessions before the latest completed one
+            let avg: number | null = null;
+            if (latestSession) {
+                const priorCounts: number[] = [];
+                for (let i = 1; i <= TREND_SESSIONS; i++) {
+                    const date = toLocalDateString(addDays(new Date(latestSession.date + 'T12:00:00'), -7 * i));
                     priorCounts.push(countByClassDate.get(`${cls.id}|${date}`) || 0);
                 }
-            }
-            const avg4 = priorCounts.length > 0
-                ? priorCounts.reduce((a, b) => a + b, 0) / priorCounts.length
-                : null;
-
-            const trendPct = avg4 !== null && avg4 > 0 && completedThisWeek.length > 0
-                ? Math.round(((weekTotal - avg4) / avg4) * 100)
-                : null;
-
-            const spark: number[] = [];
-            for (let w = HISTORY_WEEKS - 1; w >= 0; w--) {
-                const date = toLocalDateString(addDays(weekStart, sessionCol - 7 * w));
-                spark.push(date <= todayStr ? (countByClassDate.get(`${cls.id}|${date}`) || 0) : 0);
+                avg = priorCounts.reduce((a, b) => a + b, 0) / priorCounts.length;
             }
 
-            return { cls, cells, weekTotal, avg4, trendPct, spark };
+            const trendPct = avg !== null && avg > 0 && latest !== null
+                ? Math.round(((latest - avg) / avg) * 100)
+                : null;
+
+            return { cls, sessions, latest, avg, trendPct };
         });
-    }, [visibleClasses, weekDates, weekStart, todayStr, countByClassDate]);
+    }, [visibleClasses, weekMondays, todayStr, countByClassDate]);
+
+    // Group rows under location headers when viewing all locations
+    const groups = useMemo(() => {
+        const byLocation = new Map<string, ClassStats[]>();
+        classStats.forEach(s => {
+            if (!byLocation.has(s.cls.location_id)) byLocation.set(s.cls.location_id, []);
+            byLocation.get(s.cls.location_id)!.push(s);
+        });
+        return [...byLocation.entries()]
+            .map(([locId, rows]) => ({
+                locId,
+                name: locationName(locId),
+                dayLabel: locationDays(locId).map(d => `${DAY_NAMES[d]}s`).join(' & '),
+                rows,
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }, [classStats, locationName, locationDays]);
+
+    // When one location is selected and it trains on a single day, column
+    // headers can show the exact session dates
+    const singleDow = useMemo(() => {
+        if (selectedLocation === 'all') return null;
+        const days = [...new Set(visibleClasses.map(c => c.day_of_week))];
+        return days.length === 1 ? days[0] : null;
+    }, [selectedLocation, visibleClasses]);
 
     const needsAttention = useMemo(
-        () => grid.filter(g =>
-            g.avg4 !== null && g.avg4 >= 3 && g.trendPct !== null &&
-            g.weekTotal < g.avg4 * ATTENTION_THRESHOLD
+        () => classStats.filter(s =>
+            s.avg !== null && s.avg >= 3 && s.latest !== null &&
+            s.latest < s.avg * ATTENTION_THRESHOLD
         ),
-        [grid]
+        [classStats]
     );
 
-    // ---------- absent regulars (relative to today, not the viewed week) ----------
+    // ---------- absent regulars (relative to today, not the viewed window) ----------
 
     useEffect(() => {
         const computeDrifted = async () => {
@@ -258,11 +304,10 @@ export default function AttendanceOverviewPage() {
                                 locCounts.set(cls.location_id, (locCounts.get(cls.location_id) || 0) + 1);
                             }
                         });
-                        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                         const usualDays = [...dayCounts.entries()]
                             .sort((a, b) => b[1] - a[1])
                             .slice(0, 2)
-                            .map(([d]) => dayNames[d])
+                            .map(([d]) => DAY_ABBREV[d])
                             .join(' & ');
                         const locationId = [...locCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || '';
                         driftedIds.push(userId);
@@ -368,31 +413,22 @@ export default function AttendanceOverviewPage() {
 
     // ---------- render helpers ----------
 
-    const formatWeekLabel = () => {
-        const end = addDays(weekStart, 6);
-        const sameMonth = weekStart.getMonth() === end.getMonth();
-        const startLabel = weekStart.toLocaleDateString('en-GB', { day: 'numeric', month: sameMonth ? undefined : 'short' });
-        const endLabel = end.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-        return `${startLabel} – ${endLabel}`;
-    };
+    const isCurrentWindow = toLocalDateString(mondayOf(new Date())) === toLocalDateString(windowMonday);
 
-    const isCurrentWeek = toLocalDateString(mondayOf(new Date())) === toLocalDateString(weekStart);
-
-    const Sparkline = ({ values }: { values: number[] }) => {
-        const w = 96, h = 28, pad = 3;
-        const max = Math.max(...values, 1);
-        const pts = values.map((v, i) => ({
-            x: pad + (i * (w - pad * 2)) / (values.length - 1),
-            y: h - pad - (v / max) * (h - pad * 2),
-        }));
-        const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-        const last = pts[pts.length - 1];
-        return (
-            <svg width={w} height={h} role="img" aria-label={`Last ${values.length} weeks: ${values.join(', ')}`}>
-                <path d={d} fill="none" stroke="var(--color-gold-dark)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx={last.x} cy={last.y} r="3" fill="var(--color-gold-dark)" />
-            </svg>
-        );
+    const columnHeader = (monday: Date, isNewest: boolean) => {
+        if (singleDow !== null) {
+            const date = toLocalDateString(addDays(monday, (singleDow + 6) % 7));
+            return {
+                top: DAY_ABBREV[singleDow],
+                bottom: shortDate(date),
+                isCurrent: isNewest && isCurrentWindow,
+            };
+        }
+        return {
+            top: isNewest && isCurrentWindow ? 'This week' : 'Week of',
+            bottom: shortDate(toLocalDateString(monday)),
+            isCurrent: isNewest && isCurrentWindow,
+        };
     };
 
     const Trend = ({ pct }: { pct: number | null }) => {
@@ -411,13 +447,74 @@ export default function AttendanceOverviewPage() {
         );
     };
 
+    const SessionCellView = ({ cell, cls, showDate }: { cell: SessionCell; cls: ClassRow; showDate: boolean }) => {
+        if (!cell.isPast) {
+            return (
+                <div>
+                    <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)' }}>–</span>
+                    {showDate && (
+                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>{shortDate(cell.date)}</div>
+                    )}
+                </div>
+            );
+        }
+        return (
+            <div>
+                <Link
+                    href={`/admin/class-roster?classId=${cls.id}&date=${cell.date}`}
+                    title={`Open roster for ${cls.name} on ${shortDate(cell.date)}`}
+                    style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: '38px',
+                        height: '32px',
+                        padding: '0 var(--space-2)',
+                        borderRadius: 'var(--radius-md)',
+                        fontWeight: 700,
+                        fontSize: 'var(--text-sm)',
+                        color: cell.count === 0 ? 'var(--color-gold-dark)' : 'var(--text-primary)',
+                        background: cell.count === 0 ? 'rgba(197, 164, 86, 0.15)' : 'var(--bg-secondary)',
+                        textDecoration: 'none',
+                    }}
+                >
+                    {cell.count}
+                </Link>
+                {showDate && (
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginTop: '2px' }}>{shortDate(cell.date)}</div>
+                )}
+            </div>
+        );
+    };
+
+    const renderClassRow = (stats: ClassStats, showLocationInName: boolean, isLast: boolean) => (
+        <tr key={stats.cls.id} style={{ borderBottom: isLast ? 'none' : '1px solid var(--border-light)' }}>
+            <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+                <p style={{ fontWeight: 600, margin: 0, fontSize: 'var(--text-sm)' }}>{stats.cls.name}</p>
+                <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
+                    {showLocationInName
+                        ? `${DAY_ABBREV[stats.cls.day_of_week]} ${stats.cls.start_time.slice(0, 5)}`
+                        : stats.cls.start_time.slice(0, 5)}
+                </p>
+            </td>
+            {stats.sessions.map((cell, i) => (
+                <td key={i} style={{ textAlign: 'center', padding: 'var(--space-2)' }}>
+                    <SessionCellView cell={cell} cls={stats.cls} showDate={singleDow === null} />
+                </td>
+            ))}
+            <td style={{ textAlign: 'center', padding: 'var(--space-2) var(--space-4)' }}>
+                <Trend pct={stats.trendPct} />
+            </td>
+        </tr>
+    );
+
     // ---------- page ----------
 
     return (
         <div>
             <div className="dashboard-header">
                 <h1 className="dashboard-title">Attendance Overview</h1>
-                <p className="dashboard-subtitle">Attendance by location and class, week by week</p>
+                <p className="dashboard-subtitle">The last {SESSION_COLS} sessions for every class, by location</p>
             </div>
 
             {error && (
@@ -427,7 +524,7 @@ export default function AttendanceOverviewPage() {
                 </div>
             )}
 
-            {/* Filters: location chips + week stepper */}
+            {/* Filters: location chips + window stepper */}
             <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -443,30 +540,38 @@ export default function AttendanceOverviewPage() {
                     >
                         All locations
                     </button>
-                    {locations.map(loc => (
-                        <button
-                            key={loc.id}
-                            className={`btn btn-sm ${selectedLocation === loc.id ? 'btn-primary' : 'btn-ghost'}`}
-                            onClick={() => setSelectedLocation(loc.id)}
-                        >
-                            <MapPin size={14} />
-                            {loc.name}
-                        </button>
-                    ))}
+                    {locations.map(loc => {
+                        const days = locationDays(loc.id);
+                        return (
+                            <button
+                                key={loc.id}
+                                className={`btn btn-sm ${selectedLocation === loc.id ? 'btn-primary' : 'btn-ghost'}`}
+                                onClick={() => setSelectedLocation(loc.id)}
+                            >
+                                <MapPin size={14} />
+                                {loc.name}
+                                {days.length === 1 && (
+                                    <span style={{ opacity: 0.7 }}>· {DAY_ABBREV[days[0]]}</span>
+                                )}
+                            </button>
+                        );
+                    })}
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                    <button className="btn btn-ghost btn-icon" onClick={() => setWeekStart(addDays(weekStart, -7))} aria-label="Previous week">
+                    <button className="btn btn-ghost btn-icon" onClick={() => setWindowMonday(addDays(windowMonday, -7))} aria-label="Earlier sessions">
                         <ChevronLeft size={18} />
                     </button>
-                    <span style={{ fontWeight: 600, minWidth: '170px', textAlign: 'center' }}>
-                        {isCurrentWeek ? 'This week' : formatWeekLabel()}
+                    <span style={{ fontWeight: 600, minWidth: '150px', textAlign: 'center', fontSize: 'var(--text-sm)' }}>
+                        {isCurrentWindow
+                            ? `Last ${SESSION_COLS} sessions`
+                            : `To ${shortDate(toLocalDateString(addDays(windowMonday, 6)))}`}
                     </span>
-                    <button className="btn btn-ghost btn-icon" onClick={() => setWeekStart(addDays(weekStart, 7))} aria-label="Next week">
+                    <button className="btn btn-ghost btn-icon" onClick={() => setWindowMonday(addDays(windowMonday, 7))} aria-label="Later sessions">
                         <ChevronRight size={18} />
                     </button>
-                    {!isCurrentWeek && (
-                        <button className="btn btn-ghost btn-sm" onClick={() => setWeekStart(mondayOf(new Date()))}>
+                    {!isCurrentWindow && (
+                        <button className="btn btn-ghost btn-sm" onClick={() => setWindowMonday(mondayOf(new Date()))}>
                             Today
                         </button>
                     )}
@@ -487,18 +592,18 @@ export default function AttendanceOverviewPage() {
                             <TrendingDown size={20} style={{ flexShrink: 0, marginTop: '2px' }} />
                             <div>
                                 <strong>Needs attention:</strong>{' '}
-                                {needsAttention.map((g, i) => (
-                                    <span key={g.cls.id}>
+                                {needsAttention.map((s, i) => (
+                                    <span key={s.cls.id}>
                                         {i > 0 && ', '}
-                                        {g.cls.name} ({locationName(g.cls.location_id)}) — {g.weekTotal} vs usual ~{Math.round(g.avg4!)}
+                                        {s.cls.name} ({locationName(s.cls.location_id)}) — last session {s.latest} vs usual ~{Math.round(s.avg!)}
                                     </span>
                                 ))}
                             </div>
                         </div>
                     )}
 
-                    {/* Week grid */}
-                    {grid.length === 0 ? (
+                    {/* Session grid */}
+                    {classStats.length === 0 ? (
                         <div className="glass-card" style={{ textAlign: 'center', padding: 'var(--space-10)', marginBottom: 'var(--space-8)' }}>
                             <CheckCircle size={40} color="var(--text-tertiary)" style={{ margin: '0 auto var(--space-3)' }} />
                             <h3 style={{ marginBottom: 'var(--space-2)' }}>No classes at this location</h3>
@@ -509,78 +614,52 @@ export default function AttendanceOverviewPage() {
                     ) : (
                         <div className="card" style={{ marginBottom: 'var(--space-8)' }}>
                             <div className="card-body" style={{ padding: 0, overflowX: 'auto' }}>
-                                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '760px' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
                                     <thead>
                                         <tr style={{ borderBottom: '2px solid var(--border-light)' }}>
                                             <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>Class</th>
-                                            {DAY_LABELS.map((d, i) => (
-                                                <th key={d} style={{
-                                                    padding: 'var(--space-3) var(--space-2)',
-                                                    fontSize: 'var(--text-sm)',
-                                                    color: weekDates[i] === todayStr ? 'var(--color-gold-dark)' : 'var(--text-secondary)',
-                                                    fontWeight: weekDates[i] === todayStr ? 700 : 500,
-                                                    textAlign: 'center',
-                                                    minWidth: '52px',
-                                                }}>
-                                                    {d}
-                                                    <div style={{ fontSize: 'var(--text-xs)', fontWeight: 400 }}>
-                                                        {new Date(weekDates[i] + 'T12:00:00').getDate()}
-                                                    </div>
-                                                </th>
-                                            ))}
-                                            <th style={{ textAlign: 'center', padding: 'var(--space-3) var(--space-2)', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>Week</th>
-                                            <th style={{ textAlign: 'center', padding: 'var(--space-3) var(--space-2)', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>vs 4-wk avg</th>
-                                            <th style={{ textAlign: 'center', padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{HISTORY_WEEKS} weeks</th>
+                                            {weekMondays.map((monday, i) => {
+                                                const h = columnHeader(monday, i === weekMondays.length - 1);
+                                                return (
+                                                    <th key={i} style={{
+                                                        padding: 'var(--space-3) var(--space-2)',
+                                                        fontSize: 'var(--text-sm)',
+                                                        color: h.isCurrent ? 'var(--color-gold-dark)' : 'var(--text-secondary)',
+                                                        fontWeight: h.isCurrent ? 700 : 500,
+                                                        textAlign: 'center',
+                                                        minWidth: '64px',
+                                                    }}>
+                                                        {h.top}
+                                                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 400 }}>{h.bottom}</div>
+                                                    </th>
+                                                );
+                                            })}
+                                            <th style={{ textAlign: 'center', padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                                                vs {TREND_SESSIONS}-session avg
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {grid.map(({ cls, cells, weekTotal, trendPct, spark }, rowIdx) => (
-                                            <tr key={cls.id} style={{ borderBottom: rowIdx < grid.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
-                                                <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-                                                    <p style={{ fontWeight: 600, margin: 0, fontSize: 'var(--text-sm)' }}>{cls.name}</p>
-                                                    {selectedLocation === 'all' && (
-                                                        <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
-                                                            {locationName(cls.location_id)} · {cls.start_time.slice(0, 5)}
-                                                        </p>
-                                                    )}
-                                                </td>
-                                                {cells.map((cell, i) => (
-                                                    <td key={i} style={{ textAlign: 'center', padding: 'var(--space-2)' }}>
-                                                        {!cell.runs ? (
-                                                            <span style={{ color: 'var(--border-medium)' }}>·</span>
-                                                        ) : !cell.isPast ? (
-                                                            <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)' }}>–</span>
-                                                        ) : (
-                                                            <Link
-                                                                href={`/admin/class-roster?classId=${cls.id}&date=${cell.date}`}
-                                                                title={`Open roster for ${cls.name} on ${cell.date}`}
-                                                                style={{
-                                                                    display: 'inline-flex',
-                                                                    alignItems: 'center',
-                                                                    justifyContent: 'center',
-                                                                    minWidth: '36px',
-                                                                    height: '32px',
-                                                                    padding: '0 var(--space-2)',
-                                                                    borderRadius: 'var(--radius-md)',
-                                                                    fontWeight: 700,
-                                                                    fontSize: 'var(--text-sm)',
-                                                                    color: cell.count === 0 ? 'var(--color-gold-dark)' : 'var(--text-primary)',
-                                                                    background: cell.count === 0 ? 'rgba(197, 164, 86, 0.15)' : 'var(--bg-secondary)',
-                                                                    textDecoration: 'none',
-                                                                }}
-                                                            >
-                                                                {cell.count}
-                                                            </Link>
-                                                        )}
-                                                    </td>
-                                                ))}
-                                                <td style={{ textAlign: 'center', fontWeight: 700 }}>{weekTotal}</td>
-                                                <td style={{ textAlign: 'center' }}><Trend pct={trendPct} /></td>
-                                                <td style={{ textAlign: 'center', padding: 'var(--space-2) var(--space-4)' }}>
-                                                    <Sparkline values={spark} />
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {selectedLocation === 'all' ? (
+                                            groups.map(group => (
+                                                <Fragment key={group.locId}>
+                                                    <tr style={{ background: 'var(--bg-secondary)' }}>
+                                                        <td colSpan={SESSION_COLS + 2} style={{
+                                                            padding: 'var(--space-2) var(--space-4)',
+                                                            fontSize: 'var(--text-sm)',
+                                                            fontWeight: 700,
+                                                            color: 'var(--text-secondary)',
+                                                        }}>
+                                                            {group.name}
+                                                            <span style={{ fontWeight: 400 }}> — {group.dayLabel}</span>
+                                                        </td>
+                                                    </tr>
+                                                    {group.rows.map((s, i) => renderClassRow(s, true, i === group.rows.length - 1))}
+                                                </Fragment>
+                                            ))
+                                        ) : (
+                                            classStats.map((s, i) => renderClassRow(s, false, i === classStats.length - 1))
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -635,8 +714,7 @@ export default function AttendanceOverviewPage() {
                                                     {m.isChild && <span className="badge badge-gray" style={{ marginLeft: 'var(--space-2)' }}>Child</span>}
                                                 </p>
                                                 <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-                                                    {m.locationName} · usually {m.usualDays || '—'} · last seen{' '}
-                                                    {new Date(m.lastSeen + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                                    {m.locationName} · usually {m.usualDays || '—'} · last seen {shortDate(m.lastSeen)}
                                                 </p>
                                             </div>
                                         </div>
