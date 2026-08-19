@@ -25,6 +25,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://sportofkings.info'),
   title: "Sport of Kings - Seerat Un Nabi | BJJ & Martial Arts Manchester",
   description: "Professional martial arts instruction in Manchester UK. Join us for Brazilian Jiu-Jitsu classes. Reviving the Sunnah through sports excellence.",
   keywords: ["BJJ", "Brazilian Jiu-Jitsu", "martial arts", "Manchester", "Islamic", "Sunnah", "fitness"],
@@ -43,6 +44,9 @@ export const metadata: Metadata = {
     description: "Professional martial arts instruction in Manchester. Brazilian Jiu-Jitsu and more.",
     type: "website",
     locale: "en_GB",
+  },
+  twitter: {
+    card: "summary_large_image",
   },
   icons: {
     icon: '/favicon.jpg',
