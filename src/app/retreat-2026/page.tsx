@@ -140,7 +140,7 @@ export default function Retreat2026Page() {
                             This is the one you&apos;ve been <em>waiting for</em>.
                         </h2>
                         <p className="rt26-lead">
-                            Four days in the stillness of the Atlas Mountains. Train hard, eat well,
+                            Three nights in the stillness of the Atlas Mountains. Train hard, eat well,
                             swim under the open sky — then gather for zikr as the sun sets behind the
                             peaks. The Suhba Retreat is built to strengthen both <strong>body and
                             soul</strong>: resilience on the mats, brotherhood at the table, and faith
@@ -252,7 +252,7 @@ export default function Retreat2026Page() {
                                 </p>
                                 <p className="rt26-body">
                                     No phones demanding attention. No schedule but the adhan and the
-                                    programme. Four days that leave you stronger than they found you.
+                                    programme. Three nights that leave you stronger than they found you.
                                 </p>
                             </div>
                         </div>
@@ -370,6 +370,7 @@ export default function Retreat2026Page() {
                     display: flex;
                     align-items: center;
                     isolation: isolate;
+                    overflow: hidden; /* clip the slow-zoom background to the hero */
                 }
                 .rt26-hero-bg {
                     position: absolute;
@@ -388,8 +389,12 @@ export default function Retreat2026Page() {
                     position: absolute;
                     inset: 0;
                     z-index: -1;
+                    /* Two layers: an even darkening for text contrast, plus a separate
+                       white fade at the bottom — keeps the photo consistently dark all
+                       the way down instead of brightening just before the page starts */
                     background:
-                        linear-gradient(to bottom, rgba(10, 20, 15, 0.55) 0%, rgba(10, 20, 15, 0.45) 62%, rgba(10, 20, 15, 0.15) 86%, var(--bg-primary) 100%);
+                        linear-gradient(to bottom, rgba(255, 255, 255, 0) 72%, var(--bg-primary) 97%),
+                        linear-gradient(to bottom, rgba(10, 20, 15, 0.55) 0%, rgba(10, 20, 15, 0.42) 100%);
                 }
                 .rt26-hero-content {
                     width: 100%;
