@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { Menu, X, User, LogOut, Home, Info, Award, Calendar, Crown, ChevronRight, HelpCircle, Heart } from 'lucide-react';
+import { Menu, X, User, LogOut, Home, Info, Award, Calendar, Crown, ChevronRight, HelpCircle, Heart, Mountain } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
 
@@ -54,6 +54,7 @@ export default function Navbar({ user }: NavbarProps) {
         { href: '/about', label: 'About Us', icon: Info },
         { href: '/classes', label: 'BJJ Classes', icon: Award },
         { href: '/events', label: 'Events', icon: Calendar },
+        { href: '/retreat-2026', label: 'Retreat 2026', icon: Mountain, highlight: true },
         { href: '/faq', label: 'FAQ', icon: HelpCircle },
         { href: '/donate', label: 'Donate', icon: Heart, highlight: true },
     ];

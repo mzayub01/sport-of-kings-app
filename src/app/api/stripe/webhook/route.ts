@@ -5,9 +5,11 @@ import { sendEmail } from '@/lib/email';
 import {
     renderMembershipActivatedEmail,
     renderEventConfirmationEmail,
+    renderRetreatConfirmationEmail,
     renderPaymentFailedEmail,
     renderWelcomeEmail,
 } from '@/lib/email-templates';
+import { RETREAT } from '@/lib/retreat';
 import { renderEmailFromDatabase } from '@/lib/email-templates-db';
 import Stripe from 'stripe';
 
@@ -46,8 +48,54 @@ export async function POST(request: NextRequest) {
         const session = event.data.object as Stripe.Checkout.Session;
         const metadata = session.metadata || {};
 
+        // Retreat registration payment
+        if (metadata.type === 'retreat') {
+            const registrationId = metadata.registrationId;
+            console.log('Processing retreat payment for registration:', registrationId);
+
+            const supabase = await createAdminClient();
+
+            const { data: registration, error: regError } = await supabase
+                .from('retreat_registrations')
+                .update({
+                    status: 'paid',
+                    stripe_payment_intent_id: session.payment_intent as string,
+                })
+                .eq('id', registrationId)
+                .select('lead_name, lead_email, adults, children_10_15, children_under_10, total_amount')
+                .single();
+
+            if (regError || !registration) {
+                console.error('Error marking retreat registration paid:', regError);
+            } else {
+                // Send confirmation email to the lead booker
+                try {
+                    const parts: string[] = [];
+                    if (registration.adults > 0) parts.push(`${registration.adults} adult${registration.adults > 1 ? 's' : ''}`);
+                    if (registration.children_10_15 > 0) parts.push(`${registration.children_10_15} child${registration.children_10_15 > 1 ? 'ren' : ''} (10–15)`);
+                    if (registration.children_under_10 > 0) parts.push(`${registration.children_under_10} child${registration.children_under_10 > 1 ? 'ren' : ''} (under 10)`);
+
+                    const html = renderRetreatConfirmationEmail({
+                        firstName: registration.lead_name?.split(' ')[0] || 'Brother',
+                        partySummary: parts.join(', '),
+                        amountPaid: `£${(registration.total_amount / 100).toLocaleString('en-GB')}`,
+                        dates: RETREAT.dates,
+                        location: RETREAT.location,
+                    });
+
+                    await sendEmail({
+                        to: registration.lead_email,
+                        subject: 'Confirmed: Your place on the Suhba Retreat 2026 🏔️',
+                        html,
+                    });
+                    console.log('Retreat confirmation email sent to:', registration.lead_email);
+                } catch (emailErr) {
+                    console.error('Failed to send retreat confirmation email:', emailErr);
+                }
+            }
+        }
         // Check if this is an event payment
-        if (metadata.type === 'event') {
+        else if (metadata.type === 'event') {
             const { eventId, userId, userName, userEmail, userPhone } = metadata;
 
             console.log('Processing event payment for event:', eventId);

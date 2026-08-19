@@ -11,7 +11,9 @@ import {
   Star,
   MapPin,
   Clock,
-  Swords
+  Swords,
+  Mountain,
+  Flame
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -80,6 +82,64 @@ export default async function HomePage() {
       <Navbar user={user ? { id: user.id, email: user.email! } : null} />
 
       <main>
+        {/* Retreat 2026 Banner */}
+        <section
+          style={{
+            background: 'linear-gradient(120deg, #0c1a13 0%, #17301f 55%, #1B4332 100%)',
+            borderBottom: '1px solid rgba(197, 164, 86, 0.4)',
+            padding: 'var(--space-4) 0',
+          }}
+        >
+          <div
+            className="container"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 'var(--space-3)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: 'var(--radius-full)',
+                background: 'var(--color-gold-gradient)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <Mountain size={22} color="var(--color-black)" />
+              </div>
+              <div>
+                <p style={{
+                  margin: 0,
+                  fontSize: 'var(--text-xs)',
+                  letterSpacing: '0.18em',
+                  textTransform: 'uppercase',
+                  color: 'var(--color-gold)',
+                  fontWeight: 700,
+                }}>
+                  Suhba Retreat 2026 · Marrakech
+                </p>
+                <p style={{ margin: '2px 0 0', color: 'var(--color-white)', fontWeight: 600 }}>
+                  BJJ, archery &amp; brotherhood in the Atlas Mountains — 8–11 October
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/retreat-2026"
+              className="btn btn-primary"
+              style={{ borderRadius: '999px', flexShrink: 0 }}
+            >
+              <Flame size={16} />
+              Secure your place
+            </Link>
+          </div>
+        </section>
+
         {/* Hero Section */}
         <section className="hero" style={{ minHeight: '90vh', display: 'flex', alignItems: 'center' }}>
           <div className="hero-content animate-slide-up">

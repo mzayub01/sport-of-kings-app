@@ -31,7 +31,8 @@ import {
     Receipt,
     Tag,
     Mail,
-    BarChart3
+    BarChart3,
+    Mountain
 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -140,6 +141,7 @@ export default function DashboardSidebar({ role, userRole, userName = 'Member', 
         { href: '/admin/attendance', label: 'Attendance', icon: CheckCircle },
         { href: '/admin/videos', label: 'Videos', icon: Video },
         { href: '/admin/events', label: 'Events', icon: PartyPopper },
+        { href: '/admin/retreat', label: 'Retreat 2026', icon: Mountain },
         { href: '/admin/naseeha', label: 'Naseeha', icon: BookOpen },
         { href: '/admin/announcements', label: 'Announcements', icon: Bell },
         { href: '/admin/email-templates', label: 'Email Templates', icon: Mail },
