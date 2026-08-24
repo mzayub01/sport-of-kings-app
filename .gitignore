@@ -41,3 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# retreat promo video workspace (large media, local only)
+/retreatpromo/
