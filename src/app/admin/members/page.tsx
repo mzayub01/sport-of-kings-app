@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, User, Mail, Phone, Award, Shield, Edit, ChevronDown, AlertCircle, CheckCircle, XCircle, Calendar, MapPin, Filter, ClipboardList, Plus, Loader2, Eye, EyeOff, X, Info, ChevronUp, Trash2, Download, Send } from 'lucide-react';
+import { Search, User, Mail, Phone, Award, Shield, Edit, ChevronDown, AlertCircle, CheckCircle, XCircle, Calendar, MapPin, Filter, ClipboardList, Plus, Loader2, Eye, EyeOff, X, Info, ChevronUp, Trash2, Download, Send, MailPlus } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import type { Location, MembershipType } from '@/lib/types';
 import MemberAttendanceModal from '@/components/admin/MemberAttendanceModal';
@@ -325,6 +325,33 @@ export default function AdminMembersPage() {
             case 'instructor': return 'badge-gold';
             case 'professor': return 'badge-blue';
             default: return 'badge-gray';
+        }
+    };
+
+    const [sendingStartId, setSendingStartId] = useState<string | null>(null);
+
+    const sendGettingStarted = async (member: Member) => {
+        const to = member.is_child && member.guardian_email ? member.guardian_email : member.email;
+        if (!confirm(`Send the Getting Started email (class times, first class date, Gi order form, etiquette) for ${member.first_name} ${member.last_name} to ${to}?`)) return;
+        setSendingStartId(member.id);
+        setError('');
+        setSuccess('');
+        try {
+            const response = await fetch('/api/admin/send-getting-started', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: member.user_id }),
+            });
+            const data = await response.json();
+            if (data.success) {
+                setSuccess(data.message || `Getting started email sent for ${member.first_name} ${member.last_name}`);
+            } else {
+                setError(data.error || 'Failed to send getting started email');
+            }
+        } catch (err: any) {
+            setError(err.message || 'Failed to send getting started email');
+        } finally {
+            setSendingStartId(null);
         }
     };
 
@@ -709,6 +736,22 @@ export default function AdminMembersPage() {
                                         title="Edit Member"
                                     >
                                         <Edit size={18} />
+                                    </button>
+
+                                    {/* Send Getting Started Email */}
+                                    <button
+                                        onClick={() => sendGettingStarted(member)}
+                                        disabled={sendingStartId === member.id}
+                                        className="btn btn-ghost btn-sm"
+                                        style={{ color: 'var(--color-green)' }}
+                                        title="Send Getting Started Email (class times, Gi order, etiquette)"
+                                        aria-label={`Send getting started email to ${member.first_name} ${member.last_name}`}
+                                    >
+                                        {sendingStartId === member.id ? (
+                                            <Loader2 size={18} className="animate-spin" />
+                                        ) : (
+                                            <MailPlus size={18} />
+                                        )}
                                     </button>
 
                                     {/* Send Payment Reminder Button - only show if no active membership */}
