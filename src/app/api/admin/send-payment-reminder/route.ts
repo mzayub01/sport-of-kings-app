@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
         // Check if user is admin
         const { data: adminProfile } = await supabase
             .from('profiles')
-            .select('role')
+            .select('role, first_name, last_name')
             .eq('user_id', user.id)
             .single();
 
@@ -66,6 +66,14 @@ export async function POST(request: NextRequest) {
         }
 
         // Log the reminder sent
+        const adminDb = await createAdminClient();
+        await adminDb.from('member_email_log').insert({
+            user_id: userId,
+            email_type: 'payment_reminder',
+            sent_to: email,
+            sent_by: user.id,
+            sent_by_name: `${adminProfile.first_name || ''} ${adminProfile.last_name || ''}`.trim() || null,
+        });
         console.log(`Payment reminder sent to ${email} (user: ${userId}) by admin ${user.id}`);
 
         return NextResponse.json({

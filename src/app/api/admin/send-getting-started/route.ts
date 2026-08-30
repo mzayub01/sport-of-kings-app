@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
         }
         const { data: adminProfile } = await supabase
             .from('profiles')
-            .select('role')
+            .select('role, first_name, last_name')
             .eq('user_id', user.id)
             .single();
         if (adminProfile?.role !== 'admin') {
@@ -160,8 +160,25 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: result.error || 'Failed to send email' }, { status: 500 });
         }
 
+        const sentByName = `${adminProfile.first_name || ''} ${adminProfile.last_name || ''}`.trim() || null;
+        const { data: logRow } = await admin
+            .from('member_email_log')
+            .insert({
+                user_id: userId,
+                email_type: 'getting_started',
+                sent_to: recipientEmail,
+                sent_by: user.id,
+                sent_by_name: sentByName,
+            })
+            .select('sent_at, sent_by_name, sent_to')
+            .single();
+
         console.log(`Getting-started email sent to ${recipientEmail} (member ${userId}) by admin ${user.id}`);
-        return NextResponse.json({ success: true, message: `Getting started email sent to ${recipientEmail}` });
+        return NextResponse.json({
+            success: true,
+            message: `Getting started email sent to ${recipientEmail}`,
+            log: logRow || { sent_at: new Date().toISOString(), sent_by_name: sentByName, sent_to: recipientEmail },
+        });
     } catch (error) {
         console.error('Error sending getting-started email:', error);
         return NextResponse.json(

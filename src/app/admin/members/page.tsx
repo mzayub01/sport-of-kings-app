@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, User, Mail, Phone, Award, Shield, Edit, ChevronDown, AlertCircle, CheckCircle, XCircle, Calendar, MapPin, Filter, ClipboardList, Plus, Loader2, Eye, EyeOff, X, Info, ChevronUp, Trash2, Download, Send, MailPlus } from 'lucide-react';
+import { Search, User, Mail, Phone, Award, Shield, Edit, ChevronDown, AlertCircle, CheckCircle, XCircle, Calendar, MapPin, Filter, ClipboardList, Plus, Loader2, Eye, EyeOff, X, Info, ChevronUp, Trash2, Download, Send, MailPlus, MailCheck } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import type { Location, MembershipType } from '@/lib/types';
 import MemberAttendanceModal from '@/components/admin/MemberAttendanceModal';
@@ -30,6 +30,7 @@ interface Member {
     guardian_email?: string;
     profile_image_url?: string;
     created_at: string;
+    getting_started_log?: { sent_at: string; sent_by_name: string | null; sent_to: string };
     best_practice_accepted?: boolean;
     best_practice_accepted_at?: string;
     waiver_accepted?: boolean;
@@ -102,12 +103,14 @@ export default function AdminMembersPage() {
 
     const fetchData = async () => {
         try {
-            const [profilesRes, membershipsRes, locationsRes, typesRes, waitlistRes] = await Promise.all([
+            const [profilesRes, membershipsRes, locationsRes, typesRes, waitlistRes, emailLogRes] = await Promise.all([
                 supabase.from('profiles').select('*').order('created_at', { ascending: false }),
                 supabase.from('memberships').select('*, location:locations(name), membership_type:membership_types(name)'),
                 supabase.from('locations').select('*').eq('is_active', true).order('name'),
                 supabase.from('membership_types').select('*').eq('is_active', true).order('name'),
                 supabase.from('waitlist').select('user_id'),
+                supabase.from('member_email_log').select('user_id, sent_at, sent_by_name, sent_to')
+                    .eq('email_type', 'getting_started').order('sent_at', { ascending: false }),
             ]);
 
             if (profilesRes.error) throw profilesRes.error;
@@ -116,6 +119,12 @@ export default function AdminMembersPage() {
             const memberships = membershipsRes.data || [];
 
             const waitlistUserIds = new Set((waitlistRes.data || []).map((w: { user_id: string }) => w.user_id));
+
+            // Most recent getting-started email per member (list is newest first)
+            const gettingStartedByUser: Record<string, { sent_at: string; sent_by_name: string | null; sent_to: string }> = {};
+            (emailLogRes.data || []).forEach((row: any) => {
+                if (!gettingStartedByUser[row.user_id]) gettingStartedByUser[row.user_id] = row;
+            });
 
             // Create a map of profile IDs to emails for guardian lookup
             const profileIdToEmail: Record<string, string> = {};
@@ -131,6 +140,7 @@ export default function AdminMembersPage() {
                     ? profileIdToEmail[profile.parent_guardian_id]
                     : undefined,
                 isOnWaitlist: waitlistUserIds.has(profile.user_id),
+                getting_started_log: gettingStartedByUser[profile.user_id],
             }));
 
             setMembers(membersWithData);
@@ -332,7 +342,11 @@ export default function AdminMembersPage() {
 
     const sendGettingStarted = async (member: Member) => {
         const to = member.is_child && member.guardian_email ? member.guardian_email : member.email;
-        if (!confirm(`Send the Getting Started email (class times, first class date, Gi order form, etiquette) for ${member.first_name} ${member.last_name} to ${to}?`)) return;
+        const prior = member.getting_started_log;
+        const warning = prior
+            ? `\n\nALREADY SENT on ${new Date(prior.sent_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}${prior.sent_by_name ? ` by ${prior.sent_by_name}` : ''}. Send it again?`
+            : '';
+        if (!confirm(`Send the Getting Started email (class times, first class date, Gi order form, etiquette) for ${member.first_name} ${member.last_name} to ${to}?${warning}`)) return;
         setSendingStartId(member.id);
         setError('');
         setSuccess('');
@@ -345,6 +359,9 @@ export default function AdminMembersPage() {
             const data = await response.json();
             if (data.success) {
                 setSuccess(data.message || `Getting started email sent for ${member.first_name} ${member.last_name}`);
+                if (data.log) {
+                    setMembers(prev => prev.map(m => m.id === member.id ? { ...m, getting_started_log: data.log } : m));
+                }
             } else {
                 setError(data.error || 'Failed to send getting started email');
             }
@@ -696,6 +713,16 @@ export default function AdminMembersPage() {
                                                     {locName}
                                                 </span>
                                             ))}
+                                            {member.getting_started_log && (
+                                                <span
+                                                    className="badge badge-green"
+                                                    title={`Getting Started email sent to ${member.getting_started_log.sent_to}${member.getting_started_log.sent_by_name ? ` by ${member.getting_started_log.sent_by_name}` : ''}`}
+                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                                >
+                                                    <MailCheck size={10} />
+                                                    Getting started sent {new Date(member.getting_started_log.sent_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
 
@@ -743,12 +770,16 @@ export default function AdminMembersPage() {
                                         onClick={() => sendGettingStarted(member)}
                                         disabled={sendingStartId === member.id}
                                         className="btn btn-ghost btn-sm"
-                                        style={{ color: 'var(--color-green)' }}
-                                        title="Send Getting Started Email (class times, Gi order, etiquette)"
+                                        style={{ color: member.getting_started_log ? 'var(--text-tertiary)' : 'var(--color-green)' }}
+                                        title={member.getting_started_log
+                                            ? `Getting Started email already sent ${new Date(member.getting_started_log.sent_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}${member.getting_started_log.sent_by_name ? ` by ${member.getting_started_log.sent_by_name}` : ''} — click to send again`
+                                            : 'Send Getting Started Email (class times, Gi order, etiquette)'}
                                         aria-label={`Send getting started email to ${member.first_name} ${member.last_name}`}
                                     >
                                         {sendingStartId === member.id ? (
                                             <Loader2 size={18} className="animate-spin" />
+                                        ) : member.getting_started_log ? (
+                                            <MailCheck size={18} />
                                         ) : (
                                             <MailPlus size={18} />
                                         )}
