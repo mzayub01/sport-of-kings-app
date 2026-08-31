@@ -166,6 +166,37 @@ export default function AdminMembershipsPage() {
 
         try {
             if (editingMembership) {
+                // Cancelling via the edit modal must also cancel the Stripe
+                // subscription, same as the status dropdown
+                if (formData.status === 'cancelled' && editingMembership.status !== 'cancelled' && editingMembership.stripe_subscription_id) {
+                    if (!confirm(`Cancel ${editingMembership.profile?.first_name || 'this member'}'s membership AND their Stripe subscription? This stops their recurring payments and cannot be undone in Stripe.`)) {
+                        return;
+                    }
+                    const response = await fetch('/api/stripe/cancel', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            subscriptionId: editingMembership.stripe_subscription_id,
+                            membershipId: editingMembership.id,
+                        }),
+                    });
+                    const data = await response.json();
+                    if (!data.success) {
+                        setError(data.error || 'Failed to cancel the Stripe subscription — membership not changed.');
+                        return;
+                    }
+                    // Status is now cancelled; apply any location change separately
+                    const { error } = await supabase
+                        .from('memberships')
+                        .update({ location_id: formData.location_id })
+                        .eq('id', editingMembership.id);
+                    if (error) throw error;
+                    setSuccess('Membership and Stripe subscription cancelled.');
+                    setShowModal(false);
+                    fetchData();
+                    return;
+                }
+
                 const { error } = await supabase
                     .from('memberships')
                     .update({
@@ -211,6 +242,39 @@ export default function AdminMembershipsPage() {
     };
 
     const updateStatus = async (membershipId: string, newStatus: string) => {
+        const membership = memberships.find(m => m.id === membershipId);
+        setError('');
+        setSuccess('');
+
+        // Cancelling a membership with a live Stripe subscription must also
+        // cancel it in Stripe, otherwise the member keeps being billed
+        if (newStatus === 'cancelled' && membership?.stripe_subscription_id && membership.status !== 'cancelled') {
+            if (!confirm(`Cancel ${membership.profile?.first_name || 'this member'}'s membership AND their Stripe subscription? This stops their recurring payments and cannot be undone in Stripe.`)) {
+                fetchData(); // reset the dropdown back to the real status
+                return;
+            }
+            try {
+                const response = await fetch('/api/stripe/cancel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        subscriptionId: membership.stripe_subscription_id,
+                        membershipId,
+                    }),
+                });
+                const data = await response.json();
+                if (data.success) {
+                    setSuccess('Membership and Stripe subscription cancelled.');
+                } else {
+                    setError(data.error || 'Failed to cancel the Stripe subscription — status left unchanged.');
+                }
+            } catch (err: any) {
+                setError(err.message || 'Failed to cancel the Stripe subscription — status left unchanged.');
+            }
+            fetchData();
+            return;
+        }
+
         try {
             await supabase
                 .from('memberships')

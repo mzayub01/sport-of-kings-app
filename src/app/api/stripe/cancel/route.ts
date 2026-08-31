@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isStripeConfigured, getStripeClient } from '@/lib/stripe';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
     if (!isStripeConfigured()) {
@@ -19,6 +19,21 @@ export async function POST(request: NextRequest) {
     }
 
     try {
+        // Admin only — this endpoint can cancel any Stripe subscription
+        const authClient = await createClient();
+        const { data: { user } } = await authClient.auth.getUser();
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        const { data: adminProfile } = await authClient
+            .from('profiles')
+            .select('role')
+            .eq('user_id', user.id)
+            .single();
+        if (adminProfile?.role !== 'admin') {
+            return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+        }
+
         const { subscriptionId, membershipId } = await request.json();
 
         if (!subscriptionId) {
