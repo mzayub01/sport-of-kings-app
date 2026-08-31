@@ -60,6 +60,22 @@ export default function AdminMembershipsPage() {
     const [editingMembership, setEditingMembership] = useState<Membership | null>(null);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [reconciling, setReconciling] = useState(false);
+    const [reconcile, setReconcile] = useState<null | {
+        checked: number;
+        mismatches: {
+            subscriptionId: string;
+            stripeStatus: string;
+            amount: number | null;
+            interval: string;
+            customerEmail: string | null;
+            membershipId: string | null;
+            dbStatus: string | null;
+            memberName: string | null;
+            locationName: string | null;
+        }[];
+    }>(null);
+    const [cancellingSubId, setCancellingSubId] = useState<string | null>(null);
 
     const [formData, setFormData] = useState({
         user_id: '',
@@ -322,6 +338,57 @@ export default function AdminMembershipsPage() {
         }
     };
 
+    const runReconciliation = async () => {
+        setReconciling(true);
+        setError('');
+        setSuccess('');
+        setReconcile(null);
+        try {
+            const response = await fetch('/api/admin/stripe-reconcile');
+            const data = await response.json();
+            if (data.success) {
+                setReconcile({ checked: data.checked, mismatches: data.mismatches });
+            } else {
+                setError(data.error || 'Reconciliation failed');
+            }
+        } catch (err: any) {
+            setError(err.message || 'Reconciliation failed');
+        } finally {
+            setReconciling(false);
+        }
+    };
+
+    const cancelFromReconcile = async (row: { subscriptionId: string; membershipId: string | null; memberName: string | null; customerEmail: string | null }) => {
+        const who = row.memberName || row.customerEmail || row.subscriptionId;
+        if (!confirm(`Cancel Stripe subscription for ${who}? This stops their payments immediately.`)) return;
+        setCancellingSubId(row.subscriptionId);
+        setError('');
+        try {
+            const response = await fetch('/api/stripe/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    subscriptionId: row.subscriptionId,
+                    membershipId: row.membershipId,
+                }),
+            });
+            const data = await response.json();
+            if (data.success) {
+                setSuccess(`Stripe subscription cancelled for ${who}.`);
+                setReconcile(prev => prev
+                    ? { ...prev, mismatches: prev.mismatches.filter(m => m.subscriptionId !== row.subscriptionId) }
+                    : prev);
+                fetchData();
+            } else {
+                setError(data.error || 'Failed to cancel subscription');
+            }
+        } catch (err: any) {
+            setError(err.message || 'Failed to cancel subscription');
+        } finally {
+            setCancellingSubId(null);
+        }
+    };
+
     if (loading) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-12)' }}>
@@ -339,11 +406,64 @@ export default function AdminMembershipsPage() {
                         Manage member enrollments at locations
                     </p>
                 </div>
-                <button onClick={() => openModal()} className="btn btn-primary">
-                    <UserPlus size={18} />
-                    Add Membership
-                </button>
+                <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                    <button onClick={runReconciliation} disabled={reconciling} className="btn btn-secondary" title="Find Stripe subscriptions still billing for cancelled or missing memberships">
+                        <RefreshCw size={18} className={reconciling ? 'animate-spin' : undefined} />
+                        {reconciling ? 'Checking Stripe…' : 'Check Stripe sync'}
+                    </button>
+                    <button onClick={() => openModal()} className="btn btn-primary">
+                        <UserPlus size={18} />
+                        Add Membership
+                    </button>
+                </div>
             </div>
+
+            {reconcile && (
+                <div className="card" style={{ marginBottom: 'var(--space-6)', border: reconcile.mismatches.length > 0 ? '2px solid var(--color-red)' : '2px solid var(--color-green)' }}>
+                    <div className="card-body">
+                        {reconcile.mismatches.length === 0 ? (
+                            <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--color-green)', fontWeight: 600 }}>
+                                <CheckCircle size={20} />
+                                All {reconcile.checked} billing Stripe subscription{reconcile.checked === 1 ? '' : 's'} match the database — nothing to fix.
+                            </p>
+                        ) : (
+                            <>
+                                <p style={{ margin: '0 0 var(--space-4)', fontWeight: 600, color: 'var(--color-red)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                                    <AlertCircle size={20} />
+                                    {reconcile.mismatches.length} Stripe subscription{reconcile.mismatches.length === 1 ? ' is' : 's are'} still billing without an active membership (checked {reconcile.checked}):
+                                </p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                                    {reconcile.mismatches.map(row => (
+                                        <div key={row.subscriptionId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-3)', padding: 'var(--space-3)', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)' }}>
+                                            <div style={{ minWidth: '220px' }}>
+                                                <p style={{ fontWeight: 600, margin: 0 }}>
+                                                    {row.memberName || row.customerEmail || row.subscriptionId}
+                                                    {row.locationName && <span style={{ fontWeight: 400, color: 'var(--text-secondary)' }}> · {row.locationName}</span>}
+                                                </p>
+                                                <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                                                    {row.dbStatus ? `Membership ${row.dbStatus} in app` : 'No matching membership record'}
+                                                    {' · Stripe '}{row.stripeStatus}
+                                                    {row.amount != null && ` · £${(row.amount / 100).toFixed(2)}/${row.interval}`}
+                                                    {row.customerEmail && row.memberName ? ` · ${row.customerEmail}` : ''}
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => cancelFromReconcile(row)}
+                                                disabled={cancellingSubId === row.subscriptionId}
+                                                className="btn btn-sm"
+                                                style={{ background: 'var(--color-red)', color: 'white' }}
+                                            >
+                                                <Ban size={16} />
+                                                {cancellingSubId === row.subscriptionId ? 'Cancelling…' : 'Cancel in Stripe'}
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {error && (
                 <div className="alert alert-error" style={{ marginBottom: 'var(--space-4)' }}>
