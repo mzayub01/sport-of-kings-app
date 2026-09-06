@@ -298,6 +298,12 @@ export async function POST(request: NextRequest) {
             // Clean up profile and auth if membership fails
             await supabaseAdmin.from('profiles').delete().eq('user_id', childAuth.user.id);
             await supabaseAdmin.auth.admin.deleteUser(childAuth.user.id);
+            if (membershipError.message?.includes('MEMBERSHIP_TYPE_FULL')) {
+                return NextResponse.json(
+                    { error: 'This membership type is at capacity at this location. Please contact us to join the waiting list.', full: true },
+                    { status: 409 }
+                );
+            }
             return NextResponse.json(
                 { error: 'Failed to create membership', details: membershipError.message },
                 { status: 500 }

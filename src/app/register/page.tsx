@@ -206,6 +206,41 @@ function RegisterPageContent() {
         return Math.max(0, config.capacity - (config.current_count || 0));
     };
 
+    // The database enforces capacity atomically (enforce_membership_capacity
+    // trigger); this is what a rejected insert looks like from the client
+    const isCapacityError = (err: { message?: string } | null | undefined) =>
+        !!err?.message?.includes('MEMBERSHIP_TYPE_FULL');
+
+    // Put a newly registered user on the waiting list for the chosen type
+    const addToWaitlist = async (userId: string, membershipTypeId: string) => {
+        const { data: waitlistPosition } = await supabase
+            .from('waitlist')
+            .select('position')
+            .eq('location_id', locationId)
+            .eq('membership_type_id', membershipTypeId)
+            .order('position', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        const nextPosition = (waitlistPosition?.position || 0) + 1;
+
+        const { error: waitlistError } = await supabase
+            .from('waitlist')
+            .insert({
+                user_id: userId,
+                location_id: locationId,
+                membership_type_id: membershipTypeId,
+                position: nextPosition,
+            });
+
+        if (waitlistError) {
+            console.error('Waitlist error:', waitlistError);
+        }
+
+        router.push('/waitlist-confirmation');
+        router.refresh();
+    };
+
     const [formData, setFormData] = useState<FormData>({
         membershipType: 'adult',
         gender: '',
@@ -456,6 +491,10 @@ function RegisterPageContent() {
 
                         if (membershipError) {
                             console.error('Membership creation error:', membershipError);
+                            if (isCapacityError(membershipError)) {
+                                await addToWaitlist(authData.user.id, selectedMembershipTypeId);
+                                return;
+                            }
                         }
 
                         // Send welcome email (fire and forget - don't block registration)
@@ -531,6 +570,10 @@ function RegisterPageContent() {
                             // Redirect to Stripe Checkout
                             console.log('Redirecting to Stripe:', data.url);
                             window.location.href = data.url;
+                        } else if (data.full) {
+                            // Capacity was taken between page load and checkout
+                            await addToWaitlist(authData.user.id, selectedMembershipTypeId);
+                            return;
                         } else if (data.error) {
                             // Stripe returned an error - show it to user
                             console.error('Stripe checkout error:', data.error);
@@ -560,34 +603,7 @@ function RegisterPageContent() {
                         }
                     }
                 } else {
-                    // Add to waitlist with membership_type_id
-                    const { data: waitlistPosition } = await supabase
-                        .from('waitlist')
-                        .select('position')
-                        .eq('location_id', locationId)
-                        .eq('membership_type_id', selectedMembershipTypeId)
-                        .order('position', { ascending: false })
-                        .limit(1)
-                        .single();
-
-                    const nextPosition = (waitlistPosition?.position || 0) + 1;
-
-                    const { error: waitlistError } = await supabase
-                        .from('waitlist')
-                        .insert({
-                            user_id: authData.user.id,
-                            location_id: locationId,
-                            membership_type_id: selectedMembershipTypeId,
-                            position: nextPosition,
-                        });
-
-                    if (waitlistError) {
-                        console.error('Waitlist error:', waitlistError);
-                    }
-
-                    // Redirect to waitlist confirmation page
-                    router.push('/waitlist-confirmation');
-                    router.refresh();
+                    await addToWaitlist(authData.user.id, selectedMembershipTypeId);
                 }
             }
 

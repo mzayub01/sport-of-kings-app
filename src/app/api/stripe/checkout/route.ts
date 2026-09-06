@@ -36,8 +36,50 @@ export async function POST(request: NextRequest) {
 
         console.log('Stripe checkout: Creating session for user', userId, 'membership type', membershipTypeId);
 
-        // Get Stripe price ID from membership type using admin client to bypass RLS
         const supabase = await createAdminClient();
+
+        // Reserve the place BEFORE sending them to Stripe: a pending membership
+        // counts towards capacity, and the DB trigger refuses it if the type is
+        // full — so two people can no longer both pay for the last spot.
+        if (userId && locationId && membershipTypeId) {
+            const { data: existing } = await supabase
+                .from('memberships')
+                .select('id, status')
+                .eq('user_id', userId)
+                .eq('location_id', locationId)
+                .maybeSingle();
+
+            let holdError: { message?: string } | null = null;
+            if (!existing) {
+                const { error } = await supabase.from('memberships').insert({
+                    user_id: userId,
+                    location_id: locationId,
+                    membership_type_id: membershipTypeId,
+                    status: 'pending',
+                    start_date: new Date().toISOString().split('T')[0],
+                });
+                holdError = error;
+            } else if (existing.status !== 'active') {
+                const { error } = await supabase
+                    .from('memberships')
+                    .update({ status: 'pending', membership_type_id: membershipTypeId })
+                    .eq('id', existing.id);
+                holdError = error;
+            }
+
+            if (holdError) {
+                if (holdError.message?.includes('MEMBERSHIP_TYPE_FULL')) {
+                    return NextResponse.json(
+                        { error: 'Sorry — this membership type has just reached capacity. You can join the waiting list instead.', full: true, url: null },
+                        { status: 409 }
+                    );
+                }
+                console.error('Stripe checkout: could not reserve membership place:', holdError);
+                return NextResponse.json({ error: 'Could not reserve your place. Please try again.', url: null }, { status: 500 });
+            }
+        }
+
+        // Get Stripe price ID from membership type using admin client to bypass RLS
         const { data: membershipType, error: fetchError } = await supabase
             .from('membership_types')
             .select('stripe_price_id')

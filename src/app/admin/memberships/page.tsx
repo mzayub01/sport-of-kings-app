@@ -47,6 +47,15 @@ interface Member {
 
 const STATUS_OPTIONS = ['active', 'inactive', 'pending', 'cancelled', 'payment_failed'];
 
+// The DB trigger enforce_membership_capacity rejects rows that would exceed a
+// membership type's capacity; turn that into a readable admin message
+const friendlyError = (err: { message?: string } | null | undefined): string => {
+    if (err?.message?.includes('MEMBERSHIP_TYPE_FULL')) {
+        return 'That membership type is at capacity at this location. Raise its capacity in Membership Types first, or choose another type.';
+    }
+    return err?.message || 'Something went wrong';
+};
+
 export default function AdminMembershipsPage() {
     const [memberships, setMemberships] = useState<Membership[]>([]);
     const [locations, setLocations] = useState<Location[]>([]);
@@ -206,7 +215,7 @@ export default function AdminMembershipsPage() {
                         .from('memberships')
                         .update({ location_id: formData.location_id })
                         .eq('id', editingMembership.id);
-                    if (error) throw error;
+                    if (error) throw new Error(friendlyError(error));
                     setSuccess('Membership and Stripe subscription cancelled.');
                     setShowModal(false);
                     fetchData();
@@ -221,7 +230,7 @@ export default function AdminMembershipsPage() {
                     })
                     .eq('id', editingMembership.id);
 
-                if (error) throw error;
+                if (error) throw new Error(friendlyError(error));
                 setSuccess('Membership updated successfully!');
             } else {
                 // Check if membership already exists
@@ -246,7 +255,7 @@ export default function AdminMembershipsPage() {
                         start_date: new Date().toISOString().split('T')[0],
                     });
 
-                if (error) throw error;
+                if (error) throw new Error(friendlyError(error));
                 setSuccess('Membership created successfully!');
             }
 
@@ -291,15 +300,15 @@ export default function AdminMembershipsPage() {
             return;
         }
 
-        try {
-            await supabase
-                .from('memberships')
-                .update({ status: newStatus })
-                .eq('id', membershipId);
-            fetchData();
-        } catch (err) {
-            console.error('Error updating status:', err);
+        const { error: statusError } = await supabase
+            .from('memberships')
+            .update({ status: newStatus })
+            .eq('id', membershipId);
+        if (statusError) {
+            console.error('Error updating status:', statusError);
+            setError(friendlyError(statusError));
         }
+        fetchData();
     };
 
     const cancelSubscription = async (membership: Membership) => {
