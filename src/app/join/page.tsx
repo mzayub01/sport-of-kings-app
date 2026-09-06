@@ -17,9 +17,16 @@ interface Location {
     settings: { allow_waitlist?: boolean } | null;
 }
 
+interface TypeAvailability {
+    name: string;
+    state: 'spots' | 'unlimited' | 'full' | 'closed';
+    spots: number | null;
+}
+
 interface CapacityInfo {
     totalCapacity: number | null; // null means unlimited
     spotsRemaining: number;       // sum of spare places across membership types
+    types: TypeAvailability[];
 }
 
 export default function JoinPage() {
@@ -62,9 +69,11 @@ export default function JoinPage() {
             // Get active membership types for each location
             const { data: typesData } = await supabase
                 .from('membership_types')
-                .select('id, location_id')
+                .select('id, location_id, name, price')
                 .in('location_id', locationIds)
-                .eq('is_active', true);
+                .eq('is_active', true)
+                .or('is_multisite.is.null,is_multisite.eq.false')
+                .order('price');
 
             // Get current member counts per location (active/pending memberships)
             const { data: membershipData } = await supabase
@@ -81,39 +90,38 @@ export default function JoinPage() {
                 const locTypes = (typesData || []).filter(t => t.location_id === loc.id);
                 const locMemberships = (membershipData || []).filter(m => m.location_id === loc.id);
 
-                // If no configs exist, capacity is unlimited
-                if (locConfigs.length === 0) {
-                    capacityInfo[loc.id] = { totalCapacity: null, spotsRemaining: Infinity };
-                    continue;
-                }
-
                 // Spare places are worked out PER TYPE and then summed. Counting
                 // every membership at the location against the summed capacity
                 // let a closed or over-full type swallow the other types' places.
                 let totalCapacity = 0;
                 let spotsRemaining = 0;
                 let hasUnlimited = false;
+                const types: TypeAvailability[] = [];
 
                 for (const type of locTypes) {
                     const config = locConfigs.find(c => c.membership_type_id === type.id);
                     if (!config || config.capacity === null) {
                         // No config or null capacity = unlimited for this type
                         hasUnlimited = true;
+                        types.push({ name: type.name, state: 'unlimited', spots: null });
                         continue;
                     }
                     if (config.is_available === false || config.capacity === 0) {
                         // Closed type: contributes nothing either way
+                        types.push({ name: type.name, state: 'closed', spots: 0 });
                         continue;
                     }
                     const typeCount = locMemberships.filter(m => m.membership_type_id === type.id).length;
+                    const typeSpots = Math.max(0, config.capacity - typeCount);
                     totalCapacity += config.capacity;
-                    spotsRemaining += Math.max(0, config.capacity - typeCount);
+                    spotsRemaining += typeSpots;
+                    types.push({ name: type.name, state: typeSpots > 0 ? 'spots' : 'full', spots: typeSpots });
                 }
 
                 // If any type has unlimited capacity, the location is unlimited
                 capacityInfo[loc.id] = hasUnlimited
-                    ? { totalCapacity: null, spotsRemaining: Infinity }
-                    : { totalCapacity, spotsRemaining };
+                    ? { totalCapacity: null, spotsRemaining: Infinity, types }
+                    : { totalCapacity, spotsRemaining, types };
             }
 
             setCapacityMap(capacityInfo);
@@ -295,6 +303,47 @@ export default function JoinPage() {
                                     </p>
                                 )}
 
+                                {/* Availability by membership type */}
+                                {(capacityMap[location.id]?.types?.length ?? 0) > 0 && (
+                                    <div style={{
+                                        display: 'flex',
+                                        flexWrap: 'wrap',
+                                        gap: 'var(--space-2)',
+                                        marginBottom: 'var(--space-3)',
+                                    }}>
+                                        {capacityMap[location.id].types.map(t => {
+                                            const styles = t.state === 'spots' || t.state === 'unlimited'
+                                                ? { background: 'rgba(45, 125, 70, 0.10)', color: 'var(--color-green-dark)', border: '1px solid rgba(45, 125, 70, 0.35)' }
+                                                : t.state === 'full'
+                                                    ? { background: 'rgba(197, 164, 86, 0.14)', color: 'var(--color-gold-dark)', border: '1px solid rgba(197, 164, 86, 0.5)' }
+                                                    : { background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-light)' };
+                                            const text = t.state === 'spots'
+                                                ? `${t.spots} ${t.spots === 1 ? 'spot' : 'spots'}`
+                                                : t.state === 'unlimited'
+                                                    ? 'Available'
+                                                    : t.state === 'full' ? 'Full — waitlist' : 'Closed';
+                                            return (
+                                                <span
+                                                    key={t.name}
+                                                    style={{
+                                                        ...styles,
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '6px',
+                                                        padding: '3px 10px',
+                                                        borderRadius: 'var(--radius-full)',
+                                                        fontSize: 'var(--text-xs)',
+                                                        fontWeight: 600,
+                                                    }}
+                                                >
+                                                    {t.name}
+                                                    <span style={{ fontWeight: 500, opacity: 0.85 }}>· {text}</span>
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
                                 <div style={{
                                     display: 'flex',
                                     justifyContent: 'space-between',
@@ -322,7 +371,7 @@ export default function JoinPage() {
                                             fontSize: 'var(--text-sm)',
                                             fontWeight: '600',
                                         }}>
-                                            Register
+                                            {capacity.status === 'waitlist' ? 'Join waitlist' : 'Register'}
                                             <ChevronRight size={16} />
                                         </div>
                                     )}

@@ -1614,7 +1614,7 @@ function RegisterPageContent() {
                                                     }}>
                                                         {!typeHasCapacity ? (
                                                             <span className="badge badge-red">
-                                                                Full - Join Waitlist
+                                                                Full — you’ll join the waiting list
                                                             </span>
                                                         ) : remainingSpots !== null ? (
                                                             <span className="badge badge-green">
