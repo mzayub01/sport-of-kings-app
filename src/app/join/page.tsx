@@ -19,7 +19,7 @@ interface Location {
 
 interface CapacityInfo {
     totalCapacity: number | null; // null means unlimited
-    currentCount: number;
+    spotsRemaining: number;       // sum of spare places across membership types
 }
 
 export default function JoinPage() {
@@ -56,7 +56,7 @@ export default function JoinPage() {
             // Get all membership configs with their capacities
             const { data: configsData } = await supabase
                 .from('location_membership_configs')
-                .select('location_id, membership_type_id, capacity')
+                .select('location_id, membership_type_id, capacity, is_available')
                 .in('location_id', locationIds);
 
             // Get active membership types for each location
@@ -83,12 +83,15 @@ export default function JoinPage() {
 
                 // If no configs exist, capacity is unlimited
                 if (locConfigs.length === 0) {
-                    capacityInfo[loc.id] = { totalCapacity: null, currentCount: locMemberships.length };
+                    capacityInfo[loc.id] = { totalCapacity: null, spotsRemaining: Infinity };
                     continue;
                 }
 
-                // Calculate total capacity across all membership types at this location
-                let totalCapacity: number | null = 0;
+                // Spare places are worked out PER TYPE and then summed. Counting
+                // every membership at the location against the summed capacity
+                // let a closed or over-full type swallow the other types' places.
+                let totalCapacity = 0;
+                let spotsRemaining = 0;
                 let hasUnlimited = false;
 
                 for (const type of locTypes) {
@@ -96,20 +99,21 @@ export default function JoinPage() {
                     if (!config || config.capacity === null) {
                         // No config or null capacity = unlimited for this type
                         hasUnlimited = true;
-                    } else if (config.capacity === 0) {
-                        // Capacity 0 means no spots available (full/closed)
-                        // Don't add to total - this type has 0 spots
-                    } else {
-                        totalCapacity = (totalCapacity || 0) + config.capacity;
+                        continue;
                     }
+                    if (config.is_available === false || config.capacity === 0) {
+                        // Closed type: contributes nothing either way
+                        continue;
+                    }
+                    const typeCount = locMemberships.filter(m => m.membership_type_id === type.id).length;
+                    totalCapacity += config.capacity;
+                    spotsRemaining += Math.max(0, config.capacity - typeCount);
                 }
 
                 // If any type has unlimited capacity, the location is unlimited
-                if (hasUnlimited) {
-                    capacityInfo[loc.id] = { totalCapacity: null, currentCount: locMemberships.length };
-                } else {
-                    capacityInfo[loc.id] = { totalCapacity, currentCount: locMemberships.length };
-                }
+                capacityInfo[loc.id] = hasUnlimited
+                    ? { totalCapacity: null, spotsRemaining: Infinity }
+                    : { totalCapacity, spotsRemaining };
             }
 
             setCapacityMap(capacityInfo);
@@ -135,7 +139,7 @@ export default function JoinPage() {
             };
         }
 
-        const spotsRemaining = Math.max(0, info.totalCapacity - info.currentCount);
+        const spotsRemaining = Math.max(0, info.spotsRemaining);
 
         if (spotsRemaining > 0) {
             return {
