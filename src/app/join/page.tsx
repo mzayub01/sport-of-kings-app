@@ -306,39 +306,50 @@ export default function JoinPage() {
                                 {/* Availability by membership type */}
                                 {(capacityMap[location.id]?.types?.length ?? 0) > 0 && (
                                     <div style={{
-                                        display: 'flex',
-                                        flexWrap: 'wrap',
-                                        gap: 'var(--space-2)',
+                                        borderTop: '1px solid var(--border-light)',
                                         marginBottom: 'var(--space-3)',
                                     }}>
                                         {capacityMap[location.id].types.map(t => {
-                                            const styles = t.state === 'spots' || t.state === 'unlimited'
-                                                ? { background: 'rgba(45, 125, 70, 0.10)', color: 'var(--color-green-dark)', border: '1px solid rgba(45, 125, 70, 0.35)' }
-                                                : t.state === 'full'
-                                                    ? { background: 'rgba(197, 164, 86, 0.14)', color: 'var(--color-gold-dark)', border: '1px solid rgba(197, 164, 86, 0.5)' }
-                                                    : { background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-light)' };
+                                            const open = t.state === 'spots' || t.state === 'unlimited';
+                                            const color = open
+                                                ? 'var(--color-green)'
+                                                : t.state === 'full' ? 'var(--color-gold-dark)' : 'var(--text-tertiary)';
                                             const text = t.state === 'spots'
-                                                ? `${t.spots} ${t.spots === 1 ? 'spot' : 'spots'}`
+                                                ? `${t.spots} ${t.spots === 1 ? 'spot' : 'spots'} left`
                                                 : t.state === 'unlimited'
-                                                    ? 'Available'
+                                                    ? 'Spaces available'
                                                     : t.state === 'full' ? 'Full — waitlist' : 'Closed';
                                             return (
-                                                <span
+                                                <div
                                                     key={t.name}
                                                     style={{
-                                                        ...styles,
-                                                        display: 'inline-flex',
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
                                                         alignItems: 'center',
-                                                        gap: '6px',
-                                                        padding: '3px 10px',
-                                                        borderRadius: 'var(--radius-full)',
-                                                        fontSize: 'var(--text-xs)',
-                                                        fontWeight: 600,
+                                                        gap: 'var(--space-3)',
+                                                        padding: '7px 0',
+                                                        borderBottom: '1px solid var(--border-light)',
+                                                        fontSize: 'var(--text-sm)',
                                                     }}
                                                 >
-                                                    {t.name}
-                                                    <span style={{ fontWeight: 500, opacity: 0.85 }}>· {text}</span>
-                                                </span>
+                                                    <span style={{ color: open ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 500 }}>
+                                                        {t.name}
+                                                    </span>
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                                        <span
+                                                            aria-hidden="true"
+                                                            style={{
+                                                                width: '8px',
+                                                                height: '8px',
+                                                                borderRadius: '50%',
+                                                                background: color,
+                                                                boxShadow: open ? '0 0 0 3px rgba(45, 125, 70, 0.15)' : 'none',
+                                                                flexShrink: 0,
+                                                            }}
+                                                        />
+                                                        {text}
+                                                    </span>
+                                                </div>
                                             );
                                         })}
                                     </div>
@@ -349,7 +360,7 @@ export default function JoinPage() {
                                     justifyContent: 'space-between',
                                     alignItems: 'center',
                                     paddingTop: 'var(--space-3)',
-                                    borderTop: '1px solid var(--border-light)',
+                                    borderTop: (capacityMap[location.id]?.types?.length ?? 0) > 0 ? 'none' : '1px solid var(--border-light)',
                                 }}>
                                     <div style={{
                                         display: 'flex',
