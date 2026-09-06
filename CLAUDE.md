@@ -30,6 +30,10 @@ Supabase (RLS), Stripe, Resend. Styling: CSS variables + inline styles from
   Each location trains on exactly ONE day of the week.
 - **Class↔tier access**: `class_membership_types` junction; a class with no rows is open
   to every tier at its location.
+- **Capacity**: per (location + membership type) in `location_membership_configs`; counts
+  `active + pending`. Enforced atomically by the `enforce_membership_capacity` DB trigger — never
+  rely on client-side counts. `/api/stripe/checkout` creates a pending hold BEFORE Stripe;
+  a rejected insert carries `MEMBERSHIP_TYPE_FULL` in its message (route it to the waitlist).
 - **Admin API routes**: authenticate with the session client (`createClient`), check
   `profiles.role === 'admin'`, then use `createAdminClient()` (service role) for data.
   Never ship an unauthenticated route that can mutate Stripe or member data.
