@@ -209,6 +209,13 @@ export async function POST(request: NextRequest) {
                         });
                 }
 
+                // A waitlisted member who has now paid leaves the waitlist
+                await supabase
+                    .from('waitlist')
+                    .delete()
+                    .eq('user_id', userId)
+                    .eq('location_id', locationId);
+
                 // Update user's stripe_customer_id in profile
                 await supabase
                     .from('profiles')

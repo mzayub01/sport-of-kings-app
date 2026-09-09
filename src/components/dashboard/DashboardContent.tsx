@@ -32,6 +32,22 @@ interface ProfileData {
     created_at: string;
 }
 
+interface WaitlistItem {
+    id: string;
+    userId: string;
+    memberName: string | null;
+    locationId: string;
+    locationName: string;
+    membershipTypeId: string | null;
+    membershipType: string;
+    price: number;
+    status: 'waiting' | 'offered';
+    position: number;
+    offerExpiresAt: string | null;
+    joinedAt: string;
+    payerEmail: string;
+}
+
 interface MembershipData {
     status: string;
     location: { id: string; name: string } | null;
@@ -46,6 +62,8 @@ export default function DashboardContent() {
     const [profile, setProfile] = useState<ProfileData | null>(null);
     const [attendanceCount, setAttendanceCount] = useState(0);
     const [membership, setMembership] = useState<MembershipData | null>(null);
+    const [waitlistEntries, setWaitlistEntries] = useState<WaitlistItem[]>([]);
+    const [payingWaitlistId, setPayingWaitlistId] = useState<string | null>(null);
     const [announcements, setAnnouncements] = useState<{ id: string; title: string; message: string; created_at: string }[]>([]);
     const [showCheadleModal, setShowCheadleModal] = useState(false);
 
@@ -98,6 +116,15 @@ export default function DashboardContent() {
                 .single();
             setMembership(membershipData as MembershipData | null);
 
+            // Waitlist entries for this account (own + children), with live positions
+            try {
+                const res = await fetch('/api/waitlist/me');
+                const wl = await res.json();
+                setWaitlistEntries(Array.isArray(wl.entries) ? wl.entries : []);
+            } catch {
+                setWaitlistEntries([]);
+            }
+
             // Fetch announcements (same for all)
             const { data: announcementsData } = await supabase
                 .from('announcements')
@@ -142,8 +169,76 @@ export default function DashboardContent() {
                 </p>
             </div>
 
-            {/* Payment Incomplete Banner */}
-            {!membership && (
+            {/* Waitlist status (own + children) */}
+            {waitlistEntries.map(entry => {
+                const offered = entry.status === 'offered' && entry.offerExpiresAt;
+                const who = entry.memberName ? `${entry.memberName}'s` : 'your';
+                return (
+                    <div key={entry.id} className="card" style={{
+                        marginBottom: 'var(--space-4)',
+                        border: offered ? '2px solid var(--color-gold)' : '1px solid var(--border-light)',
+                        background: offered ? 'linear-gradient(135deg, rgba(197, 164, 86, 0.14), rgba(255, 255, 255, 0.9))' : undefined,
+                    }}>
+                        <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
+                            <div style={{
+                                width: '56px', height: '56px', borderRadius: 'var(--radius-full)', flexShrink: 0,
+                                background: offered ? 'var(--color-gold-gradient)' : 'var(--bg-secondary)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontWeight: 800, fontSize: 'var(--text-lg)', color: offered ? 'var(--color-black)' : 'var(--text-secondary)',
+                            }}>
+                                {offered ? <CheckCircle size={28} /> : `#${entry.position}`}
+                            </div>
+                            <div style={{ flex: 1, minWidth: '220px' }}>
+                                <h3 style={{ margin: '0 0 var(--space-1) 0', color: offered ? 'var(--color-gold-dark)' : undefined }}>
+                                    {offered ? `A place is ready for ${entry.memberName || 'you'}!` : `${entry.memberName || 'You'} ${entry.memberName ? 'is' : 'are'} #${entry.position} on the waitlist`}
+                                </h3>
+                                <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
+                                    {entry.membershipType} at {entry.locationName}
+                                    {offered
+                                        ? ` — accept and pay by ${new Date(entry.offerExpiresAt as string).toLocaleString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' })}, or the place goes to the next person.`
+                                        : ` · joined ${new Date(entry.joinedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}. We'll email you as soon as ${who} place opens up.`}
+                                </p>
+                            </div>
+                            {offered && (
+                                <button
+                                    className="btn btn-primary"
+                                    disabled={payingWaitlistId === entry.id}
+                                    style={{ flexShrink: 0 }}
+                                    onClick={async () => {
+                                        setPayingWaitlistId(entry.id);
+                                        try {
+                                            const res = await fetch('/api/stripe/checkout', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                    membershipTypeId: entry.membershipTypeId,
+                                                    membershipTypeName: entry.membershipType,
+                                                    price: entry.price,
+                                                    userId: entry.userId,
+                                                    locationId: entry.locationId,
+                                                    locationName: entry.locationName,
+                                                    userEmail: entry.payerEmail,
+                                                }),
+                                            });
+                                            const data = await res.json();
+                                            if (data.url) window.location.href = data.url;
+                                            else alert(data.error || 'Could not start payment — please contact us.');
+                                        } finally {
+                                            setPayingWaitlistId(null);
+                                        }
+                                    }}
+                                >
+                                    <CreditCard size={18} />
+                                    {payingWaitlistId === entry.id ? 'Opening checkout…' : 'Accept & pay'}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                );
+            })}
+
+            {/* Payment Incomplete Banner (not shown while on a waitlist) */}
+            {!membership && waitlistEntries.length === 0 && (
                 <div className="card" style={{
                     marginBottom: 'var(--space-6)',
                     background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(212, 175, 55, 0.1))',

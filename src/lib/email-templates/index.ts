@@ -5,6 +5,7 @@ export { WelcomeEmail, renderWelcomeEmail } from './welcome';
 export { EventConfirmationEmail, renderEventConfirmationEmail } from './event-confirmation';
 export { RetreatConfirmationEmail, renderRetreatConfirmationEmail } from './retreat-confirmation';
 export { GettingStartedEmail, renderGettingStartedEmail } from './getting-started';
+export { WaitlistJoinedEmail, WaitlistOfferEmail, WaitlistExpiredEmail, renderWaitlistJoinedEmail, renderWaitlistOfferEmail, renderWaitlistExpiredEmail } from './waitlist';
 export { MembershipActivatedEmail, renderMembershipActivatedEmail } from './membership-activated';
 export { PaymentFailedEmail, renderPaymentFailedEmail } from './payment-failed';
 export { BaseEmailLayout, baseStyles } from './base-layout';

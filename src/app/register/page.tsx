@@ -224,17 +224,26 @@ function RegisterPageContent() {
 
         const nextPosition = (waitlistPosition?.position || 0) + 1;
 
-        const { error: waitlistError } = await supabase
+        const { data: waitlistRow, error: waitlistError } = await supabase
             .from('waitlist')
             .insert({
                 user_id: userId,
                 location_id: locationId,
                 membership_type_id: membershipTypeId,
                 position: nextPosition,
-            });
+            })
+            .select('id')
+            .single();
 
         if (waitlistError) {
             console.error('Waitlist error:', waitlistError);
+        } else if (waitlistRow?.id) {
+            // "You're on the waitlist" email (fire and forget)
+            fetch('/api/waitlist/notify-joined', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ waitlistId: waitlistRow.id }),
+            }).catch(err => console.error('Waitlist email error:', err));
         }
 
         router.push('/waitlist-confirmation');
