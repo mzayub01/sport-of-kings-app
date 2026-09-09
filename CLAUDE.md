@@ -56,6 +56,11 @@ Supabase (RLS), Stripe, Resend. Styling: CSS variables + inline styles from
   (`/api/retreat/register`, prices/dates in `src/lib/retreat.ts`), capacity in
   `retreat_settings` (people not bookings; pending checkouts hold places 30 min),
   admin at `/admin/retreat`. Public availability API hides counts unless ≤12 remain.
+- **Waitlist**: lifecycle waiting → offered (pending membership holds the place, 72h to pay)
+  → paid (webhook removes entry) or expired (hold released, back of queue, join date kept).
+  Logic in `src/lib/waitlist-server.ts` (offerPlace / sweepWaitlist); the sweep runs on admin
+  waitlist load and member dashboard load — no cron. Never insert an active membership
+  from the waitlist directly; go through the offer route.
 - **Getting Started email**: Admin → Members envelope icon → `/api/admin/send-getting-started`;
   sends class times + Gi order form + etiquette; logged in `member_email_log` with a
   sent badge and repeat-send warning.
