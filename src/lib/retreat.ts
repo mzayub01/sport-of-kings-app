@@ -45,3 +45,18 @@ export function computeRetreatTotal(counts: { adults: number; children_10_15: nu
 export function formatPence(pence: number): string {
     return `£${(pence / 100).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
+
+// ---------------------------------------------------------------------------
+// Passport collection for the hotel
+// ---------------------------------------------------------------------------
+
+// Uploads close and every passport file is permanently deleted after this
+// date (YYYY-MM-DD, UK time). Shown to participants in the privacy notice.
+export const PASSPORT_PURGE_AFTER = '2026-10-25';
+export const PASSPORT_PURGE_LABEL = '25 October 2026';
+
+// The single link shared with all participants (e.g. in the WhatsApp group)
+export const PASSPORT_UPLOAD_PATH = '/retreat-2026/passports';
+
+// Default expiry offered when an admin creates a hotel access link
+export const HOTEL_ACCESS_DEFAULT_EXPIRY = '2026-10-12';

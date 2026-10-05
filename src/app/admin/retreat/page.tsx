@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Users, PoundSterling, Clock, Download, ChevronDown, ChevronUp, Mail, Phone, Mountain } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { RETREAT, CATEGORY_LABELS, formatPence, type RetreatAttendee } from '@/lib/retreat';
+import RetreatPassports from '@/components/admin/RetreatPassports';
 
 interface Registration {
     id: string;
@@ -232,6 +233,9 @@ export default function AdminRetreatPage() {
                         : `The public page blocks registrations beyond ${capacity} people and shows "places left" when 12 or fewer remain. Pending checkouts hold their places for 30 minutes.`)}
                 </p>
             </div>
+
+            {/* Passports for the hotel */}
+            <RetreatPassports />
 
             {/* Registrations */}
             {registrations.length === 0 ? (

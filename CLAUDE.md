@@ -12,6 +12,9 @@ Supabase (RLS), Stripe, Resend. Styling: CSS variables + inline styles from
   run it and say what breaks until they do.
 - Local `.env.local` has Supabase + Resend keys but **no Stripe keys** — checkout locally
   always reports "payment not available". That is expected; Stripe works only in production.
+- The local `SUPABASE_SERVICE_ROLE_KEY` is **not a valid key** (Supabase answers 401 "Invalid API
+  key"), so every route that uses `createAdminClient()` fails on this machine. That is the local
+  environment, not a bug. Test service-role logic against a fake client, or in production.
 
 ## Conventions that prevent real bugs
 
@@ -56,6 +59,15 @@ Supabase (RLS), Stripe, Resend. Styling: CSS variables + inline styles from
   (`/api/retreat/register`, prices/dates in `src/lib/retreat.ts`), capacity in
   `retreat_settings` (people not bookings; pending checkouts hold places 30 min),
   admin at `/admin/retreat`. Public availability API hides counts unless ≤12 remain.
+- **Retreat passports**: one shared link `/retreat-2026/passports` (booking lookup by email +
+  phone, or an "unmatched" upload an admin assigns later). Files go to the PRIVATE bucket
+  `retreat-passports`; its tables have RLS on with no policies, so only server routes with the
+  service role can touch them. A passport is only ever served through a short signed URL from
+  an admin-authenticated or hotel-verified route — the public page can write but never read.
+  Hotel portal `/retreat-2026/hotel/[token]`: hashed token + passcode, expiry, revoke, audit
+  log. Logic in `src/lib/retreat-passports-server.ts`; admin panel in Admin → Retreat 2026.
+  Everything is purged after `PASSPORT_PURGE_AFTER` in `src/lib/retreat.ts` (runs when the
+  admin retreat page is opened).
 - **Waitlist**: lifecycle waiting → offered (pending membership holds the place, 72h to pay)
   → paid (webhook removes entry) or expired (hold released, back of queue, join date kept).
   Logic in `src/lib/waitlist-server.ts` (offerPlace / sweepWaitlist); the sweep runs on admin
