@@ -90,6 +90,10 @@ Supabase (RLS), Stripe, Resend. Styling: CSS variables + inline styles from
   back to inline price_data, so failures look tier-specific when they're flow-specific.
 - Old members with no active membership see a "Complete Your Membership" banner on the
   dashboard; the webhook activates memberships on successful checkout.
+- Retreat passport purge is lazy: files are only deleted when an admin opens Admin → Retreat
+  2026 after `PASSPORT_PURGE_AFTER` (or presses "Delete all passports now"). If nobody opens
+  that page, the files stay. A hotel link's passcode is shown once at creation and stored
+  hashed — a lost passcode means withdrawing the link and creating a new one.
 - `retreatpromo/` is a gitignored local video workspace (ffmpeg promo builds) — never commit it.
 - Design context for UI work: `PRODUCT.md` (root); attendance UX critique history in
   `.impeccable/critique/`.
