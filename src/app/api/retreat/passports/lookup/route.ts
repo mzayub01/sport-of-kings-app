@@ -11,7 +11,7 @@ import {
     listPassports,
 } from '@/lib/retreat-passports-server';
 
-// Public: find a participant's booking from the email + phone they registered
+// Public: find a participant's booking from the email address they registered
 // with. Returns attendee names and whether each passport has been received —
 // never any file. Failed lookups are rate-limited per IP and all failures
 // return the same message, so this can't be used to test email addresses.
@@ -21,9 +21,9 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Passport collection for this retreat has closed.', closed: true }, { status: 410 });
         }
 
-        const { email, phone } = await request.json();
-        if (typeof email !== 'string' || typeof phone !== 'string' || !email.trim() || !phone.trim()) {
-            return NextResponse.json({ error: 'Please enter the email and phone number you registered with.' }, { status: 400 });
+        const { email } = await request.json();
+        if (typeof email !== 'string' || !email.trim()) {
+            return NextResponse.json({ error: 'Please enter the email address you registered with.' }, { status: 400 });
         }
 
         const admin = await createAdminClient();
@@ -33,11 +33,11 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Too many attempts. Please wait 15 minutes and try again.' }, { status: 429 });
         }
 
-        const matches = matchBookings(await loadPaidRegistrations(admin), email, phone);
+        const matches = matchBookings(await loadPaidRegistrations(admin), email);
         if (matches.length === 0) {
             await recordAttempt(admin, ip, 'lookup');
             return NextResponse.json(
-                { error: 'We couldn’t find a booking with those details. Check the email and phone number used when registering.' },
+                { error: 'We couldn’t find a booking with that email address. Check it’s the one used when registering.' },
                 { status: 404 }
             );
         }

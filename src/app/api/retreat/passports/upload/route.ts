@@ -13,7 +13,7 @@ import {
 } from '@/lib/retreat-passports-server';
 
 // Public: store one passport file. Two modes:
-//   booking   — email + phone are re-verified on every upload, then the file
+//   booking   — the booking email is re-verified on every upload, then the file
 //               is attached to (registrationId, attendeeIndex); re-uploading
 //               replaces the previous file
 //   unmatched — "can't find my booking": name + file, held for an admin to assign
@@ -46,7 +46,6 @@ export async function POST(request: NextRequest) {
 
         if (mode === 'booking') {
             const email = String(form.get('email') || '');
-            const phone = String(form.get('phone') || '');
             const registrationId = String(form.get('registrationId') || '');
             const attendeeIndex = Number(form.get('attendeeIndex'));
 
@@ -54,7 +53,7 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: 'Too many uploads from this device. Please try again later.' }, { status: 429 });
             }
 
-            const booking = matchBookings(await loadPaidRegistrations(admin), email, phone)
+            const booking = matchBookings(await loadPaidRegistrations(admin), email)
                 .find(r => r.id === registrationId);
             if (!booking) {
                 await recordAttempt(admin, ip, 'lookup');

@@ -62,19 +62,13 @@ export interface RegistrationLite {
     id: string;
     lead_name: string;
     lead_email: string;
-    lead_phone: string;
     attendees: RetreatAttendee[];
-}
-
-/** Last 9 digits, so 07123 456789 and +44 7123 456789 compare equal. */
-export function phoneKey(phone: string): string {
-    return (phone || '').replace(/\D/g, '').slice(-9);
 }
 
 export async function loadPaidRegistrations(admin: SupabaseClient): Promise<RegistrationLite[]> {
     const { data, error } = await admin
         .from('retreat_registrations')
-        .select('id, lead_name, lead_email, lead_phone, attendees')
+        .select('id, lead_name, lead_email, attendees')
         .eq('retreat_year', RETREAT.year)
         .eq('status', 'paid')
         .order('created_at');
@@ -82,15 +76,15 @@ export async function loadPaidRegistrations(admin: SupabaseClient): Promise<Regi
     return (data || []) as RegistrationLite[];
 }
 
-/** Bookings whose lead email AND phone both match (compared in code, so no SQL wildcards). */
-export function matchBookings(registrations: RegistrationLite[], email: string, phone: string): RegistrationLite[] {
+/**
+ * Bookings made with this email address. The booking email is the only thing a
+ * participant has to know, so compare the whole address exactly (in code, so
+ * SQL wildcards can't match) and keep failed lookups rate-limited.
+ */
+export function matchBookings(registrations: RegistrationLite[], email: string): RegistrationLite[] {
     const wantedEmail = (email || '').trim().toLowerCase();
-    const wantedPhone = phoneKey(phone);
-    if (!wantedEmail || wantedPhone.length < 7) return [];
-    return registrations.filter(r =>
-        (r.lead_email || '').trim().toLowerCase() === wantedEmail &&
-        phoneKey(r.lead_phone) === wantedPhone
-    );
+    if (!wantedEmail.includes('@')) return [];
+    return registrations.filter(r => (r.lead_email || '').trim().toLowerCase() === wantedEmail);
 }
 
 // ---------------------------------------------------------------------------

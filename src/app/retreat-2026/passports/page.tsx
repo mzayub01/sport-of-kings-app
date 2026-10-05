@@ -62,7 +62,6 @@ async function prepareFile(file: File): Promise<File> {
 export default function RetreatPassportsPage() {
     const [step, setStep] = useState<'lookup' | 'booking' | 'unmatched' | 'unmatched-done'>('lookup');
     const [email, setEmail] = useState('');
-    const [phone, setPhone] = useState('');
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [slots, setSlots] = useState<Record<string, SlotState>>({});
     const [looking, setLooking] = useState(false);
@@ -83,7 +82,7 @@ export default function RetreatPassportsPage() {
             const response = await fetch('/api/retreat/passports/lookup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, phone }),
+                body: JSON.stringify({ email }),
             });
             const data = await response.json();
             if (!response.ok) {
@@ -109,7 +108,6 @@ export default function RetreatPassportsPage() {
             const form = new FormData();
             form.append('mode', 'booking');
             form.append('email', email);
-            form.append('phone', phone);
             form.append('registrationId', booking.registrationId);
             form.append('attendeeIndex', String(attendee.index));
             form.append('file', prepared);
@@ -192,15 +190,11 @@ export default function RetreatPassportsPage() {
                         <div className="card-body">
                             <h2 style={{ fontSize: 'var(--text-lg)', margin: '0 0 var(--space-1)' }}>Find your booking</h2>
                             <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', margin: '0 0 var(--space-4)' }}>
-                                Enter the email and phone number used when the retreat was booked.
+                                Enter the email address used when the retreat was booked.
                             </p>
                             <div className="form-group">
-                                <label className="form-label" htmlFor="pp-email">Email</label>
-                                <input id="pp-email" type="email" className="form-input" required autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label" htmlFor="pp-phone">Phone number</label>
-                                <input id="pp-phone" type="tel" className="form-input" required autoComplete="tel" value={phone} onChange={e => setPhone(e.target.value)} />
+                                <label className="form-label" htmlFor="pp-email">Email address</label>
+                                <input id="pp-email" type="email" className="form-input" required autoComplete="email" inputMode="email" value={email} onChange={e => setEmail(e.target.value)} />
                             </div>
                             <button type="submit" className="btn btn-primary btn-lg" disabled={looking} style={{ width: '100%' }}>
                                 {looking ? <Loader2 size={18} className="spinner" /> : null}
@@ -287,7 +281,7 @@ export default function RetreatPassportsPage() {
                             className="btn btn-ghost"
                             style={{ margin: '0 auto', display: 'flex' }}
                         >
-                            <ArrowLeft size={16} /> Use different booking details
+                            <ArrowLeft size={16} /> Use a different email address
                         </button>
                     </>
                 )}

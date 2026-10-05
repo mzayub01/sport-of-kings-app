@@ -59,8 +59,9 @@ Supabase (RLS), Stripe, Resend. Styling: CSS variables + inline styles from
   (`/api/retreat/register`, prices/dates in `src/lib/retreat.ts`), capacity in
   `retreat_settings` (people not bookings; pending checkouts hold places 30 min),
   admin at `/admin/retreat`. Public availability API hides counts unless ≤12 remain.
-- **Retreat passports**: one shared link `/retreat-2026/passports` (booking lookup by email +
-  phone, or an "unmatched" upload an admin assigns later). Files go to the PRIVATE bucket
+- **Retreat passports**: one shared link `/retreat-2026/passports` (booking lookup by the
+  booking email alone — the club chose simplicity over a second factor — or an "unmatched"
+  upload an admin assigns later). Files go to the PRIVATE bucket
   `retreat-passports`; its tables have RLS on with no policies, so only server routes with the
   service role can touch them. A passport is only ever served through a short signed URL from
   an admin-authenticated or hotel-verified route — the public page can write but never read.
